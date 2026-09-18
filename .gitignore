@@ -1,0 +1,18 @@
+# Binaires compilés
+*.dcu
+*.exe
+*.rsm
+*.map
+*.local
+*.identcache
+*.projdata
+
+# Sauvegardes et fichiers système
+_sauvegardes/
+*.bak
+*.~*
+Thumbs.db
+microdiag.txt
+
+# Fichiers sauvegarde du jeu (gros, reproductibles)
+microcosme.sav
