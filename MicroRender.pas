@@ -932,7 +932,7 @@ begin
   C.TextOut(20, Y, EreLabel);
   C.Font.Name := 'Segoe UI'; C.Font.Size := 8; C.Font.Style := [];
   Inc(Y, 20);
-  if (FEra < 3) and (not CanPassEre) then begin
+  if (FEra < ERE_MAX) and (not CanPassEre) then begin
     C.Font.Color := Col(100, 105, 88);
     S := Format('technologies %d/%d · peuple %d · inventions %d/%d',
       [CountTechEre(FEra), IfThen(FEra = 1, 7, 8), CountS, CountInno, InnoTotal]);

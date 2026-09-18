@@ -215,6 +215,12 @@ begin
           BID_G3D: OpenGraph3DWindow;
           BID_RELIEF: begin SetRelief(not ReliefOn); Invalidate end;
           BID_CHRON: begin FChronShow := not FChronShow; Invalidate end;
+          BID_ERE: if PassEre then begin                        // ★ERE5 passage manuel d'ère
+            ChronAdd(CK_TECH, 'le peuple entre dans l''ère '
+              + IntToStr(EreCourante) + ' — ' + ERE_NOM[EreCourante]);
+            Toast('nouvelle ère : ' + ERE_NOM[EreCourante]);
+            AudioEre(EreCourante);                              // ★ERE7
+          end;
           BID_HELP:  HelpToggle;
           BID_CFGSHOW: begin
             FCfgShow := not FCfgShow;
