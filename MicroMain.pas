@@ -1,8 +1,10 @@
-﻿                      unit MicroMain;
+﻿unit MicroMain;
 
-{ Microcosme — fiche principale, caméra (pan/zoom), scroll du carnet,
-  interactions, écran de départ. + aide intégrée F1 · son F4.
-  v10 ★ERE : ResetEre (NewWorld), cheat test ères E/P (FormKeyDown, retiré étape 5). }
+{ Microcosme — fiche principale, caméra, scroll du carnet, interactions,
+  écran de départ. Aide F1 · son F4.
+  v13 ★vues : F5 = monde plein écran · F6 = retour normal · F7 = Observatoire
+  (cerveau neuronal géant + fiche + techs ; clic = sapiens suivant).
+  Triches verrouillées : Ctrl+Shift+E (équiper) · B (état) · P (passer). }
 
 interface
 
@@ -31,6 +33,7 @@ type
     procedure HelpDemo(Act: Integer);
   private
     procedure WMEraseBkgnd(var Msg: TWMEraseBkgnd); message WM_ERASEBKGND;
+    procedure VueApply;                            // ★ modes d'écran F5/F6/F7
   protected
     function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
       MousePos: TPoint): Boolean; override;
@@ -46,7 +49,7 @@ implementation
 
 uses
   System.Diagnostics, System.SyncObjs, MicroBrainWin, MicroGraph3D,
-  MicroIno, MicroChrono, MicroEre;   // ★ERE
+  MicroIno, MicroChrono, MicroEre;
 
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
@@ -54,6 +57,32 @@ uses
 
 var
   SoundOn: Boolean = True;
+  FSaveBounds: TRect;                              // ★ géométrie fenêtrée d'origine
+  CHEAT_GATE: TShiftState = [ssCtrl, ssShift];     // ★ serrure de la triche
+
+{--- ★vues : applique le mode 0/1/2 à la fiche ------------------------------}
+
+procedure TMainForm.VueApply;
+begin
+  case FVue of
+    1, 2: begin
+      if BorderStyle <> bsNone then begin
+        FSaveBounds := BoundsRect;                 // mémorisé une seule fois, à l'entrée
+        BorderStyle := bsNone;
+      end;
+      BoundsRect := Screen.DesktopRect;
+    end;
+  else
+    if BorderStyle = bsNone then begin
+      BorderStyle := bsSizeable;
+      BoundsRect := FSaveBounds;
+    end;
+  end;
+  FormResize(Self);
+  Invalidate;
+end;
+
+{--- boutons démo de l'aide ---------------------------------------------------}
 
 procedure TMainForm.HelpDemo(Act: Integer);
 var I: Integer;
@@ -72,6 +101,34 @@ begin
     3: FRunning := not FRunning;
   end;
 end;
+
+{--- ★F7 observatoire : sélection des sapiens --------------------------------}
+
+procedure AutoPickSapien;                          // le plus cultivé par défaut
+var C, Best: TCreature;
+begin
+  Best := nil;
+  for C in Creatures do
+    if C.Alive and (C.Kind = 2) then
+      if (Best = nil) or (C.Cult > Best.Cult) then Best := C;
+  FSelected := Best;
+end;
+
+procedure NextSapien;                              // clic = spécimen suivant
+var I, Start: Integer;
+begin
+  if Creatures.Count = 0 then Exit;
+  Start := 0;
+  if FSelected <> nil then Start := Creatures.IndexOf(FSelected) + 1;
+  for I := 0 to Creatures.Count - 1 do
+    if Creatures[(Start + I) mod Creatures.Count].Alive and
+       (Creatures[(Start + I) mod Creatures.Count].Kind = 2) then begin
+      FSelected := Creatures[(Start + I) mod Creatures.Count];
+      Exit;
+    end;
+end;
+
+{--- outils --------------------------------------------------------------------}
 
 function ClampInt(V, A, B: Integer): Integer;
 begin
@@ -121,19 +178,19 @@ begin
     ClearWorldObjects;
     ResetEvo;
     ResetInno;
-    ResetEre;                        // ★ERE : ère 1, biblio 0
+    ResetEre;
     SX := Random(4096); SY := Random(4096);
     GenTerrain;
     RenderTerrainBmp;
     SeedFish;
     FSimTime := CDAY * 0.18; SampleT := 0;
-    for I := 1 to 1280 do AddPlant(Random(GW), Random(GH), 0.3 + Random * 0.6);   // 1a (×4)
-    for G := 1 to 8 do begin        // 1a (4 → 8 troupeaux)
+    for I := 1 to 1280 do AddPlant(Random(GW), Random(GH), 0.3 + Random * 0.6);   // 1a
+    for G := 1 to 8 do begin                       // 1a : 8 troupeaux
       X := Random(GW); Y := Random(GH);
       for I := 1 to 15 do
         SpawnCreature(0, X + Random * 8 - 4, Y + Random * 8 - 4, nil, nil, 0);
     end;
-    for G := 1 to 3 do begin        // 1a (2 → 3 meutes)
+    for G := 1 to 3 do begin                       // 1a : 3 meutes
       X := Random(GW); Y := Random(GH);
       for I := 1 to 3 do
         SpawnCreature(1, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
@@ -156,6 +213,8 @@ begin
   end;
 end;
 
+{--- fiche ---------------------------------------------------------------------}
+
 procedure TMainForm.WMEraseBkgnd(var Msg: TWMEraseBkgnd);
 begin
   Msg.Result := 1;
@@ -170,13 +229,17 @@ begin
     Invalidate;
     Exit;
   end;
+  if FVue = 2 then begin                            // ★ F7 observatoire : clic = suivant
+    if Button = mbLeft then begin NextSapien; Invalidate end;
+    Exit;
+  end;
   if Button = mbRight then begin
-    if X >= PANELW then begin
+    if X >= FPanelW then begin
       FDrag := True; FDragX := X; FDragY := Y; FDragCX := FCamX; FDragCY := FCamY;
     end;
     Exit;
   end;
-  if X < PANELW then begin
+  if X < FPanelW then begin
     if (X > PANELW - 8) and (FPanelH > ClientHeight) then begin
       if (Y + FPanelScroll) * ClientHeight div FPanelH < FPanelScroll + ClientHeight div 2 then
         FPanelScroll := FPanelScroll - ClientHeight div 3
@@ -215,11 +278,11 @@ begin
           BID_G3D: OpenGraph3DWindow;
           BID_RELIEF: begin SetRelief(not ReliefOn); Invalidate end;
           BID_CHRON: begin FChronShow := not FChronShow; Invalidate end;
-          BID_ERE: if PassEre then begin                        // ★ERE5 passage manuel d'ère
+          BID_ERE: if PassEre then begin                        // ★ERE5 passage manuel
             ChronAdd(CK_TECH, 'le peuple entre dans l''ère '
               + IntToStr(EreCourante) + ' — ' + ERE_NOM[EreCourante]);
             Toast('nouvelle ère : ' + ERE_NOM[EreCourante]);
-            AudioEre(EreCourante);                              // ★ERE7
+            AudioEre(EreCourante);
           end;
           BID_HELP:  HelpToggle;
           BID_CFGSHOW: begin
@@ -238,8 +301,7 @@ begin
     Exit;
   end;
   if not FStarted then begin
-
-  FStarted := True; FRunning := True; Invalidate; Exit;
+    FStarted := True; FRunning := True; Invalidate; Exit;
   end;
   WP := ScreenToWorld(X, Y);
   FSimCS.Enter;
@@ -285,12 +347,12 @@ begin
   end;
   Result := inherited;
   P := ScreenToClient(MousePos);
-  if P.X < PANELW then begin
+  if (FVue = 0) and (P.X < FPanelW) then begin     // ★ molette carnet (mode normal)
     FPanelScroll := ClampInt(FPanelScroll - WheelDelta, 0, FPanelH - ClientHeight);
     if FPanelScroll < 0 then FPanelScroll := 0;
     Invalidate;
     Result := True;
-  end else if (P.X >= FVP.Left) and FStarted then begin
+  end else if (FVue <> 2) and (P.X >= FVP.Left) and FStarted then begin
     ZoomAt(P.X, P.Y, Exp(-WheelDelta * 0.0016));
     Invalidate;
     Result := True;
@@ -326,10 +388,32 @@ begin
     SoundOn := not SoundOn;
     if SoundOn then AudioSetMasterVolume(0.85)
                else AudioSetMasterVolume(0);
+    Key := 0;
   end;
 
-    // ── ★ERE TEMPORAIRE test ères — RETIRER quand le bouton doré est validé ──
-  if FStarted and (Creatures <> nil) then begin
+  // ── ★vues F5 / F6 / F7 ──
+  if Key = VK_F5 then begin
+    Key := 0;
+    FVue := IfThen(FVue = 1, 0, 1);                 // bascule monde plein écran
+    VueApply;
+    Invalidate;
+  end;
+  if Key = VK_F6 then begin
+    Key := 0;
+    FVue := 0;                                      // retour normal garanti
+    VueApply;
+    Invalidate;
+  end;
+  if Key = VK_F7 then begin
+    Key := 0;
+    FVue := IfThen(FVue = 2, 0, 2);                 // bascule Observatoire
+    if FVue = 2 then AutoPickSapien;                // le plus cultivé s'affiche d'office
+    VueApply;
+    Invalidate;
+  end;
+
+  // ── ★ERE triche verrouillée : Ctrl+Shift+E · Ctrl+Shift+B · Ctrl+Shift+P ──
+  if FStarted and (Creatures <> nil) and (Shift = CHEAT_GATE) then begin
     if Key = Ord('E') then begin
       Key := 0;
       var C: TCreature;
@@ -341,7 +425,6 @@ begin
             for i := 0 to TECH_COUNT - 1 do
               if TECHBASE[i].Era = EreCourante then
                 GiveTech(C, TECHBASE[i].Code);
-               // seuils de sortie de l'ère courante (tableaux 1..7 ; ère 8 = sommet, clamp)
         Seuil := ERE_INV[Min(EreCourante, ERE_MAX - 1)];
         PopMin := ERE_POP[Min(EreCourante, ERE_MAX - 1)];
         for C in Creatures do
@@ -350,7 +433,6 @@ begin
               if not HasInno(C, k) then GiveInno(C, k);
             Break;
           end;
-        // ★ le cheat équipe, mais ne crée pas de peuple : on complète la pop requise
         while CountS < PopMin do
           SpawnCreature(2, FHomeX + Random * 8 - 4, FHomeY + Random * 8 - 4,
                         nil, nil, 0);
@@ -363,50 +445,43 @@ begin
     if Key = Ord('B') then begin
       Key := 0;
       var MsgP: string;
-      if CanPassEre then MsgP := ' — PASSAGE PRÊT (P)'
-      else if EreCourante >= 3 then MsgP := ' — sommet atteint'
+      if CanPassEre then MsgP := ' — PASSAGE PRÊT (bouton doré)'
+      else if EreCourante >= MaxEraContent then MsgP := ' — sommet de contenu livré'
       else MsgP := ' — incomplet';
       Toast(Format('%s | techs %d/%d · inno %d/%d · pop %d/%d | biblio ×%.2f%s',
-        [EreLabel, CountTechEre(EreCourante), IfThen(EreCourante = 1, 7, 8),
+        [EreLabel, CountTechEre(EreCourante),
+         IfThen(EreCourante >= MaxEraContent, 0,
+           {nécessite un décompte : approximé par 8 au-delà de l'ère 1}
+           IfThen(EreCourante = 1, 7, 8)),
          CountInno, InnoTotal, CountS, EreMaxS, BiblioMult, MsgP]));
       Invalidate;
     end;
-
-       if Key = Ord('V') then begin               // test VOIX — ASCII : insensible à l'encodage grec
-      Key := 0;
-      Toast('test voix envoyé');
-      AudioSpeak('αβγδ', Round(FCamX), Round(FCamY), False);
-    end;
-    if Key = Ord('D') then begin               // test TAMBOUR — autre branche de la file
-      Key := 0;
-      Toast('test tambour envoyé');
-      AudioDrum(Round(FCamX), Round(FCamY));
-    end;
-
-        if Key = Ord('W') then begin                   // ★ diagnostic audio
-      Key := 0;
-      //Toast(AudioDebug);
-      Invalidate;
-    end;
-
     if Key = Ord('P') then begin
       Key := 0;
       if PassEre then begin
         ChronAdd(CK_TECH, 'une nouvelle ère s''ouvre : ' + ERE_NOM[EreCourante]);
         Toast('nouvelle ère : ' + ERE_NOM[EreCourante]);
-      end else if EreCourante >= 3 then
-        Toast('ère 3 — sommet de l''évolution')
+        AudioEre(EreCourante);
+      end else if EreCourante >= MaxEraContent then
+        Toast('sommet de contenu livré — les ères futures attendent leur contenu')
       else
-        Toast('passage refusé — appuie sur B pour voir ce qui manque');
+        Toast('passage refusé — Ctrl+Shift+B pour voir ce qui manque');
       Invalidate;
     end;
   end;
-  // ── ★ERE fin bloc temporaire ─────────────────────────────────────────────e ───────────────────────────────────────────────
+  // ── fin triche ──────────────────────────────────────────────────────────────
 end;
 
 procedure TMainForm.FormResize(Sender: TObject);
 begin
-  FVP := Rect(PANELW, 0, Max(ClientWidth, PANELW + 8), Max(ClientHeight, 8));
+  if FVue = 2 then
+    FVP := Rect(ClientWidth, 0, ClientWidth + 8, Max(ClientHeight, 8))
+  else if FVue = 1 then
+    FVP := Rect(0, 0, Max(ClientWidth, 8), Max(ClientHeight, 8))
+  else
+    FVP := Rect(PANELW, 0, Max(ClientWidth, PANELW + 8), Max(ClientHeight, 8));
+  if FVue = 2 then FPanelW := PANELW               // ★ F7 : le carnet n'est pas utilisé
+  else FPanelW := PANELW;
   if (FVP.Width > 0) and (FVP.Height > 0) then begin
     FWorld.SetSize(FVP.Width, FVP.Height);
     FScale := Max(FVP.Width / GW, FVP.Height / GH);
@@ -424,45 +499,54 @@ begin
       FormResize(Self);
     FSimCS.Enter;
     try
-      RenderWorld;
-      Canvas.Draw(FVP.Left, FVP.Top, FWorld);
+      if FVue = 2 then begin
+        // ★ F7 : l'Observatoire — cerveau géant, fiche, techs
+        DrawObservatoire(Canvas, ClientWidth, ClientHeight);
+      end else begin
+        RenderWorld;
+        Canvas.Draw(FVP.Left, FVP.Top, FWorld);
 
-      DrawPanel(FPanelBM.Canvas, 0);
-      if FPanelBM.Height < FPanelH then FPanelBM.SetSize(PANELW, FPanelH);
-      DrawPanel(FPanelBM.Canvas, FPanelBM.Height);
+        // passe 1 : mesurer — passe 2 : dessiner le carnet
+        DrawPanel(FPanelBM.Canvas, 0);
+        if FPanelBM.Height < FPanelH then FPanelBM.SetSize(FPanelW, FPanelH);
+        if FPanelBM.Width <> FPanelW then FPanelBM.SetSize(FPanelW, FPanelH);
+        DrawPanel(FPanelBM.Canvas, FPanelBM.Height);
 
-      FPanelScroll := ClampInt(FPanelScroll, 0, Max(0, FPanelH - ClientHeight));
-      Canvas.CopyRect(Rect(0, 0, PANELW, ClientHeight),
-                      FPanelBM.Canvas,
-                      Rect(0, FPanelScroll, PANELW, FPanelScroll + ClientHeight));
+        if FVue = 0 then begin
+          FPanelScroll := ClampInt(FPanelScroll, 0, Max(0, FPanelH - ClientHeight));
+          Canvas.CopyRect(Rect(0, 0, PANELW, ClientHeight),
+                          FPanelBM.Canvas,
+                          Rect(0, FPanelScroll, PANELW, FPanelScroll + ClientHeight));
+        end;
 
-      FPanelScroll := ClampInt(FPanelScroll, 0, Max(0, FPanelH - ClientHeight));
-      if FPanelH > ClientHeight then begin
-        Canvas.Brush.Style := bsSolid;
-        Canvas.Pen.Style := psClear;
-        Canvas.Brush.Color := Col(11, 14, 11);
-        Canvas.FillRect(Rect(PANELW - 8, 0, PANELW, ClientHeight));
-        CurH := ClientHeight * ClientHeight div FPanelH;
-        if CurH < 30 then CurH := 30;
-        SJ := (ClientHeight - CurH) * FPanelScroll div (FPanelH - ClientHeight);
-        Canvas.Brush.Color := Col(80, 86, 72);
-        Canvas.FillRect(Rect(PANELW - 6, SJ, PANELW - 2, SJ + CurH));
-      end else
-        FPanelScroll := 0;
+        // barre de scroll (mode normal seulement)
+        if (FVue = 0) and (FPanelH > ClientHeight) then begin
+          Canvas.Brush.Style := bsSolid;
+          Canvas.Pen.Style := psClear;
+          Canvas.Brush.Color := Col(11, 14, 11);
+          Canvas.FillRect(Rect(PANELW - 8, 0, PANELW, ClientHeight));
+          CurH := ClientHeight * ClientHeight div FPanelH;
+          if CurH < 30 then CurH := 30;
+          SJ := (ClientHeight - CurH) * FPanelScroll div (FPanelH - ClientHeight);
+          Canvas.Brush.Color := Col(80, 86, 72);
+          Canvas.FillRect(Rect(PANELW - 6, SJ, PANELW - 2, SJ + CurH));
+        end;
 
-      if FMsgT > 0 then begin
-        Canvas.Font.Name := 'Segoe UI'; Canvas.Font.Size := 9; Canvas.Font.Style := [];
-        Canvas.Brush.Style := bsSolid; Canvas.Brush.Color := Col(17, 21, 15);
-        Canvas.Pen.Style := psSolid; Canvas.Pen.Color := Col(38, 43, 33);
-        Canvas.Rectangle(FVP.Left + 20, FVP.Bottom - 44,
-                         FVP.Left + 20 + Canvas.TextWidth(FMsg) + 20, FVP.Bottom - 18);
-        Canvas.Brush.Style := bsClear; Canvas.Font.Color := Col(230, 224, 205);
-        Canvas.TextOut(FVP.Left + 30, FVP.Bottom - 39, FMsg);
+        // toast
+        if FMsgT > 0 then begin
+          Canvas.Font.Name := 'Segoe UI'; Canvas.Font.Size := 9; Canvas.Font.Style := [];
+          Canvas.Brush.Style := bsSolid; Canvas.Brush.Color := Col(17, 21, 15);
+          Canvas.Pen.Style := psSolid; Canvas.Pen.Color := Col(38, 43, 33);
+          Canvas.Rectangle(FVP.Left + 20, FVP.Bottom - 44,
+                           FVP.Left + 20 + Canvas.TextWidth(FMsg) + 20, FVP.Bottom - 18);
+          Canvas.Brush.Style := bsClear; Canvas.Font.Color := Col(230, 224, 205);
+          Canvas.TextOut(FVP.Left + 30, FVP.Bottom - 39, FMsg);
+        end;
       end;
     finally
       FSimCS.Leave;
     end;
-    if not FStarted then begin
+    if (not FStarted) and (FVue = 0) then begin
       Canvas.Brush.Style := bsSolid;
       Canvas.Brush.Color := Col(14, 17, 12);
       Canvas.FillRect(FVP);
@@ -543,6 +627,8 @@ begin
   FPanelBM.PixelFormat := pf32bit;
   FPanelScroll := 0;
   FPanelH := 0;
+  FPanelW := PANELW;
+  FVue := 0;
 
   OnPaint := FormPaint;
   OnMouseDown := FormMouseDown;
