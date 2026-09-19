@@ -1,10 +1,10 @@
-﻿unit MicroRender;
+﻿                   unit MicroRender;
 
 { Microcosme — rendu terrain interpolé (îlots), poissons, pirogues,
   huttes (feu, réserves, champs), maisons de pierre (ère 2+), fanion,
   colonne (Antiquité), donjon (Moyen Âge), façades peintes (Renaissance),
-  carte mentale, liens mentors, bulles vocales, carnet à largeur variable,
-  Observatoire F7 (cerveau géant). }
+  carte mentale, liens mentors, bulles vocales, carnet à largeur variable
+  i18n (F8 FR/EN), Observatoire F7 (cerveau géant, clic = sapiens suivant). }
 
 interface
 
@@ -27,14 +27,14 @@ procedure DrawLine(C: TCanvas; const R: TRect; MaxV, Kind: Integer);
 procedure DrawPanel(C: TCanvas; H: Integer);
 procedure AddBtn(const R: TRect; const Cap: string; Id: Integer; Active: Boolean);
 procedure DrawBrainBig(C: TCanvas; W, H: Integer);
-procedure DrawObservatoire(C: TCanvas; W, H: Integer);   // ★F7
+procedure DrawObservatoire(C: TCanvas; W, H: Integer);
 procedure SetRelief(AOn: Boolean);
 function ReliefOn: Boolean;
 function SaisonFroid: Single;
 
 implementation
 
-uses MicroSim, MicroRenderPro, MicroHelp, MicroEre;
+uses MicroSim, MicroRenderPro, MicroHelp, MicroEre, MicroLang;
 
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
@@ -163,6 +163,7 @@ var S, OX, OY, VX0, VY0, VX1, VY1: Double;
    CA2, SA2: Single;
    MXp, MYp: Integer;
    Poly: array[0..2] of TPoint;
+   V :Tcity;
    function InV(X, Y, M: Double): Boolean;
    begin
      Result := (X > VX0 - M) and (X < VX1 + M) and (Y > VY0 - M) and (Y < VY1 + M);
@@ -224,10 +225,10 @@ begin
         Pen.Style := psSolid;
         Pen.Color := Col(44, 42, 40);
         Pen.Width := 1;
-        if FEra >= 3 then Brush.Color := Col(150, 148, 140)     // ère 3 : pierre taillée
-        else Brush.Color := Col(123, 117, 108);                 // ère 2 : pierre sombre
+        if FEra >= 3 then Brush.Color := Col(150, 148, 140)
+        else Brush.Color := Col(123, 117, 108);
         if FEra >= 6 then begin
-          // 1c-ter — la Renaissance peint ses façades (teinte stable par position)
+          // 1c-ter — la Renaissance peint ses façades
           case (Trunc(HHut.X) * 7 + Trunc(HHut.Y) * 13) mod 4 of
             0: Brush.Color := Col(198, 168, 130);   // ocre
             1: Brush.Color := Col(172, 178, 150);   // sauge
@@ -241,7 +242,7 @@ begin
         Poly[1] := Point(PX + RR + 1, PY - RR div 2);
         Poly[2] := Point(PX, PY - RR - Max(2, RR div 2));
         Polygon(Poly);
-        if HHut.Fire then begin                                 // fanion doré sur le feu
+        if HHut.Fire then begin                                 // fanion doré
           Pen.Color := Col(70, 62, 50);
           MoveTo(PX, PY - RR - Max(2, RR div 2));
           LineTo(PX, PY - RR * 2 - Max(2, RR));
@@ -252,7 +253,7 @@ begin
           Poly[2] := Point(PX, PY - RR * 2 - Max(2, RR) + Max(3, RR));
           Polygon(Poly);
         end;
-        // 1c/1c-bis — le monument du feu : colonne (Antiquité), donjon (Moyen Âge)
+        // 1c/1c-bis — colonne (Antiquité), donjon (Moyen Âge)
         if (FEra >= 4) and HHut.Fire and PeopleHas(teCite) then begin
           Brush.Style := bsSolid;
           Pen.Style := psSolid;
@@ -260,13 +261,13 @@ begin
           Pen.Width := 1;
           RR2 := Max(2, Trunc(S * 0.35));
           if FEra >= 5 then begin
-            Brush.Color := Col(118, 116, 110);                  // donjon de pierre
+            Brush.Color := Col(118, 116, 110);                  // donjon
             Rectangle(PX - RR2 - 1, PY - RR * 4, PX + RR2 + 1, PY - RR * 2);
-            Rectangle(PX - RR2 - 1, PY - RR * 4 - 2, PX - RR2 + 1, PY - RR * 4);   // créneaux
+            Rectangle(PX - RR2 - 1, PY - RR * 4 - 2, PX - RR2 + 1, PY - RR * 4);
             Rectangle(PX - 1, PY - RR * 4 - 2, PX + 1, PY - RR * 4);
             Rectangle(PX + RR2 - 1, PY - RR * 4 - 2, PX + RR2 + 1, PY - RR * 4);
           end else begin
-            Rectangle(PX - RR2, PY - RR * 3, PX + RR2, PY - RR * 2);               // colonne
+            Rectangle(PX - RR2, PY - RR * 3, PX + RR2, PY - RR * 2);   // colonne
             Rectangle(PX - RR2 - 1, PY - RR * 3 - 1, PX + RR2 + 1, PY - RR * 3);
             Rectangle(PX - RR2 - 1, PY - RR * 2, PX + RR2 + 1, PY - RR * 2 + 1);
           end;
@@ -283,7 +284,7 @@ begin
         Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
       end;
 
-      // tablettes écrites : petits traits blancs
+      // tablettes écrites
       for MK := 0 to Marks.Count - 1 do
         if Sqr(Marks[MK].X - HHut.X) + Sqr(Marks[MK].Y - HHut.Y) < 9 then begin
           MXp := Trunc(OX + Marks[MK].X * S);
@@ -295,6 +296,58 @@ begin
           MoveTo(MXp, MYp - 2); LineTo(MXp, MYp + 2);
         end;
     end; // fin boucle HUTTES
+
+
+        // ===== ★VILLES A3 — place, remparts, monument, nom =====
+    for I := 0 to Cities.Count - 1 do begin
+      V := Cities[I];
+      if not InV(V.X, V.Y, 30) then Continue;
+      VX0 := 0; VY0 := 0; // (évite un hint de variable ; le test réel est InV)
+      PX := Trunc(OX + V.X * S);
+      PY := Trunc(OY + V.Y * S);
+      // — la place pavée (dès le bourg) —
+      if V.Niveau >= 2 then begin
+        Brush.Style := bsSolid; Pen.Style := psClear;
+        RR := Trunc(S * 2.6);
+        Brush.Color := AlphaColorBlend(Col(176, 168, 150), Col(11, 14, 11), 90);
+        Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
+      end;
+      // — les remparts (ville, niveau 3) : cercle de pierre troué —
+      if V.Niveau >= 3 then begin
+        Brush.Style := bsClear;
+        Pen.Style := psSolid; Pen.Width := Max(2, Trunc(S * 0.35));
+        Pen.Color := Col(138, 132, 122);
+        RR := Trunc(S * (5.5 + V.Niveau));
+        Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
+        Pen.Color := Col(168, 162, 150);
+        Pen.Width := 1;
+        Ellipse(PX - RR - 2, PY - RR - 2, PX + RR + 2, PY + RR + 2);
+      end;
+      // — le monument (cité, niveau 4) : tour + toit d'ardoise —
+      if V.Niveau >= 4 then begin
+        Brush.Style := bsSolid;
+        Pen.Style := psSolid; Pen.Width := 1; Pen.Color := Col(60, 56, 50);
+        Brush.Color := Col(140, 136, 128);
+        RR2 := Max(3, Trunc(S * 0.9));
+        Rectangle(PX - RR2, PY - RR2 * 3, PX + RR2, PY);
+        Brush.Color := Col(84, 88, 96);
+        Poly[0] := Point(PX - RR2 - 1, PY - RR2 * 3);
+        Poly[1] := Point(PX + RR2 + 1, PY - RR2 * 3);
+        Poly[2] := Point(PX, PY - RR2 * 4);
+        Polygon(Poly);
+      end;
+      // — le nom, au zoom —
+      if FZoom >= 1.8 then begin
+        Brush.Style := bsClear;
+        Font.Name := 'Georgia';
+        Font.Size := Max(9, Trunc(FZoom * 6));
+        Font.Style := [fsItalic, fsBold];
+        Font.Color := AlphaColorBlend(Col(232, 226, 206), Col(11, 14, 11), 200);
+        TextOut(PX - TextWidth(V.Nom) div 2,
+                PY - Trunc(S * (7 + V.Niveau)) - Font.Size - 2, V.Nom);
+      end;
+    end;
+
 
     // ===== CAMP ANCESTRAL =====
     if FHomeSet and (Huts.Count = 0) then begin
@@ -355,14 +408,13 @@ begin
       R := S * (0.55 + 0.55 * C.Sz) * Grow;
       CA := Cos(C.Angle); SA := Sin(C.Angle);
 
-      // — anim de marche : figée si immobile —
-      if (C.State = 'repos') or (C.State = 'caché') or (C.State = 'paît') or
-         (C.State = 'broute') or (C.State = 'récolte') then
+      if (C.State = L(57)) or (C.State = L(53)) or (C.State = L(54)) or
+         (C.State = L(51)) or (C.State = L(55)) then
         Phase := 0
       else
         Phase := FSimTime * 11 + C.CId * 0.7;
       Flags := 0;
-      if C.State = 'chasse' then Flags := PR_HUNT;
+      if C.State = L(72) then Flags := PR_HUNT;                // ★i18n 'chasse'/'hunting'
 
       if C.Kind = 2 then begin
         // — en mer : pirogue —
@@ -426,7 +478,7 @@ begin
           LineTo(Trunc(OX + C.Mentor.X * S), Trunc(OY + C.Mentor.Y * S));
           Pen.Style := psSolid;
         end;
-        // — corps détaillé (GDI+ anti-aliasé, orienté) —
+        // — corps détaillé —
         ProRender(FWorld.Canvas, 2, PX, PY, C.Angle, R,
                   Col(211, 172, 138), C.HueCol, Phase, Flags);
         // — plume —
@@ -495,7 +547,6 @@ begin
       end else begin
         ProRender(FWorld.Canvas, 3, PX, PY, C.Angle, R,
                   Col(206, 168, 104), Col(90, 60, 40), Phase, Flags);
-        // collier du maître
         if (C.Master <> nil) and C.Master.Alive then begin
           Pen.Style := psDot;
           Pen.Color := AlphaColorBlend(Col(208,167,92), Col(11,14,11), 110);
@@ -526,7 +577,6 @@ begin
     Warm := Max(0, 1 - Abs(SinD) * 2.5);
     if Warm > 0 then
       AlphaFill(FWorld.Canvas, W, H, FTintW, Col(255, 150, 70), Trunc(Warm * 15));
-          // <<< SAISONS : hiver bleuté · été doré
     Froid := SaisonFroid;
     if Froid > 0.03 then
       AlphaFill(FWorld.Canvas, W, H, FTintN, Col(148, 172, 205), Trunc(Froid * 38));
@@ -599,7 +649,7 @@ var
   function YO(Idx: Integer): Integer;
   begin Result := Y + BRH div 2 + Round((Idx - (NOUT - 1) / 2) * ((BRH - 70) / (NOUT - 1))) end;
 begin
-  W := FPanelW - 40;                        // ★ largeur courante
+  W := FPanelW - 40;
   XIn := 56; XH1 := 116; XH2 := 180; XOut := 244;
   C.Brush.Style := bsSolid;
   C.Brush.Color := Col(17, 21, 15);
@@ -743,14 +793,13 @@ begin
     C.Font.Name := 'Segoe UI'; C.Font.Size := 11; C.Font.Style := [];
     C.Brush.Style := bsClear;
     C.Font.Color := Col(139, 138, 116);
-    C.TextOut(24, 24, 'Aucun sapien sélectionné.');
-    C.TextOut(24, 46, 'Ferme cette fenêtre, clique un sapien avec l''outil « vue »,');
-    C.TextOut(24, 66, 'puis rouvre le cerveau depuis le carnet.');
+    C.TextOut(24, 24, L(73));      // ★i18n 'Aucun sapien sélectionné.'
+    C.TextOut(24, 46, L(74));      // ★i18n
+    C.TextOut(24, 66, L(75));      // ★i18n
     Exit;
   end;
-    XIn := 158; XOut := W - 158;
-  // ★F7 : les 2 couches cachées coupent l'espace ENTRE entrées et sorties
-  // en 3 intervalles égaux — plus de serrage contre les bords
+  XIn := 158; XOut := W - 158;
+  // ★F7 : les 2 couches cachées coupent l'espace en 3 intervalles égaux
   XH1 := XIn + (XOut - XIn) div 3;
   XH2 := XIn + 2 * (XOut - XIn) div 3;
 
@@ -875,7 +924,7 @@ begin
   end;
 
   C.Font.Color := Col(100, 105, 88);
-  C.TextOut(20, H - 30, 'vert = excitation · rouge = inhibition · pointillés = voie directe · 34 → 9 → 9 → 10');
+  C.TextOut(20, H - 30, L(76));      // ★i18n légende
 end;
 
 { ★F7 — l'Observatoire : réseau neuronal en géant au centre, fiche du
@@ -897,10 +946,10 @@ begin
   C.TextOut(30, 16, EreLabel);
   C.Font.Name := 'Segoe UI'; C.Font.Size := 12; C.Font.Style := [];
   C.Font.Color := Col(230, 224, 205);
-  S := Format('JOUR %.2d   %.2d:%.2d   %s · an %d     —     clic : sapiens suivant · F7 : revenir',
+  S := Format('JOUR %.2d   %.2d:%.2d   %s · an %d     —     %s',
     [DayCount, Trunc(FDayT * 24), Trunc(Frac(FDayT * 24) * 60),
      SAISNOM[(DayCount mod JOURS_ANNEE) * 4 div JOURS_ANNEE],
-     DayCount div JOURS_ANNEE + 1]);
+     DayCount div JOURS_ANNEE + 1, L(77)]);      // ★i18n 'clic : sapiens suivant · F7 : revenir'
   C.TextOut(30, 58, S);
   C.Brush.Color := Col(38, 43, 33);
   C.FillRect(Rect(30, 86, W - 30, 88));
@@ -909,7 +958,7 @@ begin
   Y := 106;
   C.Font.Name := 'Segoe UI'; C.Font.Size := 11; C.Font.Style := [];
   C.Font.Color := Col(139, 138, 116);
-  C.TextOut(30, Y, 'SPÉCIMEN');
+  C.TextOut(30, Y, AnsiUpperCase(L(12)));
   Inc(Y, 26);
   if (FSelected <> nil) and FSelected.Alive then begin
     C.Font.Name := 'Georgia'; C.Font.Size := 26; C.Font.Style := [fsItalic, fsBold];
@@ -919,23 +968,29 @@ begin
     C.Font.Name := 'Segoe UI'; C.Font.Size := 11; C.Font.Style := [];
     C.Font.Color := Col(139, 138, 116);
     case FSelected.Kind of
-      0: S := 'herbivore'; 1: S := 'prédateur';
-    else S := 'sapien';
+      0: S := L(21); 1: S := L(22);
+    else S := L(23);
     end;
     C.TextOut(30, Y, Format('gén. %d · %s · %s', [FSelected.Gen, S, FSelected.State]));
     Inc(Y, 26);
+    C.Brush.Style := bsClear;
     DrawBar(C, 30, Y, 320, FSelected.Energy / FSelected.MaxE, Col(228, 220, 190));
-    C.TextOut(362, Y - 5, 'énergie');  Inc(Y, 24);
+    C.Brush.Style := bsClear;
+    C.TextOut(362, Y - 5, L(78));  Inc(Y, 24);           // ★i18n 'énergie'
     if FSelected.Kind = 2 then begin
       DrawBar(C, 30, Y, 320, FSelected.Cult, Col(157, 187, 107));
-      C.TextOut(362, Y - 5, 'savoir');  Inc(Y, 24);
+      C.Brush.Style := bsClear;
+      C.TextOut(362, Y - 5, L(67));  Inc(Y, 24);         // ★i18n 'savoir'
     end;
     DrawBar(C, 30, Y, 320, (FSelected.Sp - 2.2) / 3.2, Col(208, 167, 92));
-    C.TextOut(362, Y - 5, 'vitesse');  Inc(Y, 24);
+    C.Brush.Style := bsClear;
+    C.TextOut(362, Y - 5, L(64));  Inc(Y, 24);           // ★i18n 'vitesse'
     DrawBar(C, 30, Y, 320, (FSelected.Se - 4) / 8, Col(208, 167, 92));
-    C.TextOut(362, Y - 5, 'perception');  Inc(Y, 24);
+    C.Brush.Style := bsClear;
+    C.TextOut(362, Y - 5, L(65));  Inc(Y, 24);           // ★i18n 'perception'
     DrawBar(C, 30, Y, 320, (FSelected.Sz - 0.6) / 0.9, Col(208, 167, 92));
-    C.TextOut(362, Y - 5, 'taille');  Inc(Y, 28);
+    C.Brush.Style := bsClear;
+    C.TextOut(362, Y - 5, L(66));  Inc(Y, 28);           // ★i18n 'taille'
     if FSelected.Kind = 2 then begin
       Items := TStringList.Create;
       try
@@ -943,8 +998,9 @@ begin
           if TECHBASE[I].Code in FSelected.Tech then
             Items.Add(TechNom(TECHBASE[I].Code));
         C.Font.Size := 10; C.Font.Color := Col(240, 180, 95);
+        C.Brush.Style := bsClear;
         if Items.Count = 0 then
-          C.TextOut(30, Y, 'aucune technologie')
+          C.TextOut(30, Y, L(79))                        // ★i18n 'aucune technologie'
         else begin
           Ln := '';
           for I := 0 to Items.Count - 1 do begin
@@ -959,30 +1015,32 @@ begin
       end;
       Inc(Y, 30);
       C.Font.Size := 11; C.Font.Color := Col(139, 138, 116);
+      C.Brush.Style := bsClear;
       S := '';
       for I := 0 to 3 do
         if FSelected.Inp[12 + I] > 0.05 then
-          S := S + 'entend ' + WORDS[I] + '  ';
-      if S = '' then S := 'n''entend rien';
+          S := S + L(63) + ' ' + WORDS[I] + '  ';        // ★i18n 'entend'
+      if S = '' then S := L(80);                         // ★i18n 'n''entend rien'
       C.TextOut(30, Y, S);
       Inc(Y, 30);
     end;
   end else begin
     C.Font.Name := 'Segoe UI'; C.Font.Size := 12; C.Font.Style := [];
     C.Font.Color := Col(139, 138, 116);
-    C.TextOut(30, Y, 'aucun spécimen');
+    C.TextOut(30, Y, L(81));                             // ★i18n 'aucun spécimen'
   end;
 
-  // populations, une ligne compacte en bas
+  // populations en bas
   Y := H - 60;
   C.Font.Size := 11; C.Font.Color := Col(100, 105, 88);
-  C.TextOut(30, Y, Format('sapiens %d/%d · herbivores %d · prédateurs %d · poissons %d · flore %d',
+  C.Brush.Style := bsClear;
+  C.TextOut(30, Y, Format(L(82),                         // ★i18n ligne populations
     [CountS, EreMaxS, CountH, CountP, FsN + FdN, Plants.Count]));
 
-   // ── centre : le réseau neuronal EN GRAND ──
+  // ── centre : le réseau neuronal EN GRAND ──
   if W > 1000 then begin
-    SetViewportOrgEx(C.Handle, 460, 100, nil);     // ★ fix : viewport, pas window
-    DrawBrainBig(C, W - 460 - 440, H - 100 - 40);
+    SetViewportOrgEx(C.Handle, 430, 100, nil);           // ★ fix : viewport (pas window)
+    DrawBrainBig(C, W - 430 - 410, H - 100 - 40);
     SetViewportOrgEx(C.Handle, 0, 0, nil);
   end;
 
@@ -991,7 +1049,8 @@ begin
   XR := W - 420;
   C.Font.Name := 'Segoe UI'; C.Font.Size := 11; C.Font.Style := [];
   C.Font.Color := Col(139, 138, 116);
-  C.TextOut(XR, Y, 'TECHNOLOGIES');
+  C.Brush.Style := bsClear;
+  C.TextOut(XR, Y, AnsiUpperCase(L(7)));
   Inc(Y, 24);
   C.Font.Size := 8;
   GN := 0;
@@ -1026,7 +1085,7 @@ begin
   // inventions récentes
   YInv := Y;
   C.Font.Size := 11; C.Font.Color := Col(139, 138, 116);
-  C.TextOut(XR, YInv, 'INVENTIONS');
+  C.TextOut(XR, YInv, AnsiUpperCase(L(11)));
   Inc(YInv, 22);
   C.Font.Size := 9;
   if Length(InnoLog) = 0 then
@@ -1045,7 +1104,7 @@ begin
   // annales
   YChr := YInv + 16;
   C.Font.Size := 11; C.Font.Color := Col(139, 138, 116);
-  C.TextOut(XR, YChr, 'ANNALES');
+  C.TextOut(XR, YChr, AnsiUpperCase(L(15)));
   Inc(YChr, 22);
   C.Font.Size := 9;
   if Length(Chronicle) > 0 then
@@ -1064,6 +1123,7 @@ begin
   // toast
   if FMsgT > 0 then begin
     C.Font.Name := 'Segoe UI'; C.Font.Size := 12; C.Font.Style := [];
+    C.Brush.Style := bsClear;
     C.Font.Color := Col(230, 224, 205);
     C.TextOut(30, H - 30, FMsg);
   end;
@@ -1146,14 +1206,13 @@ begin
   Inc(Y, IfThen(FPanelW > 320, 26, 20));
   if (FEra < ERE_MAX) and (not CanPassEre) then begin
     C.Font.Color := Col(100, 105, 88);
-    S := Format('technologies %d/%d · peuple %d · inventions %d/%d',
-      [CountTechEre(FEra), IfThen(FEra = 1, 7, 8), CountS, CountInno, InnoTotal]);
+    S := Format(L(32), [CountTechEre(FEra), IfThen(FEra = 1, 7, 8), CountS, CountInno, InnoTotal]);
     C.TextOut(20, Y, S);
     Inc(Y, IfThen(FPanelW > 320, 18, 14));
   end;
 
   C.Font.Color := Col(139, 138, 116);
-  C.TextOut(20, Y, 'CARNET D''OBSERVATION · DELPHI');
+  C.TextOut(20, Y, L(5));
   Inc(Y, IfThen(FPanelW > 320, 18, 14));
   C.Brush.Style := bsSolid;
   C.Brush.Color := Col(38, 43, 33);
@@ -1162,16 +1221,16 @@ begin
   C.FillRect(Rect(20, Y + 8, 20 + Trunc((PW - 40) * FDayT), Y + 10));
   Inc(Y, 26);
 
-  Section('Populations');
+  Section(L(6));
   C.Font.Size := IfThen(FPanelW > 320, 11, 9);
   for I := 0 to 4 do begin
     V := 0;
     case I of
-      0: begin S := 'flore'; V := Plants.Count; C.Brush.Color := Col(157, 187, 107) end;
-      1: begin S := 'herbivores'; V := CountH; C.Brush.Color := Col(228, 220, 190) end;
-      2: begin S := 'prédateurs'; V := CountP; C.Brush.Color := Col(201, 106, 69) end;
-      3: begin S := 'sapiens'; V := CountS; C.Brush.Color := Col(208, 167, 92) end;
-    else begin S := 'poissons'; V := FsN + FdN; C.Brush.Color := Col(159, 196, 207) end;
+      0: begin S := L(20); V := Plants.Count; C.Brush.Color := Col(157, 187, 107) end;
+      1: begin S := L(21); V := CountH; C.Brush.Color := Col(228, 220, 190) end;
+      2: begin S := L(22); V := CountP; C.Brush.Color := Col(201, 106, 69) end;
+      3: begin S := L(23); V := CountS; C.Brush.Color := Col(208, 167, 92) end;
+    else begin S := L(24); V := FsN + FdN; C.Brush.Color := Col(159, 196, 207) end;
     end;
     C.Brush.Style := bsSolid;
     C.FillRect(Rect(20, Y + 5, 26, Y + 11));
@@ -1191,10 +1250,8 @@ begin
     end;
   C.Font.Size := IfThen(FPanelW > 320, 11, 9); C.Brush.Style := bsClear;
   C.Font.Color := Col(208, 167, 92);
-  if GN > 0 then
-    S := Format('spirale de Fisher — plume %d%%', [Round(OS / GN * 100)])
-  else
-    S := 'spirale de Fisher — plume —';
+  if GN > 0 then S := Format(L(25), [Round(OS / GN * 100)])
+  else S := L(26);
   C.TextOut(20, Y, S);
   Inc(Y, IfThen(FPanelW > 320, 18, 14));
 
@@ -1204,10 +1261,8 @@ begin
       CS := CS + Creatures[I].Cult; Inc(GN);
     end;
   C.Font.Color := Col(157, 187, 107);
-  if GN > 0 then
-    S := Format('culture — savoir moyen %d%%', [Round(CS / GN * 100)])
-  else
-    S := 'culture — savoir moyen —';
+  if GN > 0 then S := Format(L(27), [Round(CS / GN * 100)])
+  else S := L(28);
   C.TextOut(20, Y, S);
   Inc(Y, IfThen(FPanelW > 320, 10, 8));
 
@@ -1218,11 +1273,11 @@ begin
       if IsWater(Creatures[I].X, Creatures[I].Y) then Inc(AtSea);
     end;
   C.Font.Color := Col(159, 196, 207);
-  S := Format('marins — %d navigateurs · %d en mer', [Nv, AtSea]);
+  S := Format(L(29), [Nv, AtSea]);
   C.TextOut(20, Y, S);
   Inc(Y, IfThen(FPanelW > 320, 22, 18));
 
-  Section('Technologies');
+  Section(L(7));
   C.Font.Size := IfThen(FPanelW > 320, 11, 9);
   LastEra := 0;
   for I := 0 to TECH_COUNT - 1 do begin
@@ -1233,7 +1288,7 @@ begin
       if LastEra > 1 then begin
         C.Font.Size := 8;
         C.Font.Color := Col(208, 167, 92);
-        C.TextOut(20, Y, '— ' + ERE_NOM[LastEra] + ' —');
+        C.TextOut(20, Y, '— ' + ERE_NOM(LastEra) + ' —');
         C.Font.Size := IfThen(FPanelW > 320, 11, 9);
         Inc(Y, 15);
       end;
@@ -1247,9 +1302,9 @@ begin
       if Car > 0 then
         Gl := Format('%s · j.%d', [TechInfo[TT].Who, TechInfo[TT].Day])
       else
-        Gl := 'PERDUE';
+        Gl := L(31);
     end else
-      Gl := 'inconnue';
+      Gl := L(30);
     C.Font.Color := Col(240, 180, 95);
     C.TextOut(20, Y, TechNom(TT));
     C.Font.Color := Col(208, 167, 92);
@@ -1268,7 +1323,7 @@ begin
   end;
   Inc(Y, 6);
 
-  Section('Dynamique');
+  Section(L(8));
   R := Rect(20, Y, PW - 20, Y + 74);
   C.Brush.Style := bsSolid; C.Brush.Color := Col(17, 21, 15);
   C.Pen.Style := psClear;
@@ -1284,9 +1339,9 @@ begin
     for I := 0 to 3 do DrawLine(C, R, MaxV, I);
   end;
   Inc(Y, 82);
-  Section('Évolution');
+  Section(L(9));
   DrawEvo(C, Y);
-  Section('Lexique émergent');
+  Section(L(10));
   C.Font.Size := IfThen(FPanelW > 320, 11, 9);
   for I := 0 to 3 do begin
     Has := Lex[I].N > 0.8;
@@ -1296,9 +1351,9 @@ begin
     else FF := 0;
     Gl := '—';
     if Has then begin
-      if (PP > 55) and (PP >= FF) then Gl := 'cri d''alarme ?'
-      else if FF > 55 then Gl := 'nourriture ?'
-      else if (PP < 22) and (FF < 22) then Gl := 'signal social ?';
+      if (PP > 55) and (PP >= FF) then Gl := L(60)
+      else if FF > 55 then Gl := L(61)
+      else if (PP < 22) and (FF < 22) then Gl := L(62);
     end;
     C.Font.Color := WORDCOL[I];
     C.TextOut(20, Y, WORDS[I]);
@@ -1329,12 +1384,12 @@ begin
     Inc(Y, IfThen(FPanelW > 320, 11, 9));
   end;
   Inc(Y, 4);
-  Section('Inventions du peuple');
+  Section(L(11));
   C.Font.Size := IfThen(FPanelW > 320, 11, 9);
   if Length(InnoLog) = 0 then begin
     C.Font.Color := Col(100, 105, 88);
     C.Brush.Style := bsClear;
-    C.TextOut(20, Y, 'l''histoire n''a pas encore d''objets…');
+    C.TextOut(20, Y, L(16));
     Inc(Y, 18);
   end else begin
     for I := Max(0, High(InnoLog) - 11) to High(InnoLog) do begin
@@ -1345,7 +1400,7 @@ begin
         C.Font.Color := Col(208, 167, 92);
       C.TextOut(20, Y, InnoLog[I].Base);
       C.Font.Color := Col(139, 138, 116);
-      C.TextOut(PW div 3, Y, 'par ' + InnoLog[I].Who);
+      C.TextOut(PW div 3, Y, L(83) + InnoLog[I].Who);      // ★i18n 'par '
       C.Font.Color := Col(100, 105, 88);
       S := 'j.' + IntToStr(InnoLog[I].Day);
       C.TextOut(PW - 20 - C.TextWidth(S), Y, S);
@@ -1354,13 +1409,13 @@ begin
     Inc(Y, 6);
   end;
   if FSelected <> nil then begin
-    Section('Spécimen');
+    Section(L(12));
     C.Font.Name := 'Georgia'; C.Font.Size := IfThen(FPanelW > 320, 18, 14); C.Font.Style := [fsItalic, fsBold];
     C.Font.Color := FSelected.HueCol;
     C.TextOut(20, Y, FSelected.Name);
     if not Mesuring then begin
       AddBtn(Rect(PW - 84, Y - FPanelScroll + 2, PW - 20, Y - FPanelScroll + 24),
-             'fiche', BID_INFO, False);
+             L(19), BID_INFO, False);
       C.Brush.Style := bsSolid; C.Pen.Style := psSolid; C.Pen.Width := 1;
       C.Pen.Color := Col(38, 43, 33);
       C.Brush.Color := Col(20, 24, 17);
@@ -1368,15 +1423,15 @@ begin
       C.Font.Name := 'Segoe UI'; C.Font.Size := 9; C.Font.Style := [];
       C.Brush.Style := bsClear;
       C.Font.Color := Col(139, 138, 116);
-      C.TextOut(PW - 84 + ((64 - C.TextWidth('fiche')) div 2), Y + 8, 'fiche');
+      C.TextOut(PW - 84 + ((64 - C.TextWidth(L(19))) div 2), Y + 8, L(19));
     end;
     Inc(Y, IfThen(FPanelW > 320, 24, 20));
     C.Font.Name := 'Segoe UI'; C.Font.Size := 8; C.Font.Style := [];
     C.Font.Color := Col(139, 138, 116);
     case FSelected.Kind of
-      0: S := 'herbivore';
-      1: S := 'prédateur';
-    else S := 'sapien';
+      0: S := L(21);
+      1: S := L(22);
+    else S := L(23);
     end;
     S := Format('gén. %d · %s · %s', [FSelected.Gen, S, FSelected.State]);
     if FSelected.Kind = 2 then
@@ -1384,7 +1439,7 @@ begin
     if FSelected.Kind = 2 then begin
       for I := 0 to 3 do
         if FSelected.Inp[12 + I] > 0.05 then
-          S := S + ' · entend ' + WORDS[I];
+          S := S + ' · ' + L(63) + ' ' + WORDS[I];
     end;
     C.TextOut(20, Y, S);
     Inc(Y, 20);
@@ -1392,31 +1447,31 @@ begin
     C.Font.Color := Col(139, 138, 116); C.Brush.Style := bsClear;
     C.TextOut(PW - 50, Y - 4, IntToStr(Trunc(Max(0, FSelected.Energy))));
     Inc(Y, 12);
-    C.TextOut(20, Y, 'vitesse');
+    C.TextOut(20, Y, L(64));
     DrawBar(C, 94, Y + 2, PW - 148, (FSelected.Sp - 2.2) / 3.2, Col(208, 167, 92));
     Inc(Y, 12);
-    C.TextOut(20, Y, 'perception');
+    C.TextOut(20, Y, L(65));
     DrawBar(C, 94, Y + 2, PW - 148, (FSelected.Se - 4) / 8, Col(208, 167, 92));
     Inc(Y, 12);
-    C.TextOut(20, Y, 'taille');
+    C.TextOut(20, Y, L(66));
     DrawBar(C, 94, Y + 2, PW - 148, (FSelected.Sz - 0.6) / 0.9, Col(208, 167, 92));
     Inc(Y, 12);
     if FSelected.Kind = 2 then begin
-      C.TextOut(20, Y, 'savoir');
+      C.TextOut(20, Y, L(67));
       DrawBar(C, 94, Y + 2, PW - 148, FSelected.Cult, Col(157, 187, 107));
       Inc(Y, 12);
       S := '';
-      if tFeu in FSelected.Tech then S := S + 'feu ';
-      if tAgri in FSelected.Tech then S := S + 'agri ';
-      if tStock in FSelected.Tech then S := S + 'rés. ';
-      if tPast in FSelected.Tech then S := S + 'past.';
-      if tPeche in FSelected.Tech then S := S + 'pêche ';
-      if tNav in FSelected.Tech then S := S + 'nav.';
+      if tFeu in FSelected.Tech then S := S + TechNom(tFeu) + ' ';
+      if tAgri in FSelected.Tech then S := S + TechNom(tAgri) + ' ';
+      if tStock in FSelected.Tech then S := S + TechNom(tStock) + ' ';
+      if tPast in FSelected.Tech then S := S + TechNom(tPast) + ' ';
+      if tPeche in FSelected.Tech then S := S + TechNom(tPeche) + ' ';
+      if tNav in FSelected.Tech then S := S + TechNom(tNav) + ' ';
       if S <> '' then begin
-        C.TextOut(20, Y, 'techn. : ' + S);
+        C.TextOut(20, Y, L(71) + ' ' + S);
         Inc(Y, 12);
       end;
-      C.TextOut(20, Y, AnsiUpperCase('Cerveau'));
+      C.TextOut(20, Y, AnsiUpperCase(L(49)));
       Inc(Y, 18);
       DrawBrain(C, Y);
       if not Mesuring then
@@ -1426,10 +1481,10 @@ begin
     end;
   end;
 
-  Section('Commandes');
+  Section(L(13));
   if CanPassEre then begin
     BX := 20;
-    Btn('entrer dans l''ère suivante', BID_ERE, PW - 40, True);
+    Btn(L(34), BID_ERE, PW - 40, True);
     Inc(Y, 32);
   end;
   BX := 20;
@@ -1441,34 +1496,34 @@ begin
   Inc(Y, 32);
 
   BX := 20;
-  Btn('vue', BID_TI, (PW - 64) div 5, FTool = TOOL_INSPECT);
-  Btn('sem', BID_TS, (PW - 64) div 5, FTool = TOOL_SEED);
-  Btn('her', BID_TH, (PW - 64) div 5, FTool = TOOL_HERB);
-  Btn('pré', BID_TP, (PW - 64) div 5, FTool = TOOL_PRED);
-  Btn('sap', BID_TSA, (PW - 64) div 5, FTool = TOOL_SAP);
+  Btn(L(35), BID_TI, (PW - 64) div 5, FTool = TOOL_INSPECT);
+  Btn(L(36), BID_TS, (PW - 64) div 5, FTool = TOOL_SEED);
+  Btn(L(37), BID_TH, (PW - 64) div 5, FTool = TOOL_HERB);
+  Btn(L(38), BID_TP, (PW - 64) div 5, FTool = TOOL_PRED);
+  Btn(L(39), BID_TSA, (PW - 64) div 5, FTool = TOOL_SAP);
   Inc(Y, 32);
 
   BX := 20;
-  Btn('Sauver', BID_SAVE, (PW - 46) div 2, False);
-  Btn('Charger', BID_LOAD, (PW - 46) div 2, False);
+  Btn(L(40), BID_SAVE, (PW - 46) div 2, False);
+  Btn(L(41), BID_LOAD, (PW - 46) div 2, False);
   Inc(Y, 32);
 
   BX := 20;
-  Btn('Nouveau monde', BID_NEW, PW - 40, False);
+  Btn(L(42), BID_NEW, PW - 40, False);
   Inc(Y, 32);
 
   BX := 20;
-  Btn('aide (F1)', BID_HELP, (PW - 52) div 3, False);
-  Btn('réglages', BID_CFGSHOW, (PW - 52) div 3, FCfgShow);
-  Btn('annales', BID_CHRON, (PW - 52) div 3, FChronShow);
+  Btn(L(43), BID_HELP, (PW - 52) div 3, False);
+  Btn(L(44), BID_CFGSHOW, (PW - 52) div 3, FCfgShow);
+  Btn(L(45), BID_CHRON, (PW - 52) div 3, FChronShow);
   Inc(Y, 32);
 
   BX := 20;
   Btn('3D', BID_G3D, (PW - 46) div 2, False);
-  Btn('relief', BID_RELIEF, (PW - 46) div 2, FRelief);
+  Btn(L(46), BID_RELIEF, (PW - 46) div 2, FRelief);
   Inc(Y, 32);
   if FCfgShow then begin
-    Section('Réglages');
+    Section(L(14));
     for I := 0 to CN - 1 do begin
       C.Font.Name := 'Segoe UI'; C.Font.Size := IfThen(FPanelW > 320, 11, 9); C.Font.Style := [];
       C.Brush.Style := bsClear;
@@ -1482,16 +1537,16 @@ begin
       Inc(Y, IfThen(FPanelW > 320, 32, 28));
     end;
     BX := 20;
-    Btn('tout par défaut', BID_CFGDEF, PW - 60, False);
+    Btn(L(47), BID_CFGDEF, PW - 60, False);
     Inc(Y, 36);
   end;
   if FChronShow then begin
-    Section('Annales du peuple');
+    Section(L(15));
     C.Font.Size := IfThen(FPanelW > 320, 10, 8);
     if Length(Chronicle) = 0 then begin
       C.Brush.Style := bsClear;
       C.Font.Color := Col(100, 105, 88);
-      C.TextOut(20, Y, 'l''histoire du peuple n''a pas encore commencé…');
+      C.TextOut(20, Y, L(17));
       Inc(Y, 18);
     end else begin
       for J := Max(0, Length(Chronicle) - 14) to Length(Chronicle) - 1 do begin
@@ -1510,11 +1565,11 @@ begin
   end;
   C.Font.Size := 8; C.Font.Color := Col(139, 138, 116); C.Brush.Style := bsClear;
   case FTool of
-    TOOL_INSPECT: S := 'cliquez un spécimen · l''océan est navigable';
-    TOOL_SEED:    S := 'cliquez/glissez pour semer';
-    TOOL_HERB:    S := 'cliquez pour relâcher un herbivore';
-    TOOL_PRED:    S := 'cliquez pour relâcher un prédateur';
-  else            S := 'cliquez pour éveiller un sapien';
+    TOOL_INSPECT: S := L(58);
+    TOOL_SEED:    S := L(59);
+    TOOL_HERB:    S := L(68);
+    TOOL_PRED:    S := L(69);
+  else            S := L(70);
   end;
   C.TextOut(20, Y, S);
   Inc(Y, 20);
@@ -1522,7 +1577,7 @@ begin
   if FThumb.Width > 0 then begin
     C.StretchDraw(Rect(20, Y, 20 + IfThen(FPanelW > 320, 160, 100),
                        Y + IfThen(FPanelW > 320, 99, 62)), FThumb);
-   C.Brush.Style := bsSolid;
+    C.Brush.Style := bsSolid;
     for I := 0 to Creatures.Count - 1 do begin
       if not Creatures[I].Alive then Continue;
       case Creatures[I].Kind of

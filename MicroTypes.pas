@@ -1,11 +1,8 @@
 ﻿unit MicroTypes;
 
 { Microcosme — types, constantes, état global.
-  v12 (chantier 1b) : set de techs élargi à 64 bits — 23 techs actives
-  (ères 1-3) + 40 bits nommés pour les ères 4-8 (Antiquité → Moderne) +
-  1 garde. L'ORDRE DES BITS EST GELÉ (stabilité IO définitive).
-  TECHBASE reste à 23 entrées : les ères 4-8 s'ajouteront en pur données.
-  SVERSION 11 → 12 (format masque 4 → 8 octets ; vieilles saves refusées). }
+  v15 (Phase A villes) : TCity (centre, nom du lexique, niveau, rayon),
+  Cities globale, THut.Ville (rattachement). Set techs 64 bits inchangé. }
 
 interface
 
@@ -18,6 +15,7 @@ type
   THut = class;
   TFish = class;
   TMark = class;
+  TCity = class;
 
   TPlant = class
     X, Y, S: Single;
@@ -29,6 +27,15 @@ type
     Fire: Boolean;
     Cult: Boolean;
     Stock: Single;
+    Ville: TCity;          // ★A1 : ville de rattachement (nil = isolée)
+  end;
+
+  TCity = class
+    X, Y: Single;          // centre (moyenne des huttes rattachées)
+    Nom: string;           // du lexique émergent du monde
+    Niveau: Integer;       // 2 bourg · 3 ville · 4 cité
+    Jour: Integer;         // jour de fondation
+    Rayon: Single;         // rayon de rattachement
   end;
 
   TFish = class
@@ -51,9 +58,7 @@ type
     T: Single;
   end;
 
-  // ── 64 techs : ordre GELÉ. 0..6 ère 1 (identifiants historiques, ne pas
-  // renommer), 7..14 ère 2, 15..22 ère 3, 23..30 Antiquité, 31..38 Moyen Âge,
-  // 39..46 Renaissance, 47..54 Révolution industrielle, 55..62 Moderne, 63 garde.
+  // ── 64 techs : ordre GELÉ. ──
   TEcode = (
     tFeu, tAgri, tStock, tPast, tPeche, tNav, tEcrit,                                // ère 1 (0..6)
     teCharrue, teRoue, teIrrig, teMetal, teVoile, teMonnaie, teArchives, teScience,  // ère 2 (7..14)
@@ -70,8 +75,8 @@ type
     teElectricite, teAntibios, teInformatique, teInternet, teAgro, teEcoleTous,
     teMedMod, teEcologie,                                                            // ère 8 Moderne (55..62)
     te_G64);                                                                         // garde (63)
-  TTechs = set of TEcode;   // 64 valeurs = 8 octets garantis
-  TTech  = TEcode;          // alias historique : `var T: TTech`, Low/High restent valides
+  TTechs = set of TEcode;
+  TTech  = TEcode;
   TTechInfo = record
     Who: string;
     Day: Integer;
@@ -114,7 +119,7 @@ type
     SFood: TPlant;
     SHerb: TCreature;
     GuardC: TCreature;
-    Master: TCreature;   { chien : sapien suivi }
+    Master: TCreature;
     SPeer: TCreature;
     Dna: TArray<Single>;
     Mem: TArray<TMemRec>;
@@ -140,7 +145,6 @@ type
     CId, ParentId: Integer;
     InnoK: Integer;
     Bio: TStringList;
-    // --- MicroBrain : langage / audio ---
     Brn: TBrain;
     Vocab: array[0..9] of string;
     WordS: string;
@@ -156,39 +160,38 @@ type
     efCharrue, efRoue, efIrrig, efMetal, efVoile, efMonnaie, efArchives, efScience,
     efFer, efAqueduc, efIngenierie, efPhilosophie, efMedecine, efMaths,
     efAstronomie, efEcole);
-  // ⚠ TEff n'est PAS persisté : les ères 4-8 étendront cette enum librement.
 
   TEchDef = record
     Code: TEcode;
-    Era: Integer;                 // 1..8
+    Era: Integer;
     Nom: string;
-    Dep: array[0..1] of Integer;  // index dans TECHBASE ; -1 = aucune
+    Dep: array[0..1] of Integer;
     Eff: TEff;
     P: Single;
     Desc: string;
   end;
 
 const
-  TECH_COUNT = 39;   // entrées ACTUELLES de TECHBASE (ères 1-3) — grimpe à chaque ère ajoutée
+  TECH_COUNT = 47;
 
-function  TechBits(const T: TTechs): UInt64;      // 1b : 4 → 8 octets
-procedure BitsToTech(M: UInt64; out T: TTechs);   // 1b
+function  TechBits(const T: TTechs): UInt64;
+procedure BitsToTech(M: UInt64; out T: TTechs);
 function  HasTech(const T: TTechs; C: TEcode): Boolean;
 function  TechIdx(Code: TEcode): Integer;
 function  TechNom(Code: TEcode): string;
 procedure InitTechBase;
 
 const
-  GW = 400;          // 1a : ×2 (200 → 400)
-  GH = 250;          // 1a : ×2 (125 → 250)
+  GW = 400;
+  GH = 250;
   NC = GW * GH;
   TAU = 2 * PI;
   CDAY: Single = 40;
-
+  MAXP = 16800; MAXH = 600; MAXC = 160; MAXS = 64;
   MAXDOG = 12;
-
-
-
+  MAXFS = 680;
+  MAXFD = 480;
+  HUTCAP = 84;
   NIN = 34; NHID = 9; NHID2 = 9; NOUT = 10;
   IDX_H1B = NIN * NHID;
   IDX_H2 = IDX_H1B + NHID;
@@ -197,16 +200,11 @@ const
   IDX_SO = IDX_HO + NHID2 * NOUT;
   IDX_OB = IDX_SO + NIN * NOUT;
   NW = IDX_OB + NOUT;
-  SIGR = 14;   MAXP = 16800; MAXH = 600; MAXC = 160; MAXS = 64;   // 1a : flore/cheptel ×4, sapiens inchangé (ère)
-  MAXFS = 680;     // 1a ×2
-  MAXFD = 480;     // 1a ×2
-  HUTCAP = 84;     // 1a ×2
-  SVERSION = 13;   // 1a : taille de carte ≠ → format de fait incompatible
-
+  SIGR = 14;
   WORDS: array[0..3] of string = ('α','β','γ','δ');
   WORDCOL: array[0..3] of TColor =
     ($00C4AE82, $00C98EB4, $00A3B86F, $0069C0D8);
-  TECHNAMES: array[0..6] of string =       // ère 1 seule ; TechNom() = source unifiée
+  TECHNAMES: array[0..6] of string =
     ('feu','agriculture','réserves','pastoralisme','pêche','navigation','écriture');
   MEMLIFE = 70;
   MEMMAX = 6;
@@ -226,6 +224,7 @@ const
   BID_TI = 10; BID_TS = 11; BID_TH = 12; BID_TP = 13; BID_TSA = 14; BID_NEW = 15;
   BID_SAVE = 20; BID_LOAD = 21;
   BID_ERE  = 22;
+  SVERSION = 13;
 
 const
   SYL: array[0..21] of string = ('ka','ro','mi','ta','lu','se','no','va','pi',
@@ -244,6 +243,7 @@ var
   Plants: TList<TPlant>;
   PlantGrid: TArray<TPlant>;
   Huts: TList<THut>;
+  Cities: TList<TCity>;          // ★A1 les villes du monde
   Fishes: TList<TFish>;
   FsN, FdN: Integer;
   Marks: TList<TMark>;
@@ -278,20 +278,18 @@ var
   FSimThread: TThread;
   Lex: array[0..3] of TLexRec;
   FieldGrid: TArray<Byte>;
-  TechInfo: array[TTech] of TTechInfo;   // 64 cases ; les non-découvertes restent Day=0
+  TechInfo: array[TTech] of TTechInfo;
   TechLost: array[TTech] of Boolean;
   FHomeX, FHomeY: Single;
   FHomeSet: Boolean;
   FDiag: TFileStream;
   TECHBASE: array[0..TECH_COUNT-1] of TEchDef;
-  FVue: Integer = 0;       // ★ 0 normal · 1 monde plein écran (F5) · 2 carnet plein écran (F7)
-  FPanelW: Integer = PANELW; // ★ largeur courante du carnet (302 · pleine largeur en F7)
 
 implementation
 
 function TechBits(const T: TTechs): UInt64;
 begin
-  Move(T, Result, SizeOf(Result));   // set 64 valeurs = 8 octets garantis
+  Move(T, Result, SizeOf(Result));
 end;
 
 procedure BitsToTech(M: UInt64; out T: TTechs);
@@ -337,7 +335,6 @@ end;
 procedure InitTechBase;
 begin
   FCount := 0;
-  // ── ÈRE 1 — probas = tes molettes F2 via TechProba (MicroSim), P non lu ici
   AddTech(tFeu,   1, 'Feu',          -1, -1, efAucun, 0.00020, 'dompter la flamme');
   AddTech(tAgri,  1, 'Agriculture',   0, -1, efAucun, 0.00020, 'semer au lieu de cueillir');
   AddTech(tStock, 1, 'Stockage',      1, -1, efAucun, 0.00020, 'greniers pour les mauvais jours');
@@ -345,7 +342,6 @@ begin
   AddTech(tPeche, 1, 'Pêche',         3, -1, efAucun, 0.00020, 'harpons et patience');
   AddTech(tNav,   1, 'Navigation',    4, -1, efAucun, 0.00020, 'pirogues creusées');
   AddTech(tEcrit, 1, 'Écriture',      5, -1, efAucun, 0.00020, 'la mémoire du peuple');
-  // ── ÈRE 2
   AddTech(teCharrue,  2, 'Charrue',      1, -1, efCharrue,  0.00016, 'labourer, récolter plus');
   AddTech(teRoue,     2, 'Roue',         7, -1, efRoue,     0.00016, 'porter plus, aller plus vite');
   AddTech(teIrrig,    2, 'Irrigation',   7, -1, efIrrig,    0.00016, 'l''eau mène aux champs');
@@ -354,7 +350,6 @@ begin
   AddTech(teMonnaie,  2, 'Monnaie',      6, -1, efMonnaie,  0.00016, 'les idées circulent plus vite');
   AddTech(teArchives, 2, 'Archives',     6, -1, efArchives, 0.00016, 'mémoire qui ne meurt jamais');
   AddTech(teScience,  2, 'Science',     13, -1, efScience,  0.00012, 'savoir appelle savoir');
-  // ── ÈRE 3
   AddTech(teFer,         3, 'Fer',           10, -1, efFer,        0.00012, 'le fer remplace le bronze');
   AddTech(teAqueduc,     3, 'Aqueduc',        9, -1, efAqueduc,    0.00012, 'l''eau partout au village');
   AddTech(teIngenierie,  3, 'Ingénierie',    15, -1, efIngenierie, 0.00012, 'construire en pierre');
@@ -362,8 +357,8 @@ begin
   AddTech(teMedecine,    3, 'Médecine',      18, -1, efMedecine,   0.00012, 'vivre plus longtemps');
   AddTech(teMaths,       3, 'Mathématiques', 18, -1, efMaths,      0.00012, 'compter les étoiles');
   AddTech(teAstronomie,  3, 'Astronomie',    20, -1, efAstronomie, 0.00012, 'prédire les saisons');
-  AddTech(teEcole,       3, 'École',         18, -1, efEcole,      0.00012, 'les aînés enseig ' );// ── ÈRE 4 — ANTIQUITÉ (1c) ──
-  AddTech(teCite,        4, 'Cité',         17, -1, efAucun,      0.00011, 'la pierre s assemble en ville');
+  AddTech(teEcole,       3, 'École',         18, -1, efEcole,      0.00012, 'les aînés enseignent mieux');
+  AddTech(teCite,        4, 'Cité',         17, -1, efAucun,      0.00011, 'la pierre s''assemble en ville');
   AddTech(teGeometrie,   4, 'Géométrie',    20, -1, efAucun,      0.00011, 'mesurer pour bâtir');
   AddTech(teLegislation, 4, 'Législation',   6, -1, efAucun,      0.00011, 'des lois, non des humeurs');
   AddTech(teRhetorique,  4, 'Rhétorique',   25, -1, efAucun,      0.00011, 'la parole qui persuade');
@@ -371,7 +366,6 @@ begin
   AddTech(teAgronomie,   4, 'Agronomie',     1, -1, efAucun,      0.00011, 'la terre comprise, non subie');
   AddTech(teHygiene,     4, 'Hygiène',      18, -1, efAucun,      0.00011, 'l''eau claire, les mains propres');
   AddTech(teCartographie,4, 'Cartographie',  6, -1, efAucun,      0.00011, 'le monde dessiné sur une peau');
-  // ── ères 4-8 : leurs 40 AddTech arriveront chacune dans SA session (pur données)     // ── ÈRE 5 — MOYEN ÂGE (1c-bis) ──
   AddTech(teMoulins,     5, 'Moulins',            16, -1, efAucun, 0.00010, 'l''eau moud le grain');
   AddTech(teFerrure,     5, 'Ferrure',            15, -1, efAucun, 0.00010, 'des pas sûrs sur tous chemins');
   AddTech(teUniversites, 5, 'Universités',        22, -1, efAucun, 0.00010, 'le savoir a ses maisons');
@@ -380,8 +374,14 @@ begin
   AddTech(teElevage,     5, 'Élevage sélectif',    3, -1, efAucun, 0.00010, 'choisir les meilleurs reproducteurs');
   AddTech(teMedArabe,    5, 'Médecine arabe',     29, -1, efAucun, 0.00010, 'les remèdes voyagent');
   AddTech(teHauturiere,  5, 'Navigation hauturière',30, -1, efAucun, 0.00010, 'perdre la côte de vue');
-
-
+  AddTech(teImprimerie,  6, 'Imprimerie',            6, -1, efAucun, 0.00009, 'l''encre multiplie les mots');
+  AddTech(teOptique,     6, 'Optique',               24, -1, efAucun, 0.00009, 'le verre grossit le monde');
+  AddTech(teAnatomie,    6, 'Anatomie',              19, -1, efAucun, 0.00009, 'dessiner le corps de l''intérieur');
+  AddTech(teCaravelles,  6, 'Caravelles',            38, -1, efAucun, 0.00009, 'des voiles contre tous vents');
+  AddTech(tePoudre,      6, 'Poudre',                15, -1, efAucun, 0.00009, 'le feu captif hurle');
+  AddTech(teBanque,      6, 'Banque',                12, -1, efAucun, 0.00009, 'l''argent prête et voyage');
+  AddTech(teMethode,     6, 'Méthode',               18, -1, efAucun, 0.00009, 'observer, mesurer, recommencer');
+  AddTech(teHumanites,   6, 'Humanités',              6, -1, efAucun, 0.00009, 'l''humain au centre des textes');
 end;
 
 initialization

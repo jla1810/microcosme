@@ -125,7 +125,6 @@
         </DelphiCompile>
         <DCCReference Include="MicroTypes.pas"/>
         <DCCReference Include="MicroBrain.pas"/>
-        <DCCReference Include="MicroSim.pas"/>
         <DCCReference Include="MicroRender.pas"/>
         <DCCReference Include="MicroIO.pas"/>
         <DCCReference Include="MicroMain.pas"/>
@@ -140,6 +139,8 @@
         <DCCReference Include="MicroHelp.pas"/>
         <DCCReference Include="Micrologo.pas"/>
         <DCCReference Include="MicroEre.pas"/>
+        <DCCReference Include="MicroLang.pas"/>
+        <DCCReference Include="MicroSim.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

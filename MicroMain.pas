@@ -2,8 +2,8 @@
 
 { Microcosme — fiche principale, caméra, scroll du carnet, interactions,
   écran de départ. Aide F1 · son F4.
-  v13 ★vues : F5 = monde plein écran · F6 = retour normal · F7 = Observatoire
-  (cerveau neuronal géant + fiche + techs ; clic = sapiens suivant).
+  v13 ★vues : F5 monde plein écran · F6 retour · F7 Observatoire (cerveau
+  géant, clic = sapiens suivant) · ★i18n : F8 bascule français/english.
   Triches verrouillées : Ctrl+Shift+E (équiper) · B (état) · P (passer). }
 
 interface
@@ -49,7 +49,7 @@ implementation
 
 uses
   System.Diagnostics, System.SyncObjs, MicroBrainWin, MicroGraph3D,
-  MicroIno, MicroChrono, MicroEre;
+  MicroIno, MicroChrono, MicroEre, MicroLang;
 
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
@@ -67,7 +67,7 @@ begin
   case FVue of
     1, 2: begin
       if BorderStyle <> bsNone then begin
-        FSaveBounds := BoundsRect;                 // mémorisé une seule fois, à l'entrée
+        FSaveBounds := BoundsRect;
         BorderStyle := bsNone;
       end;
       BoundsRect := Screen.DesktopRect;
@@ -204,10 +204,10 @@ begin
     FHomeX := X; FHomeY := Y;
     FHomeSet := True;
     ResetChron;
-    ChronAdd(CK_PEOPLE, 'le peuple s''établit au camp');
+    ChronAdd(CK_PEOPLE, L(105));                     // ★i18n : « le peuple s'établit au camp » / en
     FZoom := 1; FCamX := (GW - 1) / 2; FCamY := (GH - 1) / 2;
     FRunning := False; FStarted := False;
-    Toast('nouveau monde');
+    Toast(L(2));                                   // ★i18n
   finally
     FSimCS.Leave;
   end;
@@ -278,10 +278,9 @@ begin
           BID_G3D: OpenGraph3DWindow;
           BID_RELIEF: begin SetRelief(not ReliefOn); Invalidate end;
           BID_CHRON: begin FChronShow := not FChronShow; Invalidate end;
-          BID_ERE: if PassEre then begin                        // ★ERE5 passage manuel
-            ChronAdd(CK_TECH, 'le peuple entre dans l''ère '
-              + IntToStr(EreCourante) + ' — ' + ERE_NOM[EreCourante]);
-            Toast('nouvelle ère : ' + ERE_NOM[EreCourante]);
+          BID_ERE: if PassEre then begin
+            ChronAdd(CK_TECH, Format(L(117), [EreCourante, ERE_NOM(EreCourante)]));
+            Toast(Format(L(116), [ERE_NOM(EreCourante)]));
             AudioEre(EreCourante);
           end;
           BID_HELP:  HelpToggle;
@@ -293,7 +292,7 @@ begin
               FPanelScroll := 0;
             SaveCfg
           end;
-          BID_CFGDEF:  begin ResetCfg; SaveCfg; Toast('réglages par défaut') end;
+          BID_CFGDEF:  begin ResetCfg; SaveCfg; Toast(L(48)) end;   // ★i18n
         end;
         Invalidate;
         Exit;
@@ -347,7 +346,7 @@ begin
   end;
   Result := inherited;
   P := ScreenToClient(MousePos);
-  if (FVue = 0) and (P.X < FPanelW) then begin     // ★ molette carnet (mode normal)
+  if (FVue = 0) and (P.X < FPanelW) then begin
     FPanelScroll := ClampInt(FPanelScroll - WheelDelta, 0, FPanelH - ClientHeight);
     if FPanelScroll < 0 then FPanelScroll := 0;
     Invalidate;
@@ -394,21 +393,29 @@ begin
   // ── ★vues F5 / F6 / F7 ──
   if Key = VK_F5 then begin
     Key := 0;
-    FVue := IfThen(FVue = 1, 0, 1);                 // bascule monde plein écran
+    FVue := IfThen(FVue = 1, 0, 1);
     VueApply;
     Invalidate;
   end;
   if Key = VK_F6 then begin
     Key := 0;
-    FVue := 0;                                      // retour normal garanti
+    FVue := 0;
     VueApply;
     Invalidate;
   end;
   if Key = VK_F7 then begin
     Key := 0;
-    FVue := IfThen(FVue = 2, 0, 2);                 // bascule Observatoire
-    if FVue = 2 then AutoPickSapien;                // le plus cultivé s'affiche d'office
+    FVue := IfThen(FVue = 2, 0, 2);
+    if FVue = 2 then AutoPickSapien;
     VueApply;
+    Invalidate;
+  end;
+
+  // ── ★i18n F8 : bascule français / english ──
+  if Key = VK_F8 then begin
+    Key := 0;
+    if FLangue = LANG_FR then FLangue := LANG_EN else FLangue := LANG_FR;
+    Toast(LangNom);
     Invalidate;
   end;
 
@@ -436,7 +443,7 @@ begin
         while CountS < PopMin do
           SpawnCreature(2, FHomeX + Random * 8 - 4, FHomeY + Random * 8 - 4,
                         nil, nil, 0);
-        Toast(Format('cheat : ère %d équipée · pop %d', [EreCourante, CountS]));
+        Toast(Format(L(119), [EreCourante, CountS]));
       finally
         FSimCS.Leave;
       end;
@@ -445,27 +452,26 @@ begin
     if Key = Ord('B') then begin
       Key := 0;
       var MsgP: string;
-      if CanPassEre then MsgP := ' — PASSAGE PRÊT (bouton doré)'
-      else if EreCourante >= MaxEraContent then MsgP := ' — sommet de contenu livré'
-      else MsgP := ' — incomplet';
+      if CanPassEre then MsgP := L(120)
+      else if EreCourante >= MaxEraContent then MsgP := L(121)
+      else MsgP := L(122);
       Toast(Format('%s | techs %d/%d · inno %d/%d · pop %d/%d | biblio ×%.2f%s',
         [EreLabel, CountTechEre(EreCourante),
          IfThen(EreCourante >= MaxEraContent, 0,
-           {nécessite un décompte : approximé par 8 au-delà de l'ère 1}
            IfThen(EreCourante = 1, 7, 8)),
          CountInno, InnoTotal, CountS, EreMaxS, BiblioMult, MsgP]));
       Invalidate;
     end;
     if Key = Ord('P') then begin
       Key := 0;
-      if PassEre then begin
-        ChronAdd(CK_TECH, 'une nouvelle ère s''ouvre : ' + ERE_NOM[EreCourante]);
-        Toast('nouvelle ère : ' + ERE_NOM[EreCourante]);
+if PassEre then begin
+        ChronAdd(CK_TECH, Format(L(115), [ERE_NOM(EreCourante)]));
+        Toast(Format(L(116), [ERE_NOM(EreCourante)]));
         AudioEre(EreCourante);
       end else if EreCourante >= MaxEraContent then
-        Toast('sommet de contenu livré — les ères futures attendent leur contenu')
+        Toast(L(124))
       else
-        Toast('passage refusé — Ctrl+Shift+B pour voir ce qui manque');
+        Toast(L(123));
       Invalidate;
     end;
   end;
@@ -480,7 +486,7 @@ begin
     FVP := Rect(0, 0, Max(ClientWidth, 8), Max(ClientHeight, 8))
   else
     FVP := Rect(PANELW, 0, Max(ClientWidth, PANELW + 8), Max(ClientHeight, 8));
-  if FVue = 2 then FPanelW := PANELW               // ★ F7 : le carnet n'est pas utilisé
+  if FVue = 2 then FPanelW := PANELW
   else FPanelW := PANELW;
   if (FVP.Width > 0) and (FVP.Height > 0) then begin
     FWorld.SetSize(FVP.Width, FVP.Height);
@@ -500,13 +506,12 @@ begin
     FSimCS.Enter;
     try
       if FVue = 2 then begin
-        // ★ F7 : l'Observatoire — cerveau géant, fiche, techs
+        // ★ F7 : l'Observatoire
         DrawObservatoire(Canvas, ClientWidth, ClientHeight);
       end else begin
         RenderWorld;
         Canvas.Draw(FVP.Left, FVP.Top, FWorld);
 
-        // passe 1 : mesurer — passe 2 : dessiner le carnet
         DrawPanel(FPanelBM.Canvas, 0);
         if FPanelBM.Height < FPanelH then FPanelBM.SetSize(FPanelW, FPanelH);
         if FPanelBM.Width <> FPanelW then FPanelBM.SetSize(FPanelW, FPanelH);
@@ -519,7 +524,6 @@ begin
                           Rect(0, FPanelScroll, PANELW, FPanelScroll + ClientHeight));
         end;
 
-        // barre de scroll (mode normal seulement)
         if (FVue = 0) and (FPanelH > ClientHeight) then begin
           Canvas.Brush.Style := bsSolid;
           Canvas.Pen.Style := psClear;
@@ -532,7 +536,6 @@ begin
           Canvas.FillRect(Rect(PANELW - 6, SJ, PANELW - 2, SJ + CurH));
         end;
 
-        // toast
         if FMsgT > 0 then begin
           Canvas.Font.Name := 'Segoe UI'; Canvas.Font.Size := 9; Canvas.Font.Style := [];
           Canvas.Brush.Style := bsSolid; Canvas.Brush.Color := Col(17, 21, 15);
@@ -563,19 +566,19 @@ begin
 
       BR := Rect(FVP.Left + FVP.Width div 2 - 100, FVP.Top + FVP.Height div 2 + 210,
                  FVP.Left + FVP.Width div 2 + 100, FVP.Top + FVP.Height div 2 + 252);
-      AddBtn(BR, 'Observer le monde', BID_START, True);
+      AddBtn(BR, L(0), BID_START, True);                       // ★i18n
       Canvas.Brush.Style := bsSolid; Canvas.Brush.Color := Col(208, 167, 92);
       Canvas.FillRect(BR);
       Canvas.Brush.Style := bsClear; Canvas.Font.Name := 'Segoe UI';
       Canvas.Font.Size := 10; Canvas.Font.Style := [fsBold];
       Canvas.Font.Color := Col(20, 22, 16);
-      Canvas.TextOut((BR.Left + BR.Right - Canvas.TextWidth('Observer le monde')) div 2,
-                     BR.Top + 13, 'Observer le monde');
+      Canvas.TextOut((BR.Left + BR.Right - Canvas.TextWidth(L(0))) div 2,
+                     BR.Top + 13, L(0));                        // ★i18n
 
       Canvas.Font.Name := 'Segoe UI'; Canvas.Font.Size := 9; Canvas.Font.Style := [];
       Canvas.Font.Color := Col(100, 105, 88);
-      Canvas.TextOut(FVP.Left + (FVP.Width - Canvas.TextWidth('l''île s''éveille…')) div 2,
-                     BR.Bottom + 14, 'l''île s''éveille…');
+      Canvas.TextOut(FVP.Left + (FVP.Width - Canvas.TextWidth(L(1))) div 2,
+                     BR.Bottom + 14, L(1));                     // ★i18n
     end;
 
     if HelpOn then

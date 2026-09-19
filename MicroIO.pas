@@ -1,13 +1,11 @@
-﻿                                                              unit MicroIO;
+﻿unit MicroIO;
 
-{ Microcosme — sauvegarde/chargement v11.
-  v11 ★ERE8 : + ère (FEra) et effet bibliothèque (FBiblio), camp
-  (FHomeSet/X/Y, omis en v9), journal des inventions (InnoLog) et bits
-  d'invention (InnoK) par créature — les critères de passage d'ère
-  survivent désormais au chargement. Les techs ères 2-3 sont relues via
-  BitsToTech (en v10, seules les 7 techs d'ère 1 étaient restaurées).
-  Garde-fou créatures élargi (EreMaxS). Les vieilles saves sont refusées
-  par le contrôle de version (voulu : formats incompatibles). }
+{ Microcosme — sauvegarde/chargement v12.
+  Masque de techs en 8 octets (TechBits/BitsToTech UInt64) : les 64 bits,
+  ères 4-8 incluses, stables définitivement. Ère + bibliothèque + camp +
+  journal des inventions + bits d'invention par créature persistés.
+  v14 ★i18n : tous les messages utilisateur via MicroLang (L()).
+  SVERSION = 13 (MicroTypes) : les saves antérieures sont refusées. }
 
 interface
 
@@ -15,7 +13,7 @@ uses
   System.SysUtils, System.Classes, System.Math, System.Generics.Collections,
   Winapi.Windows,
   MicroTypes, MicroBrain, MicroSim, MicroRender, MicroIno, MicroChrono,
-  MicroEre;   // ★ERE8
+  MicroEre, MicroLang;
 
 procedure SaveWorld;
 procedure LoadWorld;
@@ -25,7 +23,7 @@ implementation
 procedure CheckCount(N, MaxN: Integer; const What: string);
 begin
   if (N < 0) or (N > MaxN) then
-    raise EReadError.CreateFmt('nombre de %s invalide: %d', [What, N]);
+    raise EReadError.CreateFmt(L(133), [What, N]);
 end;
 
 function SavePath: string;
@@ -34,27 +32,27 @@ begin
 end;
 
 procedure WriteStr(FS: TFileStream; const S: string);
-var L: Integer; B: TBytes;
+var L8: Integer; B: TBytes;
 begin
   B := TEncoding.UTF8.GetBytes(S);
-  L := Length(B);
-  FS.WriteBuffer(L, SizeOf(Integer));
-  if L > 0 then FS.WriteBuffer(B[0], L);
+  L8 := Length(B);
+  FS.WriteBuffer(L8, SizeOf(Integer));
+  if L8 > 0 then FS.WriteBuffer(B[0], L8);
 end;
 
 function ReadStr(FS: TFileStream): string;
-var L: Integer; B: TBytes;
+var L8: Integer; B: TBytes;
 begin
-  FS.ReadBuffer(L, SizeOf(Integer));
-  if (L < 0) or (L > 10000) then raise Exception.Create('données corrompues');
-  SetLength(B, L);
-  if L > 0 then FS.ReadBuffer(B[0], L);
+  FS.ReadBuffer(L8, SizeOf(Integer));
+  if (L8 < 0) or (L8 > 10000) then raise Exception.Create(L(134));
+  SetLength(B, L8);
+  if L8 > 0 then FS.ReadBuffer(B[0], L8);
   Result := TEncoding.UTF8.GetString(B);
 end;
 
 procedure SaveWorld;
 var FS: TFileStream; I, N, B: Integer; C: TCreature; P: TPlant;
-   Ver: Integer; TmpS: Single; TT: TTech;
+   Ver: Integer; TmpS: Single; TT: TTech; Mask: UInt64;
 begin
   FSimCS.Enter;
   try
@@ -69,9 +67,9 @@ begin
       FS.WriteBuffer(UidS, SizeOf(Integer));
       FS.WriteBuffer(FZoom, SizeOf(Single)); FS.WriteBuffer(FCamX, SizeOf(Single));
       FS.WriteBuffer(FCamY, SizeOf(Single));
-      FS.WriteBuffer(FEra, SizeOf(Integer));             // ★ERE8 ère
-      FS.WriteBuffer(FBiblio, SizeOf(Integer));          // ★ERE8 effet bibliothèque
-      B := Ord(FHomeSet);                                // ★ERE8 camp (omis en v9)
+      FS.WriteBuffer(FEra, SizeOf(Integer));
+      FS.WriteBuffer(FBiblio, SizeOf(Integer));
+      B := Ord(FHomeSet);
       FS.WriteBuffer(B, SizeOf(Integer));
       FS.WriteBuffer(FHomeX, SizeOf(Single));
       FS.WriteBuffer(FHomeY, SizeOf(Single));
@@ -83,12 +81,12 @@ begin
         TmpS := Lex[I].Pred; FS.WriteBuffer(TmpS, SizeOf(Single));
         TmpS := Lex[I].Food; FS.WriteBuffer(TmpS, SizeOf(Single));
       end;
-      for TT := Low(TTech) to High(TTech) do begin       // 32 entrées (3 ères)
+      for TT := Low(TTech) to High(TTech) do begin       // 64 entrées, format gelé
         WriteStr(FS, TechInfo[TT].Who);
         N := TechInfo[TT].Day;
         FS.WriteBuffer(N, SizeOf(Integer));
       end;
-      N := Length(InnoLog);                              // ★ERE8 journal inventions
+      N := Length(InnoLog);
       FS.WriteBuffer(N, SizeOf(Integer));
       for I := 0 to N - 1 do begin
         FS.WriteBuffer(InnoLog[I].Kind, SizeOf(Integer));
@@ -154,11 +152,9 @@ begin
           TmpS := C.MilkCd; FS.WriteBuffer(TmpS, SizeOf(Single));
           TmpS := C.MutRate; FS.WriteBuffer(TmpS, SizeOf(Single));
           B := Ord(C.Dom); FS.WriteBuffer(B, SizeOf(Integer));
-          B := 0;
-          for TT := Low(TTech) to High(TTech) do
-            if TT in C.Tech then B := B or (1 shl Ord(TT));
-          FS.WriteBuffer(B, SizeOf(Integer));
-          FS.WriteBuffer(C.InnoK, SizeOf(Integer));      // ★ERE8 inventions portées
+          Mask := TechBits(C.Tech);
+          FS.WriteBuffer(Mask, SizeOf(Mask));
+          FS.WriteBuffer(C.InnoK, SizeOf(Integer));
           if C.HomeH <> nil then N := Huts.IndexOf(C.HomeH) else N := -1;
           FS.WriteBuffer(N, SizeOf(Integer));
           WriteStr(FS, C.Name);
@@ -172,7 +168,7 @@ begin
     finally
       FS.Free;
     end;
-    Toast('monde sauvegardé');
+    Toast(L(3));
   finally
     FSimCS.Leave;
   end;
@@ -183,25 +179,25 @@ var FS: TFileStream; I, K, N, B: Integer; C: TCreature;
    H: THut; F: TFish; M: TMark;
    Magic: array[0..3] of AnsiChar; VerI, SXi, SYi: Integer;
    FXs, FYs, FSz, TmpS: Single;
-   TT: TTech;
+   TT: TTech; Mask: UInt64;
 begin
   FSimCS.Enter;
   try
-    if not FileExists(SavePath) then begin Toast('aucune sauvegarde trouvée'); Exit end;
+    if not FileExists(SavePath) then begin Toast(L(132)); Exit end;
     try
       FS := TFileStream.Create(SavePath, fmOpenRead or fmShareDenyWrite);
       try
         FS.ReadBuffer(Magic, 4);
         if not CompareMem(@Magic, @SMAGIC, 4) then begin
-          Toast('fichier de sauvegarde invalide'); Exit;
+          Toast(L(131)); Exit;
         end;
         FS.ReadBuffer(VerI, SizeOf(Integer));
-        if VerI <> SVERSION then begin Toast('version incompatible'); Exit end;
+        if VerI <> SVERSION then begin Toast(L(130)); Exit end;
         ClearWorldObjects;
         ResetChron;
-        ChronAdd(CK_PEOPLE, 'les annales reprennent avec le monde chargé');
+        ChronAdd(CK_PEOPLE, L(135));
         ResetInno;
-        ResetEre;                                        // ★ERE8 (puis relecture dessous)
+        ResetEre;
         FS.ReadBuffer(SXi, SizeOf(Integer)); SX := SXi;
         FS.ReadBuffer(SYi, SizeOf(Integer)); SY := SYi;
         GenTerrain; RenderTerrainBmp;
@@ -213,9 +209,9 @@ begin
         FS.ReadBuffer(FZoom, SizeOf(Single)); FS.ReadBuffer(FCamX, SizeOf(Single));
         FS.ReadBuffer(FCamY, SizeOf(Single));
         ClampCam;
-        FS.ReadBuffer(N, SizeOf(Integer)); FEra := N;    // ★ERE8
-        FS.ReadBuffer(N, SizeOf(Integer)); FBiblio := N; // ★ERE8
-        FS.ReadBuffer(B, SizeOf(Integer)); FHomeSet := (B = 1);   // ★ERE8 camp
+        FS.ReadBuffer(N, SizeOf(Integer)); FEra := N;
+        FS.ReadBuffer(N, SizeOf(Integer)); FBiblio := N;
+        FS.ReadBuffer(B, SizeOf(Integer)); FHomeSet := (B = 1);
         FS.ReadBuffer(FXs, SizeOf(Single)); FHomeX := FXs;
         FS.ReadBuffer(FXs, SizeOf(Single)); FHomeY := FXs;
         FS.ReadBuffer(N, SizeOf(Integer));
@@ -232,7 +228,7 @@ begin
           FS.ReadBuffer(N, SizeOf(Integer));
           TechInfo[TT].Day := N;
         end;
-        FS.ReadBuffer(N, SizeOf(Integer));               // ★ERE8 journal inventions
+        FS.ReadBuffer(N, SizeOf(Integer));
         CheckCount(N, 64, 'inventions');
         SetLength(InnoLog, N);
         for I := 0 to N - 1 do begin
@@ -284,7 +280,6 @@ begin
           AddPlant(FXs, FYs, FSz);
         end;
         FS.ReadBuffer(N, SizeOf(Integer));
-        // ★ERE8 garde-fou élargi : 300 herbivores + 80 prédateurs + EreMaxS + chiens
         CheckCount(N, MAXH + MAXC + EreMaxS + MAXDOG, 'créatures');
         for I := 1 to N do begin
           C := TCreature.Create;
@@ -308,10 +303,10 @@ begin
           FS.ReadBuffer(TmpS, SizeOf(Single)); C.MilkCd := TmpS;
           FS.ReadBuffer(TmpS, SizeOf(Single)); C.MutRate := TmpS;
           FS.ReadBuffer(B, SizeOf(Integer)); C.Dom := (B = 1);
+          FS.ReadBuffer(Mask, SizeOf(Mask));
+          BitsToTech(Mask, C.Tech);
           FS.ReadBuffer(B, SizeOf(Integer));
-          BitsToTech(Cardinal(B), C.Tech);               // ★ERE8 : les 23 techs, toutes ères
-          FS.ReadBuffer(B, SizeOf(Integer));
-          C.InnoK := B;                                  // ★ERE8 inventions portées
+          C.InnoK := B;
           FS.ReadBuffer(N, SizeOf(Integer));
           if (N >= 0) and (N < Huts.Count) then C.HomeH := Huts[N]
           else C.HomeH := nil;
@@ -338,7 +333,7 @@ begin
             end;
             C.Dna := Copy(C.Net, 0, NW);
             for K := 0 to NOUT - 1 do C.PrevOo[K] := 0;
-            C.InventT := 2 + Random * 3;                 // ★ERE8 (v9 oubliait ce champ)
+            C.InventT := 2 + Random * 3;
           end;
           Creatures.Add(C);
           case C.Kind of
@@ -348,14 +343,14 @@ begin
         FSelected := nil;
         FRunning := False; FStarted := True;
         if FEra > 1 then
-          Toast('monde chargé — ' + ERE_NOM[FEra])
+          Toast(Format(L(116), [ERE_NOM(FEra)]))
         else
-          Toast('monde chargé');
+          Toast(L(4));
       finally
         FS.Free;
       end;
     except
-      Toast('chargement impossible — fichier illisible');
+      Toast(L(129));
     end;
   finally
     FSimCS.Leave;

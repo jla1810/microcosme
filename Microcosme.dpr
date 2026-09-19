@@ -4,7 +4,6 @@ uses
   Vcl.Forms,
   MicroTypes in 'MicroTypes.pas',
   MicroBrain in 'MicroBrain.pas',
-  MicroSim in 'MicroSim.pas',
   MicroRender in 'MicroRender.pas',
   MicroIO in 'MicroIO.pas',
   MicroMain in 'MicroMain.pas',
@@ -18,7 +17,9 @@ uses
   MicroRenderPro in 'MicroRenderPro.pas',
   MicroHelp in 'MicroHelp.pas',
   Micrologo in 'Micrologo.pas',
-  MicroEre in 'MicroEre.pas';
+  MicroEre in 'MicroEre.pas',
+  MicroLang in 'MicroLang.pas',
+  MicroSim in 'MicroSim.pas';
 
 {$R *.res}
 

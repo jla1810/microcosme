@@ -8,7 +8,7 @@ interface
 
 uses
   System.SysUtils, System.Math,
-  MicroTypes, MicroBrain, MicroChrono;
+  MicroTypes, MicroBrain, MicroChrono,MicroLang;
 
 const
   NINNO = 22;
@@ -172,7 +172,7 @@ begin
   InnoLog[N].Who := C.Name;
   InnoLog[N].Day := DayCount;
   GiveInno(C, K);
-  Toast(C.Name + ' invente ' + InnoFull(N));
+  Toast(Format(L(118), [C.Name, InnoFull(N)]));
   ChronAdd(CK_INNO, InnoFull(N));
   if (EreCourante >= 3) and (K >= IN_HORLOGE) then           // ★ERE7 cloche des inventions du fer et au-delà
      AudioBell(Round(C.X), Round(C.Y));     // C.X/C.Y sont Single → Integer
