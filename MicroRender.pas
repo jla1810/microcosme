@@ -155,13 +155,17 @@ end;
 
 procedure RenderWorld;
 var S, OX, OY, VX0, VY0, VX1, VY1: Double;
-   W, H, PX, PY, RR, RR2, K, I, MO, MK, Flags: Integer;
+   W, H, PX, PY,K2 , RR, RR2, K, I, MO, MK, Flags: Integer;
    P: TPlant; C: TCreature;
    R, HR, HeadX, HeadY, Grow, CA, SA, SinD, Warm, A, Froid, Phase: Single;
    HHut: THut;
    FF: TFish;
    CA2, SA2: Single;
    MXp, MYp: Integer;
+   NbV, NB2, HX, HY: Integer;      // ★ villes : compteurs et positions
+   HasFeu: Boolean;
+   R2 : single;
+
    Poly: array[0..2] of TPoint;
    V :Tcity;
    function InV(X, Y, M: Double): Boolean;
@@ -186,6 +190,7 @@ begin
     for I := 0 to Huts.Count - 1 do begin
       HHut := Huts[I];
       if not InV(HHut.X, HHut.Y, 10) then Continue;
+      if HHut.Ville <> nil then Continue;   // ★ la ville dessine ses foyers
       PX := Trunc(OX + HHut.X * S); PY := Trunc(OY + HHut.Y * S);
       if HHut.Cult then begin
         Brush.Style := bsSolid; Pen.Style := psClear;
@@ -297,45 +302,101 @@ begin
         end;
     end; // fin boucle HUTTES
 
-
-        // ===== ★VILLES A3 — place, remparts, monument, nom =====
+    // ===== ★VILLES — structure unifiée (les foyers ne sont plus dessinés) =====
     for I := 0 to Cities.Count - 1 do begin
       V := Cities[I];
       if not InV(V.X, V.Y, 30) then Continue;
-      VX0 := 0; VY0 := 0; // (évite un hint de variable ; le test réel est InV)
+      // — compte les foyers et cherche le feu (coût négligeable) —
+      NbV := 0;
+      HasFeu := False;
+      for K2 := 0 to Huts.Count - 1 do
+        if Huts[K2].Ville = V then begin
+          Inc(NbV);
+          if Huts[K2].Fire then HasFeu := True;
+        end;
       PX := Trunc(OX + V.X * S);
       PY := Trunc(OY + V.Y * S);
-      // — la place pavée (dès le bourg) —
-      if V.Niveau >= 2 then begin
-        Brush.Style := bsSolid; Pen.Style := psClear;
-        RR := Trunc(S * 2.6);
-        Brush.Color := AlphaColorBlend(Col(176, 168, 150), Col(11, 14, 11), 90);
-        Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
-      end;
-      // — les remparts (ville, niveau 3) : cercle de pierre troué —
+
+      // — l'assiette urbaine (la clairière pavée) —
+      Brush.Style := bsSolid; Pen.Style := psClear;
+      RR := Trunc(S * (2.6 + V.Niveau * 0.8));
+      Brush.Color := AlphaColorBlend(Col(168, 158, 138), Col(11, 14, 11), 95);
+      Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
+
+      // — les remparts (ville et cité) : cercle de pierre + 4 portes —
       if V.Niveau >= 3 then begin
         Brush.Style := bsClear;
-        Pen.Style := psSolid; Pen.Width := Max(2, Trunc(S * 0.35));
+        Pen.Style := psSolid;
+        Pen.Width := Max(2, Trunc(S * 0.45));
         Pen.Color := Col(138, 132, 122);
-        RR := Trunc(S * (5.5 + V.Niveau));
+        RR := Trunc(S * (4.6 + V.Niveau * 0.6));
         Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
-        Pen.Color := Col(168, 162, 150);
+        Pen.Color := Col(176, 170, 158);
         Pen.Width := 1;
         Ellipse(PX - RR - 2, PY - RR - 2, PX + RR + 2, PY + RR + 2);
+        Pen.Color := Col(96, 88, 76);
+        Pen.Width := Max(2, Trunc(S * 0.5));
+        MoveTo(PX, PY - RR); LineTo(PX, PY - RR + Trunc(S * 1.2));
+        MoveTo(PX, PY + RR); LineTo(PX, PY + RR - Trunc(S * 1.2));
+        MoveTo(PX - RR, PY); LineTo(PX - RR + Trunc(S * 1.2), PY);
+        MoveTo(PX + RR, PY); LineTo(PX + RR - Trunc(S * 1.2), PY);
       end;
-      // — le monument (cité, niveau 4) : tour + toit d'ardoise —
+
+      // — les foyers : petites maisons en couronne (structure, pas amas) —
+      Brush.Style := bsSolid;
+      Pen.Style := psSolid; Pen.Width := 1; Pen.Color := Col(52, 46, 36);
+      NB2 := Min(NbV, 12);
+      for K2 := 0 to NB2 - 1 do begin
+        A := K2 * 2.399963;                        // l'angle d'or, comme la spirale
+        R2 := (1.3 + 0.22 * Sqrt(K2)) * IfThen(V.Niveau >= 3, 1.15, 1.0);
+        HX := PX + Trunc(Cos(A) * R2 * S);
+        HY := PY + Trunc(Sin(A) * R2 * S);
+        RR2 := Max(2, Trunc(S * 0.55));
+        if V.Niveau >= 6 then begin                // la Renaissance peint aussi la ville
+          case (V.Jour + K2) mod 4 of
+            0: Brush.Color := Col(198, 168, 130);
+            1: Brush.Color := Col(172, 178, 150);
+            2: Brush.Color := Col(186, 152, 148);
+          else Brush.Color := Col(158, 170, 182);
+          end;
+        end else
+          Brush.Color := Col(150, 146, 138);
+        Rectangle(HX - RR2, HY - RR2 div 2, HX + RR2, HY + RR2);
+        Brush.Color := Col(140, 82, 62);           // toit tuile
+        Poly[0] := Point(HX - RR2 - 1, HY - RR2 div 2);
+        Poly[1] := Point(HX + RR2 + 1, HY - RR2 div 2);
+        Poly[2] := Point(HX, HY - RR2 - Max(2, RR2 div 2));
+        Polygon(Poly);
+      end;
+
+      // — le feu de la ville : une lueur unique si un foyer brûle —
+      if HasFeu then begin
+        Brush.Style := bsSolid; Pen.Style := psClear;
+        RR := Trunc(S * 4.0);
+        if FDayLight < 0.5 then
+          Brush.Color := AlphaColorBlend(Col(255,165,70), Col(11,14,11), 120)
+        else
+          Brush.Color := AlphaColorBlend(Col(255,165,70), Col(11,14,11), 35);
+        Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
+        RR := Max(2, Trunc(S * 0.5));
+        Brush.Color := Col(240, 180, 95);
+        Ellipse(PX - RR, PY - RR * 2, PX + RR, PY + RR);
+      end;
+
+      // — le monument (cité) —
       if V.Niveau >= 4 then begin
         Brush.Style := bsSolid;
         Pen.Style := psSolid; Pen.Width := 1; Pen.Color := Col(60, 56, 50);
         Brush.Color := Col(140, 136, 128);
         RR2 := Max(3, Trunc(S * 0.9));
-        Rectangle(PX - RR2, PY - RR2 * 3, PX + RR2, PY);
+        Rectangle(PX - RR2, PY - RR2 * 4, PX + RR2, PY - RR2);
         Brush.Color := Col(84, 88, 96);
-        Poly[0] := Point(PX - RR2 - 1, PY - RR2 * 3);
-        Poly[1] := Point(PX + RR2 + 1, PY - RR2 * 3);
-        Poly[2] := Point(PX, PY - RR2 * 4);
+        Poly[0] := Point(PX - RR2 - 1, PY - RR2 * 4);
+        Poly[1] := Point(PX + RR2 + 1, PY - RR2 * 4);
+        Poly[2] := Point(PX, PY - RR2 * 5);
         Polygon(Poly);
       end;
+
       // — le nom, au zoom —
       if FZoom >= 1.8 then begin
         Brush.Style := bsClear;
@@ -347,7 +408,6 @@ begin
                 PY - Trunc(S * (7 + V.Niveau)) - Font.Size - 2, V.Nom);
       end;
     end;
-
 
     // ===== CAMP ANCESTRAL =====
     if FHomeSet and (Huts.Count = 0) then begin
@@ -1279,10 +1339,23 @@ begin
 
   Section(L(7));
   C.Font.Size := IfThen(FPanelW > 320, 11, 9);
-  LastEra := 0;
+    LastEra := 0;
   for I := 0 to TECH_COUNT - 1 do begin
     TT := TECHBASE[I].Code;
     if TECHBASE[I].Era > EreCourante then Continue;
+    // ★ les ères PASSÉES ne montrent que leur nom, pas le détail
+    if TECHBASE[I].Era < EreCourante then begin
+      if TECHBASE[I].Era <> LastEra then begin
+        LastEra := TECHBASE[I].Era;
+        C.Font.Size := 8;
+        C.Font.Color := Col(120, 126, 106);           // gris discret : histoire
+        C.TextOut(20, Y, '· ' + ERE_NOM(LastEra));
+        C.Font.Size := IfThen(FPanelW > 320, 11, 9);
+        Inc(Y, 15);
+      end;
+      Continue;
+    end;
+    // ── l'ère EN COURS : sous-titre doré + liste détaillée ──
     if TECHBASE[I].Era <> LastEra then begin
       LastEra := TECHBASE[I].Era;
       if LastEra > 1 then begin
@@ -1322,7 +1395,6 @@ begin
     Inc(Y, IfThen(FPanelW > 320, 16, 14));
   end;
   Inc(Y, 6);
-
   Section(L(8));
   R := Rect(20, Y, PW - 20, Y + 74);
   C.Brush.Style := bsSolid; C.Brush.Color := Col(17, 21, 15);
