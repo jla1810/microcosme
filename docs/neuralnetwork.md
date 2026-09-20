@@ -6,11 +6,6 @@ Observatory — the network, live
 1. Architecture
 
 34 inputs → 9 → 9 → 10 outputs
-text
- 
-  
- 
- 
 
 and it is enough: every connection carries a weight (its strength) that makes
 **all** the character. About 600 weights per sapien.
@@ -19,16 +14,16 @@ and it is enough: every connection carries a weight (its strength) that makes
 
 | Range | Meaning |
 |---|---|
-| 0–2 | bias · energy (0=hungry, 1=full) · daylight |
-| 3–5 | nearest food: direction X, Y, closeness |
-| 6–8 | nearest peer: X, Y, closeness |
-| 9–11 | nearest predator: X, Y, closeness |
+| 0–2   | bias · energy (0=hungry, 1=full) · daylight |
+| 3–5   | nearest food: direction X, Y, closeness |
+| 6–8   | nearest peer: X, Y, closeness |
+| 9–11  | nearest predator: X, Y, closeness |
 | 12–15 | the four calls heard: α, β, γ, δ (signal strength) |
 | 16–17 | direction the loudest call comes from |
 | 18–20 | nearest danger memory: X, Y, strength |
 | 21–23 | food memory: X, Y, strength (weighted by hunger) |
 | 24–32 | the **nine echoes**: what the network itself decided last thought |
-| 33 | constant bias = 1 |
+| 33    | constant bias = 1 |
 
 Directions are relative to the body's heading: *"to my left front"*,
 not *"north-west of the island"*.
@@ -79,7 +74,7 @@ passed to children, but it changes who survives.
 
 The actual code, from the simulation:
 
-```pascal
+
 // — transmission culturelle + apprentissage autonome —
 if (C.Mentor <> nil) and (C.Cult < 0.95) then begin
   ...

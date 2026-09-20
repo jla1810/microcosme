@@ -449,6 +449,27 @@ begin
       end;
       Invalidate;
     end;
+
+        if Key = Ord('V') then begin            // ★ test villes : semer un amas
+      Key := 0;
+      var H: THut;
+      var j: Integer;
+      FSimCS.Enter;
+      try
+        for j := 1 to 12 do begin
+          H := THut.Create;
+          H.X := FHomeX + (Random - 0.5) * 8;   // 12 huttes dans un ~8×8
+          H.Y := FHomeY + (Random - 0.5) * 8;
+          H.Fire := False; H.Cult := False; H.Stock := 0; H.Ville := nil;
+          Huts.Add(H);
+        end;
+        Toast('amas semé — attends la prochaine veille');
+      finally
+        FSimCS.Leave;
+      end;
+      Invalidate;
+    end;
+
     if Key = Ord('B') then begin
       Key := 0;
       var MsgP: string;

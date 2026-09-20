@@ -1,19 +1,19 @@
 ﻿unit MicroSim;
 
 { Microcosme — créatures, sapiens, boucle DoStep, thread.
-  v13 ★1c/1c-bis : ères 1-5 en table (TECHBASE), effets ères 2-5 et
-  inventions 0..21 branchés, plafond EreMaxS, bibliothèque + Science/Maths/
-  Universités, monnaie/législation/parchemin/théâtre en diffusion,
-  école/rhétorique au mentorat, voile/galères/hauturière en mer,
-  médecine/hygiène/médecine arabe sur la vieillesse, cité/géométrie au
-  bâti, fosse/armure/arbalète/serpe/amphore côté inventions. }
+  v15 : ères 1-6 en table (TECHBASE), effets et inventions bilingues (L()),
+  plafond EreMaxS, bibliothèque + Science/Maths/Universités/Méthode,
+  ★VILLES : émergence d'amas de huttes, fondation nommée par le lexique
+  du monde, niveaux bourg/ville/cité, REBÂTISSURE en spirale d'or (dense),
+  empreinte écologique (défrichage quotidien autour des villes),
+  construction resserrée dès la Cité. }
 
 interface
 
 uses
   System.SysUtils, System.Classes, System.Math, System.Generics.Collections,
   System.Diagnostics, System.SyncObjs,
-  MicroTypes, MicroBrain, MicroConfig, MicroEvo, MicroIno, MicroChrono,MicroLang;
+  MicroTypes, MicroBrain, MicroConfig, MicroEvo, MicroIno, MicroChrono;
 
 procedure SpawnCreature(Kind: Integer; X, Y: Single;
   Parent, Parent2: TCreature; Gen: Integer);
@@ -32,7 +32,7 @@ implementation
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
 
-uses MicroRender, MicroEre;
+uses MicroRender, MicroEre, MicroLang;
 
 var
   Heard: array[0..3] of Single;
@@ -157,7 +157,7 @@ begin
          C.Tame := 0;
        end;
   end;
-  C.Age := 0; C.Gen := Gen; C.Alive := True; C.State := 'rôde';
+  C.Age := 0; C.Gen := Gen; C.Alive := True; C.State := L(50);
   C.ThinkT := Random * 0.3; C.RepCd := 6 + Random * 6;
   C.Born := FSimTime;
   C.Word := -1; C.WordT := 0;
@@ -197,7 +197,7 @@ begin
     SetLength(C.PrevOo, NOUT);
     for I := 0 to NOUT - 1 do C.PrevOo[I] := 0;
   end;
-    if (Kind = 2) and (Parent <> nil) then begin
+  if (Kind = 2) and (Parent <> nil) then begin
     if not FirstBornLogged then begin
       ChronAdd(CK_PEOPLE, Format(L(106), [C.Name]));
       FirstBornLogged := True;
@@ -214,22 +214,21 @@ end;
 
 procedure Kill(C: TCreature; const Cause: string);
 var O: TCreature;
-  k : integer;
+   k: Integer;
 begin
   if not C.Alive then Exit;
   C.Alive := False;
-  K := Length(DeathLog);
-  SetLength(DeathLog, K + 1);
-  DeathLog[K].CId := C.CId;
-  DeathLog[K].Name := C.Name;
-  DeathLog[K].Cause := Cause;
-  DeathLog[K].Day := DayCount;
-  DeathLog[K].Gen := C.Gen;
-  DeathLog[K].ParentId := C.ParentId;
+  k := Length(DeathLog);
+  SetLength(DeathLog, k + 1);
+  DeathLog[k].CId := C.CId;
+  DeathLog[k].Name := C.Name;
+  DeathLog[k].Cause := Cause;
+  DeathLog[k].Day := DayCount;
+  DeathLog[k].Gen := C.Gen;
+  DeathLog[k].ParentId := C.ParentId;
   case C.Kind of 0: Dec(CountH); 1: Dec(CountP); 2: Dec(CountS); 3: Dec(CountD) end;
   if C.Kind = 2 then
-    ChronAdd(CK_LIFE, Format(L(98),
-      [C.Name, Cause, Trunc(C.Age)]));
+    ChronAdd(CK_LIFE, Format(L(98), [C.Name, Cause, Trunc(C.Age)]));
   if (Cause <> L(101)) and (Cause <> L(102)) and
      (Random < 0.85) and Walkable(C.X, C.Y) then
     AddPlant(C.X, C.Y, 0.35);
@@ -338,7 +337,7 @@ begin
       if (D < VR * VR) and (D < BD) then begin BD := D; Best := O end;
     end
     else if O.Kind = 2 then begin
-      if NearestHutDist(O.X, O.Y) < IfThen(HasInno(O, IN_FOSSE), 6.0, 4.5) then Continue;   // 1c-bis fosse
+      if NearestHutDist(O.X, O.Y) < IfThen(HasInno(O, IN_FOSSE), 6.0, 4.5) then Continue;
       if NearFireHut(O.X, O.Y) then Continue;
       if DogNear(O.X, O.Y) then Continue;
       D := D2(C.X, C.Y, O.X, O.Y) * 6.5;
@@ -347,7 +346,7 @@ begin
     end;
   end;
   if Best <> nil then begin
-    C.State := L(138); C.TargetC := Best; C.TargetP := nil;
+    C.State := L(72); C.TargetC := Best; C.TargetP := nil;
     C.WAngle := ArcTan2(Best.Y - C.Y, Best.X - C.X);
   end else if C.Energy < C.MaxE * 0.34 then begin
     P := FindPlant(C);
@@ -358,7 +357,7 @@ begin
       C.State := L(139); C.WAngle := C.WAngle + (Random - 0.5) * 1.5;
     end;
   end else begin
-    C.TargetC := nil; C.TargetP := nil; C.State := 'traque';
+    C.TargetC := nil; C.TargetP := nil; C.State := L(139);
     C.WAngle := C.WAngle + (Random - 0.5) * 1.5;
   end;
 end;
@@ -432,7 +431,7 @@ begin
     if (D < 1.15) and (C.AtkCd <= 0) then begin
       C.AtkCd := 1.1; C.Flash := 0.6;
       Esc := ClampF(0.92 - (O.Sp - C.Sp) * 0.16, 0.32, 0.92);
-      if (O.Kind = 2) and HasInno(O, IN_ARMURE) then Esc := Esc * 0.7;   // 1c-bis armure
+      if (O.Kind = 2) and HasInno(O, IN_ARMURE) then Esc := Esc * 0.7;
       if Random < Esc then begin
         Gain := 32 + 26 * O.Sz + O.Energy * 0.2;
         Kill(O, L(101));
@@ -474,7 +473,7 @@ begin
 
   if C.Alive then begin
     if C.Energy <= 0 then Kill(C, L(99))
-    else if C.Age > C.MaxAge then Kill(C, 'vieillesse');
+    else if C.Age > C.MaxAge then Kill(C, L(100));
   end;
 end;
 
@@ -523,7 +522,7 @@ begin
   C.X := ClampF(C.X, 0.01, GW - 0.01); C.Y := ClampF(C.Y, 0.01, GH - 0.01);
   C.Energy := C.Energy - 0.42 * DT;
   if C.Energy <= 0 then Kill(C, L(99))
-  else if C.Age > C.MaxAge then Kill(C, 'vieillesse');
+  else if C.Age > C.MaxAge then Kill(C, L(100));
 end;
 
 procedure SenseSapien(C: TCreature);
@@ -535,7 +534,7 @@ var I: Integer; FB: TPlant; Peer, Pred, Herb, O: TCreature;
 begin
   for I := 0 to NIN - 1 do C.Inp[I] := 0;
   C.Inp[0] := 1;
-  C.Inp[1] := ClampF(C.Energy / C.MaxE, 0, 1);
+  C.Inp[1] := ClampF(C.Energy / (C.MaxE * IfThen(teAnatomie in C.Tech, 1.08, 1.0)), 0, 1);
   C.Inp[2] := FDayLight;
   FB := FindPlant(C);
   if FB <> nil then begin
@@ -549,7 +548,9 @@ begin
   for I := 0 to 3 do Heard[I] := 0;
   SrcK := 0; SrcDx := 0; SrcDy := 0;
   CollectNear(C.X, C.Y, SIGR);
-  SeEff := C.Se;
+  SeEff := C.Se * IfThen(teOptique in C.Tech, 1.15, 1.0);
+  if (FDayLight < 0.4) and HasInno(C, IN_LUNETTE) then
+    SeEff := SeEff * 1.3;
   for O in NB do
     if O.Alive and (O.Kind = 3) and (D2(C.X, C.Y, O.X, O.Y) < 42) then begin
       SeEff := C.Se * 1.8;
@@ -636,31 +637,28 @@ procedure TryBuild(C: TCreature);
 var H: THut;
 begin
   if (Huts.Count >= IfThen(teCite in C.Tech, HUTCAP * 2, HUTCAP)) or
-     (C.Energy < IfThen(teGeometrie in C.Tech, 42, 62)) or (C.BuildCd > 0) then Exit;   // 1c cité ×2 + géométrie
+     (C.Energy < IfThen(teGeometrie in C.Tech, 42, 62)) or (C.BuildCd > 0) then Exit;
   if not Walkable(C.X, C.Y) then Exit;
   if TerrType[CellIdx(C.X, C.Y)] > T_FOR then Exit;
-  if NearestHutDist(C.X, C.Y) < 7 then Exit;
   if PeopleHas(teCite) then begin
-    if NearestHutDist(C.X, C.Y) < 3.5 then Exit;   // ★A2 la ville pousse près d'elle-même
+    if NearestHutDist(C.X, C.Y) < 2.0 then Exit;   // la ville se tasse
   end else
     if NearestHutDist(C.X, C.Y) < 7 then Exit;
   C.Energy := C.Energy - 26;
   C.BuildCd := 9;
   H := THut.Create;
   H.X := C.X; H.Y := C.Y; H.Fire := False; H.Cult := False; H.Stock := 0;
+  H.Ville := nil;
   Huts.Add(H);
 end;
 
-{ ── ★VILLES A2 — la veille d'émergence ──────────────────────────────────
-  1×/jour de sim : rattache les huttes aux villes proches, fonde une
-  ville quand un amas atteint le seuil, monte les niveaux, nomme avec
-  les syllabes du monde (SYL). Les événements sont loggés bilingues. ── }
+{ ── ★VILLES — émergence, niveaux, spirale d'or, empreinte écologique ── }
 
 const
   VILLE_SEUIL   = 10;    // huttes pour fonder (naît bourg, niveau 2)
   VILLE_NIVEAU3 = 18;    // ville
   VILLE_NIVEAU4 = 28;    // cité
-  VILLE_RAYON   = 9.0;
+  VILLE_RAYON   = 14.0;
 
 var
   VilleT: Single = 0;
@@ -675,9 +673,34 @@ begin
   Result[1] := UpCase(Result[1]);
 end;
 
+{ Rebâtit la hutte sur le rang suivant de la spirale d'or de sa ville :
+  dense (~1,1 à 2,6 cases du centre), organique. Si l'emplacement tombe
+  dans l'eau, on essaie quelques crans plus loin ; en dernier recours la
+  hutte garde sa position d'origine (rattachée quand même). }
+procedure PlaceHutInVille(H: THut; V: TCity);
+var Nb, T: Integer;
+   A, R, NX, NY: Single;
+begin
+  Nb := 0;
+  for T := 0 to Huts.Count - 1 do
+    if (Huts[T].Ville = V) and (Huts[T] <> H) then Inc(Nb);
+  A := Nb * 2.399963;                        // l'angle d'or
+  R := 1.1 + 0.30 * Sqrt(Nb);                // spirale de Fermat
+  for T := 0 to 6 do begin
+    NX := V.X + Cos(A + T * 0.7) * (R + T * 0.35);
+    NY := V.Y + Sin(A + T * 0.7) * (R + T * 0.35);
+    NX := ClampF(NX, 0.5, GW - 0.5);
+    NY := ClampF(NY, 0.5, GH - 0.5);
+    if Walkable(NX, NY) then begin
+      H.X := NX; H.Y := NY;
+      Exit;
+    end;
+  end;
+end;
+
 procedure VeilleVilles;
 var I, K, Nb: Integer;
-   H, H2: THut;
+   H: THut;
    V, Best, NewV: TCity;
    D, BD: Single;
 begin
@@ -691,7 +714,10 @@ begin
       D := Sqrt(Sqr(H.X - V.X) + Sqr(H.Y - V.Y));
       if (D < V.Rayon) and (D < BD) then begin BD := D; Best := V end;
     end;
-    if Best <> nil then H.Ville := Best;
+    if Best <> nil then begin
+      H.Ville := Best;
+      PlaceHutInVille(H, Best);              // le nouveau venu rejoint la spirale
+    end;
   end;
 
   // 2) fonder une ville si un amas de huttes isolées atteint le seuil
@@ -721,7 +747,11 @@ begin
         NewV.X := NewV.X / Max(1, Nb);
         NewV.Y := NewV.Y / Max(1, Nb);
         Cities.Add(NewV);
-        Toast(Format(L(150), [NewV.Nom]));                       // ★i18n
+        // rebâtir serré : les foyers se regroupent autour de la place
+        for K := 0 to Huts.Count - 1 do
+          if Huts[K].Ville = NewV then
+            PlaceHutInVille(Huts[K], NewV);
+        Toast(Format(L(150), [NewV.Nom]));
         ChronAdd(CK_PEOPLE, Format(L(151), [NewV.Nom, Nb, DayCount]));
         Break;
       end;
@@ -745,12 +775,12 @@ begin
     if (Nb >= VILLE_NIVEAU4) and (V.Niveau < 4) then begin
       V.Niveau := 4;
       V.Rayon := VILLE_RAYON + 6;
-      Toast(Format(L(154), [V.Nom]));                            // ★i18n
+      Toast(Format(L(154), [V.Nom]));
       ChronAdd(CK_PEOPLE, Format(L(155), [V.Nom, Nb]));
     end else if (Nb >= VILLE_NIVEAU3) and (V.Niveau < 3) then begin
       V.Niveau := 3;
       V.Rayon := VILLE_RAYON + 4;
-      Toast(Format(L(152), [V.Nom]));                            // ★i18n
+      Toast(Format(L(152), [V.Nom]));
       ChronAdd(CK_PEOPLE, Format(L(153), [V.Nom, Nb]));
     end;
   end;
@@ -759,6 +789,35 @@ begin
   for I := 0 to Huts.Count - 1 do
     if (Huts[I].Ville <> nil) and (Cities.IndexOf(Huts[I].Ville) < 0) then
       Huts[I].Ville := nil;
+end;
+
+{ L'empreinte écologique : autour de chaque ville, la végétation dépérit.
+  Le cercle déboisé grandit avec le niveau (bourg 6 · ville 8 · cité 10). }
+procedure DefricherVilles;
+var I, K, CI: Integer;
+   P: TPlant;
+   V: TCity;
+   R: Single;
+begin
+  if Cities.Count = 0 then Exit;
+  for I := Plants.Count - 1 downto 0 do begin
+    P := Plants[I];
+    for K := 0 to Cities.Count - 1 do begin
+      V := Cities[K];
+      R := 2.0 + V.Niveau * 2.0;
+      if Sqr(P.X - V.X) + Sqr(P.Y - V.Y) < Sqr(R) then begin
+        P.S := P.S - 0.15;
+        if P.S <= 0.05 then begin
+          CI := P.Cell;
+          Plants.Delete(I);
+          if (CI >= 0) and (CI < Length(PlantGrid)) and (PlantGrid[CI] = P) then
+            PlantGrid[CI] := nil;
+          P.Free;
+        end;
+        Break;
+      end;
+    end;
+  end;
 end;
 
 { Technologies v2 : table TECHBASE (MicroTypes) + ères (MicroEre). }
@@ -834,7 +893,7 @@ begin
     ChronAdd(CK_TECH, Format(L(118), [C.Name, TechNom(Code)]));
   end;
 end;
-{ Multiplicateurs de découverte : bibliothèque × Science × Maths × Universités. }
+
 function TechMult(C: TCreature): Single;
 begin
   Result := 1.0;
@@ -842,7 +901,8 @@ begin
     Result := BiblioMult;
   if teScience in C.Tech then Result := Result * 1.5;
   if teMaths   in C.Tech then Result := Result * 1.25;
-  if teUniversites in C.Tech then Result := Result * 1.2;    // 1c-bis universités
+  if teUniversites in C.Tech then Result := Result * 1.2;
+  if teMethode in C.Tech then Result := Result * 1.3;
 end;
 
 procedure TryInvent(C: TCreature);
@@ -953,8 +1013,9 @@ begin
         Gain := 0.112 * DT
       else
         Gain := 0.070 * DT;
-      if teEcole in C.Tech then Gain := Gain * 1.5;              // ★ERE4 école
-      if teRhetorique in C.Tech then Gain := Gain * 1.2;         // 1c rhétorique
+      if teEcole in C.Tech then Gain := Gain * 1.5;
+      if teRhetorique in C.Tech then Gain := Gain * 1.2;
+      if teHumanites in C.Tech then Gain := Gain * 1.25;
       C.Cult := Min(0.95, C.Cult + Gain);
       for I := 0 to NW - 1 do begin
         Tgt := C.Dna[I] + (C.Mentor.Net[I] - C.Dna[I]) * 0.30;
@@ -983,12 +1044,13 @@ begin
     for OM in NB do
       if OM.Alive and (OM.Kind = 2) and (OM.Age >= CHILDHOOD) and
          (OM.Tech - C.Tech <> []) and
-         (Random < CfgDiffu * IfThen(teMonnaie in OM.Tech, 1.5, 1.0)      // ★ERE4 monnaie
-                        * IfThen(HasInno(OM, IN_THEATRE), 1.25, 1.0)      // ★ERE4b théâtre
-                        * IfThen(teLegislation in OM.Tech, 1.25, 1.0)     // 1c législation
-                        * IfThen(HasInno(OM, IN_PARCHEMIN), 1.1, 1.0)) then begin   // 1c-bis parchemin
+         (Random < CfgDiffu * IfThen(teMonnaie in OM.Tech, 1.5, 1.0)
+                        * IfThen(HasInno(OM, IN_THEATRE), 1.25, 1.0)
+                        * IfThen(teLegislation in OM.Tech, 1.25, 1.0)
+                        * IfThen(HasInno(OM, IN_PARCHEMIN), 1.1, 1.0)
+                        * IfThen(teImprimerie in OM.Tech, 1.6, 1.0)
+                        * IfThen(teBanque in OM.Tech, 1.25, 1.0)) then
         C.Tech := C.Tech + OM.Tech;
-      end;
     for OM in NB do
       if OM.Alive and (OM.Kind = 2) and (Random < 0.04) then
         C.InnoK := C.InnoK or OM.InnoK;
@@ -1021,7 +1083,7 @@ begin
         Amt := Min(HHut.Stock, 5 * DT);
         HHut.Stock := HHut.Stock - Amt;
         C.Energy := Min(C.MaxE, C.Energy + Amt * 1.5
-          * IfThen(HasInno(C, IN_FOUR), 1.3, 1.0));                // ★ERE4b four
+          * IfThen(HasInno(C, IN_FOUR), 1.3, 1.0));
       end;
     end;
   end;
@@ -1040,7 +1102,7 @@ begin
         C.SHerb.Trust := Max(0, C.SHerb.Trust - DT * 0.25)
       else if (HHut <> nil) and (DomCount(HHut) < 7) then begin
         C.SHerb.Trust := C.SHerb.Trust + DT * (0.10 + 0.28 * C.SHerb.Tame)
-           * IfThen(teElevage in C.Tech, 1.5, 1.0);                // 1c-bis élevage sélectif
+           * IfThen(teElevage in C.Tech, 1.5, 1.0);
         if C.SHerb.Trust >= 1 then begin
           C.SHerb.Dom := True; C.SHerb.HomeH := HHut; C.SHerb.Trust := 0;
           Toast(Format(L(109), [C.Name, C.SHerb.Name]));
@@ -1069,7 +1131,7 @@ begin
           OM.Trust := 0; OM.Tame := 1; OM.Dom := True;
           OM.TargetC := nil; OM.TargetP := nil; OM.Fleeing := False;
           OM.Name := Format(L(149), [C.Name]);
-          OM.State := 'suit';
+          OM.State := L(147);
           OM.MaxAge := Max(OM.MaxAge, OM.Age + 90 + Random * 60);
           Dec(CountP); Inc(CountD);
           Toast(Format(L(111), [C.Name]));
@@ -1080,7 +1142,7 @@ begin
   end;
 
   if C.Fleeing then begin
-    C.State := 'en fuite';
+    C.State := L(52);
     if (FDayLight < 0.45) and HasInno(C, IN_TORCHE) then Des := C.Sp * 1.25
     else Des := C.Sp * 1.08;
     C.Angle := C.Angle + ClampF(NormA(C.FleeA - C.Angle), -8 * DT, 8 * DT);
@@ -1103,8 +1165,8 @@ begin
         if C.Energy <= 0 then Kill(C, L(99))
         else if C.Age > C.MaxAge *
            (IfThen(teMedecine in C.Tech, 1.2, 1.0) * IfThen(teHygiene in C.Tech, 1.1, 1.0)
-            * IfThen(teMedArabe in C.Tech, 1.1, 1.0)) then          // ★ERE4 + 1c + 1c-bis
-          Kill(C, 'vieillesse');
+            * IfThen(teMedArabe in C.Tech, 1.1, 1.0)) then
+          Kill(C, L(100));
       end;
       Exit;
     end;
@@ -1132,9 +1194,10 @@ begin
         SM := 1;
         if IsWater(C.X, C.Y) then begin
           SM := 0.5;
-          if teVoile in C.Tech then SM := 1.0;                     // ★ERE4 voile
-          if teGaleres in C.Tech then SM := 1.4;                   // 1c galères
-          if teHauturiere in C.Tech then SM := 1.7;                // 1c-bis hauturière
+          if teVoile in C.Tech then SM := 1.0;
+          if teGaleres in C.Tech then SM := 1.4;
+          if teHauturiere in C.Tech then SM := 1.7;
+          if teCaravelles in C.Tech then SM := 2.2;
         end
         else if Walkable(C.X, C.Y) and (TerrType[CellIdx(C.X, C.Y)] = T_FOR) then SM := 0.7;
         SP := Des * SM;
@@ -1154,32 +1217,33 @@ begin
     // — chasse des sauvages —
     if (C.Oo[4] > 0.4) and (C.SHerb <> nil) and C.SHerb.Alive and
        (not C.SHerb.Dom) and (D2(C.X, C.Y, C.SHerb.X, C.SHerb.Y) < 9) then begin
-      C.State := 'chasse';
+      C.State := L(72);
       C.Angle := C.Angle + ClampF(
         NormA(ArcTan2(C.SHerb.Y - C.Y, C.SHerb.X - C.X) - C.Angle), -7 * DT, 7 * DT);
       Des := C.Sp * 1.05;
       if (D2(C.X, C.Y, C.SHerb.X, C.SHerb.Y) <
-          IfThen(HasInno(C, IN_ARBALETE), 2.8,                            // 1c-bis arbalète
+          IfThen(HasInno(C, IN_ARBALETE), 2.8,
           IfThen(HasInno(C, IN_PIEGE), 2.2, 1.35))) and (C.AtkCd <= 0) then begin
         C.AtkCd := 1.1; C.Flash := 0.55;
         C.Energy := Min(C.MaxE, C.Energy + (42 + 26 * C.SHerb.Sz)
           * IfThen(teMetal in C.Tech, 1.6, 1.0)
-          * IfThen(teFer in C.Tech, 1.4, 1.0));                    // ★ERE4 métallurgie/fer
-        Kill(C.SHerb, 'dévoré');
+          * IfThen(teFer in C.Tech, 1.4, 1.0)
+          * IfThen(tePoudre in C.Tech, 1.3, 1.0));
+        Kill(C.SHerb, L(101));
         C.SHerb := nil;
       end
     end else begin
       F := FindPlant(C);
       if (F <> nil) and (F.S > 0.12) and (D2(C.X, C.Y, F.X, F.Y) < 1.2) then begin
-        C.State := 'récolte';
+        C.State := L(55);
         C.BiteT := C.BiteT - DT;
         if C.BiteT <= 0 then begin
           C.BiteT := 0.22;
           Amt := Min(0.2, F.S);
           if HasInno(C, IN_HOTTE) then Amt := Amt * 1.5;
-          if teCharrue in C.Tech then Amt := Amt * 1.5;            // ★ERE4 charrue
-          if teAgronomie in C.Tech then Amt := Amt * 1.25;         // 1c agronomie
-          if HasInno(C, IN_SERPE) then Amt := Amt * 1.15;          // 1c-bis serpe
+          if teCharrue in C.Tech then Amt := Amt * 1.5;
+          if teAgronomie in C.Tech then Amt := Amt * 1.25;
+          if HasInno(C, IN_SERPE) then Amt := Amt * 1.15;
           Amt := Min(Amt, F.S);
           F.S := F.S - Amt;
           C.Energy := Min(C.MaxE, C.Energy + Amt * 32 * 1.9);
@@ -1192,9 +1256,9 @@ begin
           if (tStock in C.Tech) and (HHut <> nil) and HHut.Fire and
              (C.Energy > C.MaxE * 0.85) then
             HHut.Stock := Min(Round(IfThen(teIngenierie in C.Tech, 360, 240)
-              * IfThen(HasInno(C, IN_AMPHORE), 1.2, 1.0)),         // 1c-bis amphore
+              * IfThen(HasInno(C, IN_AMPHORE), 1.2, 1.0)),
               HHut.Stock + Amt * IfThen(HasInno(C, IN_APPENTIS), 40, 20)
-                * IfThen(HasInno(C, IN_CHARR), 1.5, 1.0));         // ★ERE4b charrette
+                * IfThen(HasInno(C, IN_CHARR), 1.5, 1.0));
           HasM := False;
           for I := 0 to High(C.Mem) do
             if (C.Mem[I].K = 1) and (D2(C.Mem[I].X, C.Mem[I].Y, F.X, F.Y) < 36) then
@@ -1214,7 +1278,7 @@ begin
           end;
         end;
       end else begin
-        C.State := 'explore';
+        C.State := L(56);
         if (C.SPeer <> nil) and C.SPeer.Alive and
            (Sqr(C.X - C.SPeer.X) + Sqr(C.Y - C.SPeer.Y) < 100) then begin
           C.Angle := C.Angle + ClampF(
@@ -1227,21 +1291,23 @@ begin
             -3.0 * DT, 3.0 * DT);
         end else
           C.WAngle := C.WAngle + (Random - 0.5) *
-            IfThen(HasInno(C, IN_BOSSOLE) or (teCartographie in C.Tech), 0.6, 1.2);   // ★ERE4b + 1c
+            IfThen(HasInno(C, IN_BOSSOLE) or HasInno(C, IN_CARMARINE) or
+                   (teCartographie in C.Tech), 0.6, 1.2);
       end;
     end;
   end;
-  if teRoue in C.Tech then Des := Des * 1.3;                       // ★ERE4 roue
-  if teFerrure in C.Tech then Des := Des * 1.1;                    // 1c-bis ferrure
-  if HasInno(C, IN_HORLOGE) then Des := Des * 1.1;                 // ★ERE4b horloge
-  if C.BuildCd > 8.8 then C.State := 'construit';
+  if teRoue in C.Tech then Des := Des * 1.3;
+  if teFerrure in C.Tech then Des := Des * 1.1;
+  if HasInno(C, IN_HORLOGE) then Des := Des * 1.1;
+  if C.BuildCd > 8.8 then C.State := L(144);
 
   SM := 1;
   if IsWater(C.X, C.Y) then begin
     SM := 0.5;
-    if teVoile in C.Tech then SM := 1.0;                           // ★ERE4 voile
-    if teGaleres in C.Tech then SM := 1.4;                         // 1c galères
-    if teHauturiere in C.Tech then SM := 1.7;                      // 1c-bis hauturière
+    if teVoile in C.Tech then SM := 1.0;
+    if teGaleres in C.Tech then SM := 1.4;
+    if teHauturiere in C.Tech then SM := 1.7;
+    if teCaravelles in C.Tech then SM := 2.2;
   end
   else if Walkable(C.X, C.Y) and (TerrType[CellIdx(C.X, C.Y)] = T_FOR) then SM := 0.7;
   SP := Des * SM;
@@ -1264,7 +1330,9 @@ begin
      (NearestHutDist(C.X, C.Y) < 4.5) then
     C.Energy := C.Energy + 0.17 * DT;
   if (FDayLight < 0.4) and HasInno(C, IN_BOUGIE) then
-    C.Energy := C.Energy + 0.12 * DT;                              // ★ERE4b bougie
+    C.Energy := C.Energy + 0.12 * DT;
+  if (FDayLight < 0.4) and HasInno(C, IN_VIOLON) then
+    C.Energy := C.Energy + 0.10 * DT;
 
   if (C.Energy > C.MaxE * 0.78) and (C.Age > CHILDHOOD) and
      (C.RepCd <= 0) and (CountS < EreMaxS) and (not IsWater(C.X, C.Y)) then begin
@@ -1285,11 +1353,11 @@ begin
       C.RepCd := 1.5;
   end;
   if C.Alive then begin
-    if C.Energy <= 0 then Kill(C, 'famine')
+    if C.Energy <= 0 then Kill(C, L(99))
     else if C.Age > C.MaxAge *
        (IfThen(teMedecine in C.Tech, 1.2, 1.0) * IfThen(teHygiene in C.Tech, 1.1, 1.0)
-        * IfThen(teMedArabe in C.Tech, 1.1, 1.0)) then              // ★ERE4 + 1c + 1c-bis
-      Kill(C, 'vieillesse');
+        * IfThen(teMedArabe in C.Tech, 1.1, 1.0)) then
+      Kill(C, L(100));
   end;
 end;
 
@@ -1302,11 +1370,6 @@ begin
   FDayT := FSimTime / CDAY - Floor(FSimTime / CDAY);
   FDayLight := ClampF(0.5 + Sin(FDayT * TAU) * 1.05, 0.05, 1);
   FireT := FireT + DT;
-  VilleT := VilleT + DT;
-  if VilleT >= CDAY then begin
-    VilleT := 0;
-    if (Huts.Count > 0) and (Creatures <> nil) then VeilleVilles;
-  end;
   if FireT >= 0.5 then begin
     FireT := 0;
     for I := 0 to Huts.Count - 1 do begin
@@ -1322,14 +1385,24 @@ begin
     end;
     RebuildFields;
   end;
-  // <<< SAISONS + effets de civilisation sur la croissance
+
+  // ★VILLES — la veille + l'empreinte écologique, 1×/jour de sim
+  VilleT := VilleT + DT;
+  if VilleT >= CDAY then begin
+    VilleT := 0;
+    if (Huts.Count > 0) and (Creatures <> nil) then begin
+      VeilleVilles;
+      DefricherVilles;
+    end;
+  end;
+
   Froid := SaisonFroid;
-  if PeopleHas(teAstronomie) then Froid := Froid * 0.7;            // ★ERE4 astronomie
+  if PeopleHas(teAstronomie) then Froid := Froid * 0.7;
   Croiss := 1.0;
-  if PeopleHas(teIrrig)      then Croiss := Croiss * 1.3;          // ★ERE4 irrigation
-  if PeopleHas(teAqueduc)    then Croiss := Croiss * 1.2;          // ★ERE4 aqueduc
-  if PeopleHas(teMoulins)    then Croiss := Croiss * 1.15;         // 1c-bis moulins
-  if PeopleHas(teAssolement) then Croiss := Croiss * 1.20;         // 1c-bis assolement
+  if PeopleHas(teIrrig)      then Croiss := Croiss * 1.3;
+  if PeopleHas(teAqueduc)    then Croiss := Croiss * 1.2;
+  if PeopleHas(teMoulins)    then Croiss := Croiss * 1.15;
+  if PeopleHas(teAssolement) then Croiss := Croiss * 1.20;
   StepPlants(DT, (0.25 + 0.75 * FDayLight) * (0.25 + 0.75 * (1 - Froid)) * Croiss);
   StepFish(DT, (0.25 + 0.75 * FDayLight) * (0.30 + 0.70 * (1 - Froid)));
   StepEvo(DT);
@@ -1343,8 +1416,7 @@ begin
       else StepCreature(C, DT);
     except
       on E: Exception do begin
-        FMsg := Format('SIM %s (%s · âge %d): %s',
-                       [C.Name, C.State, Trunc(C.Age), E.Message]);
+        FMsg := Format(L(126), [C.Name, C.State, Trunc(C.Age), E.Message]);
         FMsgT := 8;
         C.SPred := nil; C.SFood := nil; C.Mentor := nil;
         C.TargetC := nil; C.TargetP := nil; C.SHerb := nil; C.GuardC := nil;
@@ -1368,20 +1440,20 @@ begin
           Inc(Carriers);
       if TechInfo[TT].Who <> '' then begin
         if (Carriers = 0) and (not TechLost[TT])
-           and (not PeopleHas(tePhilosophie)) then begin         // ★ERE4 philosophie
+           and (not PeopleHas(tePhilosophie)) then begin
           TechLost[TT] := True;
-          Toast('la connaissance de ' + TechNom(TT) + ' s''est perdue');
-          ChronAdd(CK_TECH, 'la connaissance de ' + TechNom(TT) + ' se perd');
+          Toast(Format(L(103), [TechNom(TT)]));
+          ChronAdd(CK_TECH, Format(L(104), [TechNom(TT)]));
         end;
         if Carriers > 0 then TechLost[TT] := False;
       end;
     end;
     if CountS > MaxSap then MaxSap := CountS;
     if (MileIdx <= High(CHRONMILE)) and (CountS >= CHRONMILE[MileIdx]) then begin
-      ChronAdd(CK_PEOPLE, Format('le peuple compte %d sapiens', [CountS]));
+      ChronAdd(CK_PEOPLE, Format(L(112), [CountS]));
       Inc(MileIdx);
     end;
-    if (CountH < 24) or (CountP < 8) or (CountS < 4) then       // 1a ×2
+    if (CountH < 24) or (CountP < 8) or (CountS < 4) then
       for T := 1 to 60 do
         if Walkable(Random(GW), Random(GH)) then begin
           if CountH < 24 then for I := 1 to 2 do
@@ -1391,8 +1463,8 @@ begin
             for I := 1 to CfgImmig do
               SpawnCreature(2, FHomeX + Random * 12 - 6,
                                FHomeY + Random * 12 - 6, nil, nil, 0);
-            Toast('des immigrants ont rejoint l''île');
-            ChronAdd(CK_PEOPLE, 'des immigrants rejoignent le camp');
+            Toast(L(113));
+            ChronAdd(CK_PEOPLE, L(114));
           end;
           Break;
         end;
@@ -1442,7 +1514,7 @@ begin
       Sleep(1);
     except
       on E: Exception do begin
-        FMsg := 'SIM: ' + E.Message;
+        FMsg := Format(L(127), [E.Message]);
         FMsgT := 6;
         Sleep(200);
       end;

@@ -1,17 +1,18 @@
-﻿                                      unit MicroIno;
+﻿unit MicroIno;
 
 { Microcosme — inventions mineures émergentes.
-  v13 ★1c/1c-bis : NINNO 22 — ère 4 (amphore, serpe, fosse) et
-  ère 5 (arbalète, parchemin, armure). Corporations booste l'émergence. }
+  v16 : NINNO 25 — ère 6 Renaissance (lunette, violon, carte marine).
+  Corporations booste l'émergence. Les noms d'objets sont la langue du
+  monde : non traduits. }
 
 interface
 
 uses
   System.SysUtils, System.Math,
-  MicroTypes, MicroBrain, MicroChrono,MicroLang;
+  MicroTypes, MicroBrain, MicroChrono;
 
 const
-  NINNO = 22;
+  NINNO = 25;
   IN_BROCHETTE = 0;
   IN_TAMBOUR   = 1;
   IN_HOTTE     = 2;
@@ -22,18 +23,21 @@ const
   IN_FUMEE     = 7;
   IN_PIEGE     = 8;
   IN_APPENTIS  = 9;
-  IN_BOUGIE    = 10;
+  IN_BOUGIE    = 10;   // ère 2
   IN_CHARR     = 11;
   IN_FOUR      = 12;
-  IN_HORLOGE   = 13;
+  IN_HORLOGE   = 13;   // ère 3
   IN_BOSSOLE   = 14;
   IN_THEATRE   = 15;
-  IN_AMPHORE   = 16;  // 1c-bis ère 4
+  IN_AMPHORE   = 16;   // ère 4
   IN_SERPE     = 17;
   IN_FOSSE     = 18;
-  IN_ARBALETE  = 19;  // 1c-bis ère 5
+  IN_ARBALETE  = 19;   // ère 5
   IN_PARCHEMIN = 20;
   IN_ARMURE    = 21;
+  IN_LUNETTE   = 22;   // ère 6
+  IN_VIOLON    = 23;
+  IN_CARMARINE = 24;
 
 type
   TInnov = record
@@ -56,7 +60,7 @@ function InnoFull(I: Integer): string;
 
 implementation
 
-uses MicroSim, MicroMain, MicroEre, MicroAudio;
+uses MicroSim, MicroMain, MicroEre, MicroAudio, MicroLang;
 
 const
   INNO_CHANCE = 0.02;
@@ -66,7 +70,8 @@ const
     ('brochette','tambour','hotte','parure','filet',
      'peausserie','torche','fumée','piège','appentis',
      'bougie','charrette','four','horloge','boussole','théâtre',
-     'amphore','serpe','fosse','arbalète','parchemin','armure');
+     'amphore','serpe','fosse','arbalète','parchemin','armure',
+     'lunette','violon','carte marine');
 
 function HasInno(C: TCreature; K: Integer): Boolean;
 begin
@@ -174,17 +179,17 @@ begin
   GiveInno(C, K);
   Toast(Format(L(118), [C.Name, InnoFull(N)]));
   ChronAdd(CK_INNO, InnoFull(N));
-  if (EreCourante >= 3) and (K >= IN_HORLOGE) then           // ★ERE7 cloche des inventions du fer et au-delà
-     AudioBell(Round(C.X), Round(C.Y));     // C.X/C.Y sont Single → Integer
+  if (EreCourante >= 3) and (K >= IN_HORLOGE) then
+    AudioBell(Round(C.X), Round(C.Y));
 end;
 
 procedure TryInventMinor(C: TCreature);
 var K: Integer;
 begin
   if (C.Kind <> 2) or (C.Age <= CHILDHOOD) or (C.Cult < 0.30) then Exit;
-  if Random >= INNO_CHANCE * IfThen(PeopleHas(teCorporations), 1.5, 1.0) then Exit;   // 1c-bis corporations
+  if Random >= INNO_CHANCE * IfThen(PeopleHas(teCorporations), 1.5, 1.0) then Exit;
 
-  // ★ COHÉRENCE : sans feu, seules les inventions "pré-feu" sont possibles
+  // sans feu, seules les inventions "pré-feu" sont possibles
   if not (tFeu in C.Tech) then begin
     if (not KindKnown(IN_HOTTE)) and (CellIdx(C.X, C.Y) >= 0) and
        (TerrType[CellIdx(C.X, C.Y)] = T_FOR) then
@@ -238,7 +243,7 @@ begin
       begin AddInno(C, IN_THEATRE); Exit end;
   end;
 
-  // ── ★1c-bis ÈRE 4 (Antiquité) ──
+  // ── ÈRE 4 ──
   if EreCourante >= 4 then begin
     if (not KindKnown(IN_AMPHORE)) and (tStock in C.Tech) and (Huts.Count >= 4) then
       begin AddInno(C, IN_AMPHORE); Exit end;
@@ -249,7 +254,7 @@ begin
       begin AddInno(C, IN_FOSSE); Exit end;
   end;
 
-  // ── ★1c-bis ÈRE 5 (Moyen Âge) ──
+  // ── ÈRE 5 ──
   if EreCourante >= 5 then begin
     if (not KindKnown(IN_ARBALETE)) and (teFer in C.Tech) and WildHerbNear(C, 8, 3) then
       begin AddInno(C, IN_ARBALETE); Exit end;
@@ -259,6 +264,16 @@ begin
     if (not KindKnown(IN_ARMURE)) and (teMetal in C.Tech) and
        (C.SPred <> nil) and FireNear(C.X, C.Y, 5) then
       begin AddInno(C, IN_ARMURE); Exit end;
+  end;
+
+  // ── ÈRE 6 ──
+  if EreCourante >= 6 then begin
+    if (not KindKnown(IN_LUNETTE)) and (teOptique in C.Tech) and (FDayLight < 0.35) then
+      begin AddInno(C, IN_LUNETTE); Exit end;
+    if (not KindKnown(IN_VIOLON)) and (SapienNearCount(C, 6) >= 4) and (FDayLight < 0.4) then
+      begin AddInno(C, IN_VIOLON); Exit end;
+    if (not KindKnown(IN_CARMARINE)) and (tNav in C.Tech) and (tEcrit in C.Tech) then
+      begin AddInno(C, IN_CARMARINE); Exit end;
   end;
 end;
 
