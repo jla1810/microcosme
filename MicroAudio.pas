@@ -2,32 +2,35 @@
 {==============================================================================
  Microcosme — moteur audio 100% procédural (aucun .wav)
  waveOut + thread dédié + ring-buffers + mixeur additif.
- Le thread audio possède toute la synthèse ; le sim ne fait que pousser des
- paramètres et des déclencheurs (file protégée par une CriticalSection).
- v10.2 ★ERE7 : + voix lyre (corde pincée, attaque médiator) et cloche
- (partiels inharmoniques, martèlement), fanfare de passage d'ère (AudioEre),
- cloche d'invention (AudioBell).
+ ★ERE7 : lyre, cloche, fanfares (AudioEre, AudioBell).
+ ★DIAG : instrumentation complète du dossier « voix muettes » —
+ gDbgBeat (cœur du thread), gDbgTrig (trigs drainés), gDbgCall (entrées
+ dans SpawnWord), gDbgPush/gDbgSpeak/gDbgVox, AudioErr (crash du thread),
+ garde waveOutWrite. AudioDebug lit tout.
 ==============================================================================}
 interface
 
 procedure AudioInit;
 procedure AudioShutdown;
 function  AudioReady: Boolean;
-procedure AudioSetDayLight(v: Single);              // 0 = nuit .. 1 = jour
-procedure AudioSetWaves(v: Single);                 // 0..1 proximité de la côte
-procedure AudioSetFire(v: Single);                  // 0..1 feu de hutte proche
-procedure AudioSetMasterVolume(v: Single);          // 0..1 (défaut 0.85)
-procedure AudioSetListener(X, Y: Integer);          // "oreille" = centre de la vue
+procedure AudioSetDayLight(v: Single);
+procedure AudioSetWaves(v: Single);
+procedure AudioSetFire(v: Single);
+procedure AudioSetMasterVolume(v: Single);
+procedure AudioSetListener(X, Y: Integer);
 procedure AudioSpeak(const AWord: string; X, Y: Integer; Drummed: Boolean = False);
-procedure AudioVoiceID(ID: Integer; X, Y: Integer); // variante mots numérotés
-procedure AudioDrum(X, Y: Integer);                 // coup de tambour isolé
-procedure AudioEre(NEra: Integer);                  // ★ERE7 fanfare de passage d'ère
-procedure AudioBell(X, Y: Integer);                 // ★ERE7 cloche (inventions ère 3)
-{ Clamp local : absent de System.Math selon les versions.
-  Exporté ici : MicroBrain (uses MicroAudio) en hérite gratuitement. }
+procedure AudioVoiceID(ID: Integer; X, Y: Integer);
+procedure AudioDrum(X, Y: Integer);
+procedure AudioEre(NEra: Integer);
+procedure AudioBell(X, Y: Integer);
+function AudioDebug: string;                        // ★DIAG
 function Clamp(v, lo, hi: Double): Double; inline;
 
+
 implementation
+
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
 
 uses
   System.SysUtils, System.Classes, System.SyncObjs, System.Math,
@@ -35,15 +38,14 @@ uses
 
 const
   AUD_SR        = 44100;
-  AUD_FRAMES    = 1024;   // ~23 ms/buffer. 2048 si machine faible (latence x2)
-  AUD_BUFFERS   = 5;      // ~115 ms de garde totale
+  AUD_FRAMES    = 1024;
+  AUD_BUFFERS   = 5;
   AUD_MAXVOICES = 24;
   INV_SR        = 1.0 / AUD_SR;
 
 type
-  TVoiceKind = (vkDrum, vkVoice, vkChirp, vkCrackle, vkLyre, vkBell);   // ★ERE7
+  TVoiceKind = (vkDrum, vkVoice, vkChirp, vkCrackle, vkLyre, vkBell);
 
-  { biquad passe-bande (RBJ) : formants des voix / crépitements }
   TBiquad = record
     b0,b2, a1, a2, x1, x2, y1, y2: Double;
     procedure SetBP(fc, Q: Double); inline;
@@ -53,24 +55,24 @@ type
   TVoice = record
     Active: Boolean;
     Kind: TVoiceKind;
-    TStart, Dur: Double;        // déclenchement programmé (temps global)
-    GL, GR: Double;             // gains L/R (distance + pan précalculés)
+    TStart, Dur: Double;
+    GL, GR: Double;
     Phase: Double;
-    F0, Fm: Double;             // porteuse / modulation (chirp)
-    F1F, F2F: Double;           // formants (voix)
-    Ons, OnsD: Double;          // consonne : niveau / décroissance
+    F0, Fm: Double;
+    F1F, F2F: Double;
+    Ons, OnsD: Double;
     B1, B2: TBiquad;
-    FEnd: Double;               // hauteur de fin (glissando descendant)
+    FEnd: Double;
   end;
   PVoice = ^TVoice;
 
-  TTrigKind = (tkNone, tkSpeak, tkDrumOne, tkEre, tkBellOne);           // ★ERE7
+  TTrigKind = (tkNone, tkSpeak, tkDrumOne, tkEre, tkBellOne);
   TTrig = record
     Kind: TTrigKind;
     X, Y: Integer;
     Drummed: Boolean;
     AWord: string;
-    Num: Integer;               // ★ERE7 paramètre (ère)
+    Num: Integer;
   end;
 
   TAudioThread = class(TThread)
@@ -89,11 +91,9 @@ var
   gHdr: array[0..AUD_BUFFERS-1] of TWaveHdr;
   gBuf: array[0..AUD_BUFFERS-1] of array[0..AUD_FRAMES*2-1] of SmallInt;
 
-  { paramètres poussés par le sim — sous gCS }
   gDay: Double = 0.5;  gWave: Double = 0;  gFire: Double = 0;  gVol: Double = 0.85;
   gLX: Double = 0;     gLY: Double = 0;
 
-  { moteur — uniquement le thread audio }
   gT: Double = 0;
   gVoices: array[0..AUD_MAXVOICES-1] of TVoice;
   gSteal: Integer = 0;
@@ -101,17 +101,22 @@ var
   gWaveLP1: Double = 0;  gWaveLP2: Double = 0;
   gWindLP: Double = 0;   gFireLP: Double = 0;
   gRng: Cardinal = $9E3779B9;
-  { snapshot par buffer }
   gA_Day, gA_Wave, gA_Fire, gA_Vol: Double;
 
-  { file de déclencheurs — sous gCS }
   gTrig: array[0..31] of TTrig;
   gTrigR: Integer = 0;  gTrigW: Integer = 0;
 
+  // ★DIAG — l'instrumentation complète
+  AudioErr: string = '';    // dernier crash du thread audio
+  gDbgBeat: Integer = 0;    // battements du thread (buffers postés)
+  gDbgPush: Integer = 0;    // appels AudioSpeak
+  gDbgTrig: Integer = 0;    // trigs drainés (tous kinds)
+  gDbgCall: Integer = 0;    // entrées effectives dans SpawnWord
+  gDbgSpeak: Integer = 0;   // (= gDbgCall en théorie — cohérence)
+  gDbgVox: Integer = 0;     // voix vkVoice actives au dernier buffer
+
 const
   PENTA: array[0..4] of Double = (1.0, 1.125, 1.25, 1.5, 1.6667);
-
-{--- petits outils ----------------------------------------------------------}
 
 function Clamp(v, lo, hi: Double): Double;
 begin
@@ -136,7 +141,6 @@ begin
   x2 := x1; x1 := x;  y2 := y1; y1 := Result;
 end;
 
-{ PRNG du thread audio (xorshift) : [-0.5 ; 0.5] }
 function ARand: Double; inline;
 begin
   gRng := gRng xor (gRng shl 13);
@@ -145,7 +149,6 @@ begin
   Result := (gRng and $FFFFFF)/Double($FFFFFF) - 0.5;
 end;
 
-{ hash FNV : 1 mot = 1 mélodie stable }
 function WordHash(const s: string): Cardinal;
 var i: Integer;
 begin
@@ -154,7 +157,6 @@ begin
     Result := (Result xor Cardinal(Ord(s[i]))) * 16777619;
 end;
 
-{ spatialisation : distance + pan constant-power }
 procedure PlaceAt(X, Y: Integer; out GL, GR: Double);
 var dx, dy, d, g, p: Double;
 begin
@@ -174,7 +176,7 @@ begin
   for i := 0 to AUD_MAXVOICES-1 do
     if not gVoices[i].Active then begin Result := @gVoices[i]; Break; end;
   if Result = nil then begin
-    Result := @gVoices[gSteal mod AUD_MAXVOICES];  Inc(gSteal); // vol de voix (rare)
+    Result := @gVoices[gSteal mod AUD_MAXVOICES];  Inc(gSteal);
   end;
 end;
 
@@ -182,25 +184,22 @@ function NewVoice(Kind: TVoiceKind; TStart, Dur, GL, GR: Double): PVoice;
 begin
   Result := AllocVoice;
   if Result = nil then Exit;
-  FillChar(Result^, SizeOf(TVoice), 0);   // TVoice : aucun champ managé -> sûr
+  FillChar(Result^, SizeOf(TVoice), 0);
   Result.Active := True;  Result.Kind := Kind;
   Result.TStart := TStart;  Result.Dur := Dur;
   Result.GL := GL;  Result.GR := GR;
 end;
 
-{--- déclencheurs -----------------------------------------------------------}
-
 procedure SpawnDrumOne(X, Y: Integer);
 var v: PVoice; GL, GR: Double;
 begin
-  if gT - gLastDrum < 0.10 then Exit;   // anti-bourdon si 10 sapiens parlent
+  if gT - gLastDrum < 0.10 then Exit;
   gLastDrum := gT;
   PlaceAt(X, Y, GL, GR);
   v := NewVoice(vkDrum, gT, 0.75, 0.9*GL, 0.9*GR);
   if v <> nil then v.F0 := 88 + ARand*34;
 end;
 
-{ tambour qui "parle" : 1 lettre = 1 coup à hauteur distincte }
 procedure SpawnDrumWord(const AWord: string; X, Y: Integer);
 var i, n: Integer; v: PVoice; GL, GR, f0, t0: Double;
 begin
@@ -223,7 +222,6 @@ begin
   end;
 end;
 
-{ ★ERE7 lyre : corde pincée — les harmoniques meurent l'une après l'autre }
 procedure SpawnLyre(f0, T0, Dur, G: Double);
 var v: PVoice;
 begin
@@ -231,7 +229,6 @@ begin
   if v <> nil then v.F0 := f0;
 end;
 
-{ ★ERE7 cloche centrée (événements de civilisation) }
 procedure SpawnBellC(f0, T0, Dur, G: Double);
 var v: PVoice;
 begin
@@ -239,7 +236,6 @@ begin
   if v <> nil then v.F0 := f0;
 end;
 
-{ ★ERE7 cloche spatialisée : l'invention d'ère 3 sonne là où elle naît }
 procedure SpawnBellOne(X, Y: Integer);
 var v: PVoice; GL, GR: Double;
 begin
@@ -248,11 +244,6 @@ begin
   if v <> nil then v.F0 := 620 + ARand*40;
 end;
 
-{ ★ERE7 fanfare de passage :
-  ère 2 — la lyre : arpège pentatonique ascendant qui s'achève en accord
-           tenu (le bronze, la corde tendue, l'espoir) ;
-  ère 3 — les cloches : trois frappes graves, de plus en plus profondes
-           (le fer, la solennité, ce qui dure). }
 procedure SpawnFanfare(NEra: Integer);
 var i: Integer;
 begin
@@ -261,21 +252,21 @@ begin
       for i := 0 to 5 do
         SpawnLyre(196.0*PENTA[i mod 5]*(1 + (i div 5)*0.5)*(1 + 0.003*(i and 1)),
                   0.05 + i*0.22, 1.8, 0.30);
-      SpawnLyre(392.0,      0.05 + 6*0.22, 3.0, 0.22);   // l'octave qui tient
-      SpawnLyre(196.0*1.25, 0.05 + 6*0.22, 3.0, 0.15);   // la tierce
-      SpawnLyre(196.0*1.5,  0.05 + 6*0.22, 3.0, 0.15);   // la quinte — accord final
+      SpawnLyre(392.0,      0.05 + 6*0.22, 3.0, 0.22);
+      SpawnLyre(196.0*1.25, 0.05 + 6*0.22, 3.0, 0.15);
+      SpawnLyre(196.0*1.5,  0.05 + 6*0.22, 3.0, 0.15);
     end;
     3: for i := 0 to 2 do
       SpawnBellC(164.0 - i*26, 0.05 + i*1.2, 4.0, 0.34);
   end;
 end;
 
-{ voix : syllabes à formants, mélodie pentatonique par hash du mot }
 procedure SpawnWord(const AWord: string; X, Y: Integer);
 var i, n, k: Integer; h: Cardinal;
     f0, F1, F2, ons, onsd, GL, GR, t0: Double;
     v: PVoice;
 begin
+  Inc(gDbgCall);                             // ★DIAG preuve d'entrée
   if AWord = '' then Exit;
   h := WordHash(AWord);
   PlaceAt(X, Y, GL, GR);
@@ -283,7 +274,7 @@ begin
   t0 := 0;
   for i := 1 to n do
   begin
-    F1 := 500; F2 := 1900; ons := 0.12; onsd := 60;    // syllabe par défaut
+    F1 := 500; F2 := 1900; ons := 0.12; onsd := 60;
     case AWord[i] of
       'α','a','A': begin F1 := 820; F2 := 1250; ons := 0;    onsd := 60;  end;
       'β','b','B': begin F1 := 760; F2 := 1150; ons := 0.9;  onsd := 150; end;
@@ -292,13 +283,13 @@ begin
     end;
     k := Integer((h shr ((i and 7)*2)) and $F);
     f0 := 150.0*PENTA[k mod 5];
-    if (k and 8) <> 0 then f0 := f0*1.335;             // registre aigu
+    if (k and 8) <> 0 then f0 := f0*1.335;
     v := NewVoice(vkVoice, gT + t0, 0.10 + 0.02*(k mod 3), 0.34*GL, 0.34*GR);
     if v = nil then Break;
     v.F0 := f0;
-    v.FEnd := f0*0.84;                        // la syllabe "tombe" comme une vraie voix
-    v.B1.SetBP(F1, 6.0);  v.B2.SetBP(F2, 7.0);         // formants (Q baissé, moins criard)
-    t0 := t0 + 0.105 + ARand*0.04;                     // ~9 syllabes/s
+    v.FEnd := f0*0.84;
+    v.B1.SetBP(F1, 6.0);  v.B2.SetBP(F2, 7.0);
+    t0 := t0 + 0.105 + ARand*0.04;
   end;
 end;
 
@@ -333,23 +324,24 @@ begin
       gCS.Leave;
     end;
     if t.Kind = tkNone then Break;
+    Inc(gDbgTrig);                           // ★DIAG tout trig drainé
     case t.Kind of
       tkSpeak:
         if t.Drummed then SpawnDrumWord(t.AWord, t.X, t.Y)
-                     else SpawnWord(t.AWord, t.X, t.Y);
+                     else begin
+                       SpawnWord(t.AWord, t.X, t.Y);
+                       Inc(gDbgSpeak);
+                     end;
       tkDrumOne: SpawnDrumOne(t.X, t.Y);
-      tkEre:     SpawnFanfare(t.Num);                   // ★ERE7
-      tkBellOne: SpawnBellOne(t.X, t.Y);                // ★ERE7
+      tkEre:     SpawnFanfare(t.Num);
+      tkBellOne: SpawnBellOne(t.X, t.Y);
     end;
   until False;
 end;
 
-{--- ambiance programmée (une fois par buffer) ------------------------------}
-
 procedure ScheduleAmbient;
 var v: PVoice; r, GL, GR: Double;
 begin
-  // oiseaux (jour)
   if (gA_Day > 0.35) and (gT >= gNextChirp) then
   begin
     gNextChirp := gT + 1.0 + (ARand + 0.5)*6.0*(1.35 - gA_Day);
@@ -361,7 +353,7 @@ begin
       v.F0 := 2300 + (ARand + 0.5)*1900;
       v.Fm := 16 + (ARand + 0.5)*34;
     end;
-    if (ARand + 0.5) < 0.35 then                       // réponse en écho
+    if (ARand + 0.5) < 0.35 then
     begin
       v := NewVoice(vkChirp, gT + 0.25, 0.06 + (ARand+0.5)*0.1, GR*0.8, GL*0.8);
       if v <> nil then
@@ -371,7 +363,6 @@ begin
       end;
     end;
   end;
-  // crépitements (feu)
   if (gA_Fire > 0.02) and (gT >= gNextCrack) then
   begin
     gNextCrack := gT + (0.04 + (ARand + 0.5)*0.35)/Max(gA_Fire, 0.05);
@@ -382,13 +373,11 @@ begin
   end;
 end;
 
-{--- mixage -----------------------------------------------------------------}
-
 function S2I(x: Double): SmallInt; inline;
 var t: Double;
 begin
   t := x*gA_Vol;
-  t := t/(1 + Abs(t));                       // soft clip
+  t := t/(1 + Abs(t));
   Result := SmallInt(Round(t*32500));
 end;
 
@@ -407,7 +396,7 @@ begin
     if et >= v.Dur then begin v.Active := False; Continue; end;
     s := 0;
     case v.Kind of
-      vkDrum:  // membrane : sinus + chute de hauteur + partielle + bruit d'attaque
+      vkDrum:
         begin
           e := Exp(-et*6.5);
           f := v.F0*(1 + 0.5*Exp(-et*35));
@@ -418,10 +407,10 @@ begin
         end;
       vkVoice:
         begin
-          e := et/0.02; if e > 1 then e := 1;          // attaque douce 20 ms
+          e := et/0.02; if e > 1 then e := 1;
           e := e*(1 - Sqr(et/v.Dur)); if e < 0 then e := 0;
           f := (v.F0 + (v.FEnd - v.F0)*(et/v.Dur)) *
-               (1 + 0.012*Sin(2*Pi*5.3*et));            // glissando + vibrato léger
+               (1 + 0.012*Sin(2*Pi*5.3*et));
           v.Phase := v.Phase + 2*Pi*f*INV_SR;
           if v.Phase > 2*Pi then v.Phase := v.Phase - 2*Pi;
           src := Sin(v.Phase);
@@ -430,7 +419,7 @@ begin
           n := ARand*v.Ons*Exp(-et*v.OnsD);
           s := 1.35*(s + n)*e;
         end;
-      vkChirp: // oiseau : sinus modulé en fréquence
+      vkChirp:
         begin
           e := et/0.008; if e > 1 then e := 1;
           e := e*Exp(-et*16);
@@ -439,7 +428,7 @@ begin
         end;
       vkCrackle:
         s := v.B1.Process(ARand*2)*Exp(-et*70);
-      vkLyre:  // ★ERE7b corde pincée : attaque médiator + 6 harmoniques échelonnées
+      vkLyre:
         begin
           e := Exp(-et*3.2);
           v.Phase := v.Phase + 2*Pi*v.F0*INV_SR;
@@ -449,10 +438,10 @@ begin
                   + 0.26*Exp(-et*15.0)*Sin(4.02*v.Phase)
                   + 0.14*Exp(-et*22.0)*Sin(5.04*v.Phase)
                   + 0.08*Exp(-et*30.0)*Sin(6.05*v.Phase);
-          n := ARand*Exp(-et*110)*1.4;             // le « pinch » du médiator
+          n := ARand*Exp(-et*110)*1.4;
           s := 0.9*(src*e + n);
         end;
-      vkBell:  // ★ERE7b cloche : corps renforcé + martèlement
+      vkBell:
         begin
           v.Phase := v.Phase + 2*Pi*v.F0*INV_SR;
           s :=    1.10*Exp(-et*0.9)*Sin(v.Phase)
@@ -461,21 +450,19 @@ begin
                 + 0.34*Exp(-et*2.6)*Sin(3.01*v.Phase)
                 + 0.20*Exp(-et*3.2)*Sin(4.48*v.Phase)
                 + 0.12*Exp(-et*5.0)*Sin(5.93*v.Phase)
-                + 0.10*Exp(-et*0.4)*Sin(0.50*v.Phase);   // l'hum grave
-          n := ARand*Exp(-et*90)*0.8;                    // le coup de marteau
+                + 0.10*Exp(-et*0.4)*Sin(0.50*v.Phase);
+          n := ARand*Exp(-et*90)*0.8;
           s := 0.6*(s + n);
         end;
     end;
     L := L + s*v.GL;  R := R + s*v.GR;
   end;
 
-  // ---- vent permanent ----
   n := ARand;
   gWindLP := gWindLP + 0.028*(n - gWindLP);
   s := gWindLP*(1 + 0.4*Sin(2*Pi*0.017*gT) + 0.25*Sin(2*Pi*0.041*gT + 2.0))*0.45;
   L := L + s;  R := R + s;
 
-  // ---- vagues (houle lente + écume) ----
   if gA_Wave > 0.002 then
   begin
     gWaveLP1 := gWaveLP1 + 0.05*((ARand*1.7) - gWaveLP1);
@@ -486,7 +473,6 @@ begin
     L := L + s;  R := R + s;
   end;
 
-  // ---- nuit : grillons + drone grave ----
   if gA_Day < 0.85 then
   begin
     e := Sqr(1 - gA_Day)*0.055;
@@ -503,7 +489,6 @@ begin
     L := L + s;  R := R + s;
   end;
 
-  // ---- feu : grondement continu ----
   if gA_Fire > 0.01 then
   begin
     gFireLP := gFireLP + 0.012*(ARand - gFireLP);
@@ -515,12 +500,16 @@ begin
 end;
 
 procedure PostBuffer(idx: Integer);
-var p: PSmallInt; i: Integer; L, R: Double;
+var p: PSmallInt; i, I2: Integer; L, R: Double;
 begin
+  Inc(gDbgBeat);                             // ★DIAG le cœur bat
   gCS.Enter;
   gA_Day := gDay;  gA_Wave := gWave;  gA_Fire := gFire;  gA_Vol := gVol;
   gCS.Leave;
   DrainTrigs;
+  gDbgVox := 0;
+  for I2 := 0 to AUD_MAXVOICES-1 do
+    if gVoices[I2].Active and (gVoices[I2].Kind = vkVoice) then Inc(gDbgVox);
   ScheduleAmbient;
   p := @gBuf[idx][0];
   for i := 0 to AUD_FRAMES-1 do
@@ -530,26 +519,28 @@ begin
     p^ := S2I(R); Inc(p);
   end;
   if hWO <> 0 then
-    waveOutWrite(hWO, @gHdr[idx], SizeOf(TWaveHdr));
+    if waveOutWrite(hWO, @gHdr[idx], SizeOf(TWaveHdr)) <> MMSYSERR_NOERROR then
+      AudioErr := 'waveOutWrite a échoué';   // ★DIAG device
 end;
-
-{--- thread -----------------------------------------------------------------}
 
 procedure TAudioThread.Execute;
 var i: Integer;
 begin
   Priority := tpHigher;
-  for i := 0 to AUD_BUFFERS-1 do PostBuffer(i);   // pré-remplissage
-  while (not Terminated) and gRun do
-  begin
-    WaitForSingleObject(hEv, 150);
-    for i := 0 to AUD_BUFFERS-1 do
-      if (gHdr[i].dwFlags and WHDR_DONE) <> 0 then
-        PostBuffer(i);
+  try
+    for i := 0 to AUD_BUFFERS-1 do PostBuffer(i);
+    while (not Terminated) and gRun do
+    begin
+      WaitForSingleObject(hEv, 150);
+      for i := 0 to AUD_BUFFERS-1 do
+        if (gHdr[i].dwFlags and WHDR_DONE) <> 0 then
+          PostBuffer(i);
+    end;
+  except
+    on E: Exception do
+      AudioErr := 'AUDIO CRASH: ' + E.Message;   // ★DIAG le filet
   end;
 end;
-
-{--- API publique -----------------------------------------------------------}
 
 procedure AudioInit;
 var i: Integer;
@@ -569,7 +560,7 @@ begin
   if waveOutOpen(@hWO, WAVE_MAPPER, @gFmt, DWORD_PTR(hEv), 0, CALLBACK_EVENT)
        <> MMSYSERR_NOERROR then
   begin
-    hWO := 0;  CloseHandle(hEv);  hEv := 0;   // pas de périph : tout reste no-op
+    hWO := 0;  CloseHandle(hEv);  hEv := 0;
     Exit;
   end;
   for i := 0 to AUD_BUFFERS-1 do
@@ -624,6 +615,7 @@ procedure AudioSpeak(const AWord: string; X, Y: Integer; Drummed: Boolean);
 var t: TTrig;
 begin
   if (gCS = nil) or (AWord = '') then Exit;
+  Inc(gDbgPush);                             // ★DIAG
   t := Default(TTrig);
   t.Kind := tkSpeak;  t.X := X;  t.Y := Y;  t.Drummed := Drummed;  t.AWord := AWord;
   PushTrig(t);
@@ -649,7 +641,7 @@ begin
   PushTrig(t);
 end;
 
-procedure AudioEre(NEra: Integer);                 // ★ERE7
+procedure AudioEre(NEra: Integer);
 var t: TTrig;
 begin
   if gCS = nil then Exit;
@@ -658,13 +650,27 @@ begin
   PushTrig(t);
 end;
 
-procedure AudioBell(X, Y: Integer);                // ★ERE7
+procedure AudioBell(X, Y: Integer);
 var t: TTrig;
 begin
   if gCS = nil then Exit;
   t := Default(TTrig);
   t.Kind := tkBellOne;  t.X := X;  t.Y := Y;
   PushTrig(t);
+end;
+
+function AudioDebug: string;
+begin
+  if gCS = nil then Exit('audio NON initialisé');
+  gCS.Enter;
+  try
+    Result := Format('%sprêt:%s · run:%s · thr:%s · beat:%d · vol:%.2f · push:%d · trigs:%d · call:%d · mots:%d · voix:%d',
+      [AudioErr, BoolToStr(AudioReady, True), BoolToStr(gRun, True),
+       BoolToStr(gThr <> nil, True), gDbgBeat, gVol,
+       gDbgPush, gDbgTrig, gDbgCall, gDbgSpeak, gDbgVox]);
+  finally
+    gCS.Leave;
+  end;
 end;
 
 end.
