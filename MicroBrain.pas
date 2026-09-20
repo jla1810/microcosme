@@ -246,6 +246,10 @@ begin
   for I := 0 to NC - 1 do PlantGrid[I] := nil;
   for I := 0 to Huts.Count - 1 do Huts[I].Free;
   Huts.Clear;
+  if Cities <> nil then begin
+    for I := 0 to Cities.Count - 1 do Cities[I].Free;
+    Cities.Clear;
+  end;
   for I := 0 to Fishes.Count - 1 do Fishes[I].Free;
   Fishes.Clear;
   FsN := 0; FdN := 0;

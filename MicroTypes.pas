@@ -284,6 +284,8 @@ var
   FHomeSet: Boolean;
   FDiag: TFileStream;
   TECHBASE: array[0..TECH_COUNT-1] of TEchDef;
+  FVue: Integer = 0;       // ★ 0 normal · 1 monde plein écran (F5) · 2 carnet plein écran (F7)
+  FPanelW: Integer = PANELW; // ★ largeur courante du carnet (302 · pleine largeur en F7)
 
 implementation
 

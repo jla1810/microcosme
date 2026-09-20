@@ -1,11 +1,13 @@
 ﻿unit MicroIO;
 
-{ Microcosme — sauvegarde/chargement v12.
+{ Microcosme — sauvegarde/chargement v14.
   Masque de techs en 8 octets (TechBits/BitsToTech UInt64) : les 64 bits,
   ères 4-8 incluses, stables définitivement. Ère + bibliothèque + camp +
   journal des inventions + bits d'invention par créature persistés.
-  v14 ★i18n : tous les messages utilisateur via MicroLang (L()).
-  SVERSION = 13 (MicroTypes) : les saves antérieures sont refusées. }
+  v15 ★A4 : les VILLES persistées (entre les inventions et les huttes) ;
+  le rattachement huttes→villes est RECONSTRUIT par proximité au chargement.
+  v14 ★i18n : messages via MicroLang (L()).
+  SVERSION = 14 (MicroTypes) : les saves antérieures sont refusées. }
 
 interface
 
@@ -95,6 +97,19 @@ begin
         WriteStr(FS, InnoLog[I].Who);
         WriteStr(FS, InnoLog[I].Base);
       end;
+
+      // ★A4 — les villes (entre les inventions et les huttes, ordre gelé)
+      N := Cities.Count;
+      FS.WriteBuffer(N, SizeOf(Integer));
+      for I := 0 to N - 1 do begin
+        FS.WriteBuffer(Cities[I].X, SizeOf(Single));
+        FS.WriteBuffer(Cities[I].Y, SizeOf(Single));
+        B := Cities[I].Niveau; FS.WriteBuffer(B, SizeOf(Integer));
+        B := Cities[I].Jour;   FS.WriteBuffer(B, SizeOf(Integer));
+        TmpS := Cities[I].Rayon; FS.WriteBuffer(TmpS, SizeOf(Single));
+        WriteStr(FS, Cities[I].Nom);
+      end;
+
       N := Huts.Count;
       FS.WriteBuffer(N, SizeOf(Integer));
       for I := 0 to N - 1 do begin
@@ -176,7 +191,7 @@ end;
 
 procedure LoadWorld;
 var FS: TFileStream; I, K, N, B: Integer; C: TCreature;
-   H: THut; F: TFish; M: TMark;
+   H: THut; F: TFish; M: TMark; V: TCity;
    Magic: array[0..3] of AnsiChar; VerI, SXi, SYi: Integer;
    FXs, FYs, FSz, TmpS: Single;
    TT: TTech; Mask: UInt64;
@@ -228,6 +243,8 @@ begin
           FS.ReadBuffer(N, SizeOf(Integer));
           TechInfo[TT].Day := N;
         end;
+
+        // — inventions (boucle COMPLÈTE et autonome) —
         FS.ReadBuffer(N, SizeOf(Integer));
         CheckCount(N, 64, 'inventions');
         SetLength(InnoLog, N);
@@ -238,6 +255,22 @@ begin
           InnoLog[I].Who := ReadStr(FS);
           InnoLog[I].Base := ReadStr(FS);
         end;
+
+        // — ★A4 les villes (APRÈS les inventions, AVANT les huttes) —
+        FS.ReadBuffer(N, SizeOf(Integer));
+        CheckCount(N, 16, 'villes');
+        for I := 1 to N do begin
+          V := TCity.Create;
+          FS.ReadBuffer(FXs, SizeOf(Single)); V.X := FXs;
+          FS.ReadBuffer(FXs, SizeOf(Single)); V.Y := FXs;
+          FS.ReadBuffer(B, SizeOf(Integer)); V.Niveau := B;
+          FS.ReadBuffer(B, SizeOf(Integer)); V.Jour := B;
+          FS.ReadBuffer(FXs, SizeOf(Single)); V.Rayon := FXs;
+          V.Nom := ReadStr(FS);
+          Cities.Add(V);
+        end;
+
+        // — huttes —
         FS.ReadBuffer(N, SizeOf(Integer));
         CheckCount(N, MAXH, 'huttes');
         for I := 1 to N do begin
@@ -247,8 +280,21 @@ begin
           FS.ReadBuffer(TmpS, SizeOf(Single)); H.Stock := TmpS;
           FS.ReadBuffer(B, SizeOf(Integer)); H.Cult := (B = 1);
           H.Fire := False;
+          H.Ville := nil;
           Huts.Add(H);
         end;
+
+        // ★A4 — re-rattachement huttes→villes par proximité (les deux
+        // listes sont complètes) — remplace la persistance du champ Ville
+        for I := 0 to Huts.Count - 1 do
+          for K := 0 to Cities.Count - 1 do
+            if Sqr(Huts[I].X - Cities[K].X) + Sqr(Huts[I].Y - Cities[K].Y)
+               < Sqr(Cities[K].Rayon) then begin
+              Huts[I].Ville := Cities[K];
+              Break;
+            end;
+
+        // — poissons —
         FS.ReadBuffer(N, SizeOf(Integer));
         CheckCount(N, MAXFS + MAXFD, 'poissons');
         for I := 1 to N do begin

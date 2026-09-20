@@ -613,6 +613,7 @@ begin
   FSimCS := TCriticalSection.Create;
   Plants := TList<TPlant>.Create;
   Huts := TList<THut>.Create;
+  Cities := TList<TCity>.Create;
   Fishes := TList<TFish>.Create;
   Marks := TList<TMark>.Create;
   Creatures := TList<TCreature>.Create;
@@ -627,6 +628,7 @@ begin
   FTintN := TBitmap.Create;
   FTintW := TBitmap.Create;
   FPanelBM := TBitmap.Create;
+  Cities := TList<TCity>.Create;
   FPanelBM.PixelFormat := pf32bit;
   FPanelScroll := 0;
   FPanelH := 0;
@@ -654,6 +656,8 @@ begin
 end;
 
 destructor TMainForm.Destroy;
+var i : integer;
+
 begin
   if FSimThread <> nil then begin
     FSimThread.Terminate;
@@ -661,10 +665,14 @@ begin
     FreeAndNil(FSimThread);
   end;
   ClearWorldObjects;
+  if Cities <> nil then begin
+      for I := 0 to Cities.Count - 1 do Cities[I].Free;
+      Cities.Clear;
+    end;
   if FDiag <> nil then FreeAndNil(FDiag);
   FreeAndNil(FSimCS);
   Plants.Free; Huts.Free; Fishes.Free; Marks.Free; Creatures.Free; NB.Free;
-  FTerrain.Free; FThumb.Free; FWorld.Free; FTintN.Free; FTintW.Free;
+  FTerrain.Free; FThumb.Free; FWorld.Free; FTintN.Free; FTintW.Free;Cities.Free;
   FreeAndNil(FPanelBM);
   Savecfg;
   inherited;

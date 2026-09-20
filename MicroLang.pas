@@ -22,7 +22,7 @@ var
 implementation
 
 const
-  FR: array[0..149] of string = (
+  FR: array[0..155] of string = (
     'Observer le monde',            // 0
     'l''île s''éveille…',           // 1
     'nouveau monde',                // 2
@@ -172,10 +172,17 @@ const
     'errance',                      // 146
     'suit',                         // 147
     'flâne',                        // 148
-    'chien de %s'                  // 149
+    'chien de %s',                  // 149
+    '%s grandit — dix foyers s''assemblent : c''est un bourg',  // 150 fondation (toast court)
+    'le bourg de %s naît — %d foyers, jour %d',  // 151 fondation (annale)
+    '%s devient une ville — %d foyers vivent derrière ses remparts',  // 152
+    '%s est désormais une ville (%d foyers)',     // 153
+    '%s est proclamée cité — %d foyers sous son monument',  // 154
+    'la cité de %s rayonne — %d foyers'          // 155
+
   );
 
-  EN: array[0..149] of string = (
+  EN: array[0..155] of string = (
     'Observe the world',            // 0
     'the island awakens…',          // 1
     'new world',                    // 2
@@ -325,7 +332,14 @@ const
     'wandering',                    // 146
     'following',                    // 147
     'loafing',                      // 148
-    '%s''s dog'                     // 149
+    '%s''s dog',                     // 149
+    '%s grows — ten hearths gather: a town is born',  // 150
+    'the town of %s is born — %d hearths, day %d',    // 151
+    '%s becomes a city — %d hearths live behind its walls',  // 152
+    '%s is now a city (%d hearths)',                  // 153
+    '%s is proclaimed a city-state — %d hearths under its monument',  // 154
+    'the city-state of %s shines — %d hearths'       // 155
+
   );
 
 function L(id: Integer): string;
