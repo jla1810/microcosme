@@ -3,10 +3,9 @@
 { Microcosme — créatures, sapiens, boucle DoStep, thread.
   v15 : ères 1-6 en table (TECHBASE), effets et inventions bilingues (L()),
   plafond EreMaxS, bibliothèque + Science/Maths/Universités/Méthode,
-  ★VILLES : émergence d'amas de huttes, fondation nommée par le lexique
-  du monde, niveaux bourg/ville/cité, REBÂTISSURE en spirale d'or (dense),
-  empreinte écologique (défrichage quotidien autour des villes),
-  construction resserrée dès la Cité. }
+  ★REFACTOR : tout l'URBAIN (villes, routes, défrichage) délégué à
+  MicroVilles — DoStep appelle VeilleUrbaine(DT) une fois par jour de sim ;
+  effets SurRoute : vitesse ×1,5 et diffusion renforcée. }
 
 interface
 
@@ -32,7 +31,7 @@ implementation
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
 
-uses MicroRender, MicroEre, MicroLang;
+uses MicroRender, MicroEre, MicroLang, MicroVilles;
 
 var
   Heard: array[0..3] of Single;
@@ -652,176 +651,6 @@ begin
   Huts.Add(H);
 end;
 
-{ ── ★VILLES — émergence, niveaux, spirale d'or, empreinte écologique ── }
-
-const
-  VILLE_SEUIL   = 10;    // huttes pour fonder (naît bourg, niveau 2)
-  VILLE_NIVEAU3 = 18;    // ville
-  VILLE_NIVEAU4 = 28;    // cité
-  VILLE_RAYON   = 14.0;
-
-var
-  VilleT: Single = 0;
-
-function SyllabesNom: string;
-var N, I: Integer;
-begin
-  N := 2 + Random(2);
-  Result := '';
-  for I := 1 to N do
-    Result := Result + SYL[Random(Length(SYL))];
-  Result[1] := UpCase(Result[1]);
-end;
-
-{ Rebâtit la hutte sur le rang suivant de la spirale d'or de sa ville :
-  dense (~1,1 à 2,6 cases du centre), organique. Si l'emplacement tombe
-  dans l'eau, on essaie quelques crans plus loin ; en dernier recours la
-  hutte garde sa position d'origine (rattachée quand même). }
-procedure PlaceHutInVille(H: THut; V: TCity);
-var Nb, T: Integer;
-   A, R, NX, NY: Single;
-begin
-  Nb := 0;
-  for T := 0 to Huts.Count - 1 do
-    if (Huts[T].Ville = V) and (Huts[T] <> H) then Inc(Nb);
-  A := Nb * 2.399963;                        // l'angle d'or
-  R := 1.1 + 0.30 * Sqrt(Nb);                // spirale de Fermat
-  for T := 0 to 6 do begin
-    NX := V.X + Cos(A + T * 0.7) * (R + T * 0.35);
-    NY := V.Y + Sin(A + T * 0.7) * (R + T * 0.35);
-    NX := ClampF(NX, 0.5, GW - 0.5);
-    NY := ClampF(NY, 0.5, GH - 0.5);
-    if Walkable(NX, NY) then begin
-      H.X := NX; H.Y := NY;
-      Exit;
-    end;
-  end;
-end;
-
-procedure VeilleVilles;
-var I, K, Nb: Integer;
-   H: THut;
-   V, Best, NewV: TCity;
-   D, BD: Single;
-begin
-  // 1) rattacher les huttes isolées à la ville la plus proche dans son rayon
-  for I := 0 to Huts.Count - 1 do begin
-    H := Huts[I];
-    if H.Ville <> nil then Continue;
-    Best := nil; BD := 1e9;
-    for K := 0 to Cities.Count - 1 do begin
-      V := Cities[K];
-      D := Sqrt(Sqr(H.X - V.X) + Sqr(H.Y - V.Y));
-      if (D < V.Rayon) and (D < BD) then begin BD := D; Best := V end;
-    end;
-    if Best <> nil then begin
-      H.Ville := Best;
-      PlaceHutInVille(H, Best);              // le nouveau venu rejoint la spirale
-    end;
-  end;
-
-  // 2) fonder une ville si un amas de huttes isolées atteint le seuil
-  if Cities.Count < 8 then
-    for I := 0 to Huts.Count - 1 do begin
-      H := Huts[I];
-      if H.Ville <> nil then Continue;
-      Nb := 0;
-      for K := 0 to Huts.Count - 1 do
-        if (Huts[K].Ville = nil) and
-           (Sqr(Huts[K].X - H.X) + Sqr(Huts[K].Y - H.Y) < Sqr(VILLE_RAYON)) then
-          Inc(Nb);
-      if Nb >= VILLE_SEUIL then begin
-        NewV := TCity.Create;
-        NewV.Nom := SyllabesNom;
-        NewV.Niveau := 2;
-        NewV.Jour := DayCount;
-        NewV.Rayon := VILLE_RAYON + 2;
-        NewV.X := 0; NewV.Y := 0;
-        for K := 0 to Huts.Count - 1 do
-          if (Huts[K].Ville = nil) and
-             (Sqr(Huts[K].X - H.X) + Sqr(Huts[K].Y - H.Y) < Sqr(VILLE_RAYON)) then begin
-            Huts[K].Ville := NewV;
-            NewV.X := NewV.X + Huts[K].X;
-            NewV.Y := NewV.Y + Huts[K].Y;
-          end;
-        NewV.X := NewV.X / Max(1, Nb);
-        NewV.Y := NewV.Y / Max(1, Nb);
-        Cities.Add(NewV);
-        // rebâtir serré : les foyers se regroupent autour de la place
-        for K := 0 to Huts.Count - 1 do
-          if Huts[K].Ville = NewV then
-            PlaceHutInVille(Huts[K], NewV);
-        Toast(Format(L(150), [NewV.Nom]));
-        ChronAdd(CK_PEOPLE, Format(L(151), [NewV.Nom, Nb, DayCount]));
-        Break;
-      end;
-    end;
-
-  // 3) montées de niveau + recentrage
-  for K := 0 to Cities.Count - 1 do begin
-    V := Cities[K];
-    Nb := 0;
-    V.X := 0; V.Y := 0;
-    for I := 0 to Huts.Count - 1 do
-      if Huts[I].Ville = V then begin
-        Inc(Nb);
-        V.X := V.X + Huts[I].X;
-        V.Y := V.Y + Huts[I].Y;
-      end;
-    if Nb > 0 then begin
-      V.X := V.X / Nb;
-      V.Y := V.Y / Nb;
-    end;
-    if (Nb >= VILLE_NIVEAU4) and (V.Niveau < 4) then begin
-      V.Niveau := 4;
-      V.Rayon := VILLE_RAYON + 6;
-      Toast(Format(L(154), [V.Nom]));
-      ChronAdd(CK_PEOPLE, Format(L(155), [V.Nom, Nb]));
-    end else if (Nb >= VILLE_NIVEAU3) and (V.Niveau < 3) then begin
-      V.Niveau := 3;
-      V.Rayon := VILLE_RAYON + 4;
-      Toast(Format(L(152), [V.Nom]));
-      ChronAdd(CK_PEOPLE, Format(L(153), [V.Nom, Nb]));
-    end;
-  end;
-
-  // 4) huttes orphelines (défensif)
-  for I := 0 to Huts.Count - 1 do
-    if (Huts[I].Ville <> nil) and (Cities.IndexOf(Huts[I].Ville) < 0) then
-      Huts[I].Ville := nil;
-end;
-
-{ L'empreinte écologique : autour de chaque ville, la végétation dépérit.
-  Le cercle déboisé grandit avec le niveau (bourg 6 · ville 8 · cité 10). }
-procedure DefricherVilles;
-var I, K, CI: Integer;
-   P: TPlant;
-   V: TCity;
-   R: Single;
-begin
-  if Cities.Count = 0 then Exit;
-  for I := Plants.Count - 1 downto 0 do begin
-    P := Plants[I];
-    for K := 0 to Cities.Count - 1 do begin
-      V := Cities[K];
-      R := 2.0 + V.Niveau * 2.0;
-      if Sqr(P.X - V.X) + Sqr(P.Y - V.Y) < Sqr(R) then begin
-        P.S := P.S - 0.15;
-        if P.S <= 0.05 then begin
-          CI := P.Cell;
-          Plants.Delete(I);
-          if (CI >= 0) and (CI < Length(PlantGrid)) and (PlantGrid[CI] = P) then
-            PlantGrid[CI] := nil;
-          P.Free;
-        end;
-        Break;
-      end;
-    end;
-  end;
-end;
-
-{ Technologies v2 : table TECHBASE (MicroTypes) + ères (MicroEre). }
-
 function TechDispo(C: TCreature; Idx: Integer): Boolean;
 var i, d: Integer;
 begin
@@ -1049,12 +878,13 @@ begin
                         * IfThen(teLegislation in OM.Tech, 1.25, 1.0)
                         * IfThen(HasInno(OM, IN_PARCHEMIN), 1.1, 1.0)
                         * IfThen(teImprimerie in OM.Tech, 1.6, 1.0)
-                        * IfThen(teBanque in OM.Tech, 1.25, 1.0)) then
+                        * IfThen(teBanque in OM.Tech, 1.25, 1.0)
+                        * IfThen(SurRoute(C.X, C.Y) or SurRoute(OM.X, OM.Y), 1.3, 1.0)) then   // ★B2
         C.Tech := C.Tech + OM.Tech;
     for OM in NB do
       if OM.Alive and (OM.Kind = 2) and (Random < 0.04) then
         C.InnoK := C.InnoK or OM.InnoK;
-    // — mémoire du peuple : au camp (partout avec les Archives) —
+    // — mémoire du peuple —
     if (CfgMemoire >= 0.5) and
        (PeopleHas(teArchives) or
        ((FHomeSet and (Sqr(C.X - FHomeX) + Sqr(C.Y - FHomeY) < 144)) or
@@ -1310,6 +1140,7 @@ begin
     if teCaravelles in C.Tech then SM := 2.2;
   end
   else if Walkable(C.X, C.Y) and (TerrType[CellIdx(C.X, C.Y)] = T_FOR) then SM := 0.7;
+  if SurRoute(C.X, C.Y) then Des := Des * 1.5;       // ★B2 la route porte le pas
   SP := Des * SM;
   NX := C.X + Cos(C.Angle) * SP * DT; NY := C.Y + Sin(C.Angle) * SP * DT;
   if Walkable(NX, NY) or ((tNav in C.Tech) and NavOK(NX, NY)) then
@@ -1386,15 +1217,9 @@ begin
     RebuildFields;
   end;
 
-  // ★VILLES — la veille + l'empreinte écologique, 1×/jour de sim
-  VilleT := VilleT + DT;
-  if VilleT >= CDAY then begin
-    VilleT := 0;
-    if (Huts.Count > 0) and (Creatures <> nil) then begin
-      VeilleVilles;
-      DefricherVilles;
-    end;
-  end;
+  // ★VILLES+ROUTES — la veille urbaine (MicroVilles), 1×/jour de sim
+  if (Huts.Count > 0) and (Creatures <> nil) then
+    VeilleUrbaine(DT);
 
   Froid := SaisonFroid;
   if PeopleHas(teAstronomie) then Froid := Froid * 0.7;

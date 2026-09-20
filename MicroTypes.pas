@@ -16,6 +16,7 @@ type
   TFish = class;
   TMark = class;
   TCity = class;
+  Troad = Class;
 
   TPlant = class
     X, Y, S: Single;
@@ -36,6 +37,14 @@ type
     Niveau: Integer;       // 2 bourg · 3 ville · 4 cité
     Jour: Integer;         // jour de fondation
     Rayon: Single;         // rayon de rattachement
+  end;
+
+
+   TRoad = class
+    A, B: TCity;             // les deux villes reliées
+    Chemin: TArray<TPoint>;  // le tracé complet (calculé à la fondation)
+    Prog: Integer;           // cellules construites (la route pousse)
+    Jour: Integer;           // jour de fondation
   end;
 
   TFish = class
@@ -224,7 +233,7 @@ const
   BID_TI = 10; BID_TS = 11; BID_TH = 12; BID_TP = 13; BID_TSA = 14; BID_NEW = 15;
   BID_SAVE = 20; BID_LOAD = 21;
   BID_ERE  = 22;
-  SVERSION = 13;
+  SVERSION = 15;
 
 const
   SYL: array[0..21] of string = ('ka','ro','mi','ta','lu','se','no','va','pi',
@@ -244,6 +253,7 @@ var
   PlantGrid: TArray<TPlant>;
   Huts: TList<THut>;
   Cities: TList<TCity>;          // ★A1 les villes du monde
+  Roads: TList<TRoad>;
   Fishes: TList<TFish>;
   FsN, FdN: Integer;
   Marks: TList<TMark>;

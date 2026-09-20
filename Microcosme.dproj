@@ -141,6 +141,7 @@
         <DCCReference Include="MicroEre.pas"/>
         <DCCReference Include="MicroLang.pas"/>
         <DCCReference Include="MicroSim.pas"/>
+        <DCCReference Include="MicroVilles.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

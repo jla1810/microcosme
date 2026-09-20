@@ -2,9 +2,11 @@
 
 { Microcosme — fiche principale, caméra, scroll du carnet, interactions,
   écran de départ. Aide F1 · son F4.
-  v13 ★vues : F5 monde plein écran · F6 retour · F7 Observatoire (cerveau
+  v15 ★vues : F5 monde plein écran · F6 retour · F7 Observatoire (cerveau
   géant, clic = sapiens suivant) · ★i18n : F8 bascule français/english.
-  Triches verrouillées : Ctrl+Shift+E (équiper) · B (état) · P (passer). }
+  Triches verrouillées (Ctrl+Shift) : E équiper · B état · P passer ·
+  U fonder une ville · V test voix · W diagnostic audio.
+  Passage d'ère automatique si CfgEreAuto (F2). }
 
 interface
 
@@ -184,13 +186,13 @@ begin
     RenderTerrainBmp;
     SeedFish;
     FSimTime := CDAY * 0.18; SampleT := 0;
-    for I := 1 to 1280 do AddPlant(Random(GW), Random(GH), 0.3 + Random * 0.6);   // 1a
-    for G := 1 to 8 do begin                       // 1a : 8 troupeaux
+    for I := 1 to 1280 do AddPlant(Random(GW), Random(GH), 0.3 + Random * 0.6);
+    for G := 1 to 8 do begin
       X := Random(GW); Y := Random(GH);
       for I := 1 to 15 do
         SpawnCreature(0, X + Random * 8 - 4, Y + Random * 8 - 4, nil, nil, 0);
     end;
-    for G := 1 to 3 do begin                       // 1a : 3 meutes
+    for G := 1 to 3 do begin
       X := Random(GW); Y := Random(GH);
       for I := 1 to 3 do
         SpawnCreature(1, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
@@ -204,10 +206,10 @@ begin
     FHomeX := X; FHomeY := Y;
     FHomeSet := True;
     ResetChron;
-    ChronAdd(CK_PEOPLE, L(105));                     // ★i18n : « le peuple s'établit au camp » / en
+    ChronAdd(CK_PEOPLE, L(105));
     FZoom := 1; FCamX := (GW - 1) / 2; FCamY := (GH - 1) / 2;
     FRunning := False; FStarted := False;
-    Toast(L(2));                                   // ★i18n
+    Toast(L(2));
   finally
     FSimCS.Leave;
   end;
@@ -229,7 +231,7 @@ begin
     Invalidate;
     Exit;
   end;
-  if FVue = 2 then begin                            // ★ F7 observatoire : clic = suivant
+  if FVue = 2 then begin
     if Button = mbLeft then begin NextSapien; Invalidate end;
     Exit;
   end;
@@ -292,7 +294,7 @@ begin
               FPanelScroll := 0;
             SaveCfg
           end;
-          BID_CFGDEF:  begin ResetCfg; SaveCfg; Toast(L(48)) end;   // ★i18n
+          BID_CFGDEF:  begin ResetCfg; SaveCfg; Toast(L(48)) end;
         end;
         Invalidate;
         Exit;
@@ -411,22 +413,15 @@ begin
     Invalidate;
   end;
 
-  // ── ★i18n F8 : bascule français / english ──
+  // ── ★i18n F8 ──
   if Key = VK_F8 then begin
     Key := 0;
     if FLangue = LANG_FR then FLangue := LANG_EN else FLangue := LANG_FR;
     Toast(LangNom);
     Invalidate;
+  end;
 
-  end;     if Key = Ord('W') then begin
-      Key := 0;
-      Toast(AudioDebug);
-      Invalidate;
-    end;
-
-
-
-  // ── ★ERE triche verrouillée : Ctrl+Shift+E · Ctrl+Shift+B · Ctrl+Shift+P ──
+  // ── ★ERE triche verrouillée : Ctrl+Shift+E · B · P · U · V · W ──
   if FStarted and (Creatures <> nil) and (Shift = CHEAT_GATE) then begin
     if Key = Ord('E') then begin
       Key := 0;
@@ -456,30 +451,23 @@ begin
       end;
       Invalidate;
     end;
-
-      if Key = Ord('V') then begin
-      Key := 0;
-      AudioSpeak('abgd', Round(FCamX), Round(FCamY), False);   // ★ ASCII : insensible à l'encodage
-      Toast('test voix envoyé (abgd)');
-      Invalidate;
-    end;
-
     if Key = Ord('B') then begin
       Key := 0;
       var MsgP: string;
       if CanPassEre then MsgP := L(120)
       else if EreCourante >= MaxEraContent then MsgP := L(121)
       else MsgP := L(122);
-      Toast(Format('%s | techs %d/%d · inno %d/%d · pop %d/%d | biblio ×%.2f%s',
-        [EreLabel, CountTechEre(EreCourante),
-         IfThen(EreCourante >= MaxEraContent, 0,
-           IfThen(EreCourante = 1, 7, 8)),
-         CountInno, InnoTotal, CountS, EreMaxS, BiblioMult, MsgP]));
+      Toast(Format('%s | %s | villes %d · routes %d',
+        [EreLabel,
+         Format(L(32), [CountTechEre(EreCourante),
+                        IfThen(EreCourante = 1, 7, 8),
+                        CountS, CountInno, InnoTotal]),
+         Cities.Count, Roads.Count]));
       Invalidate;
     end;
     if Key = Ord('P') then begin
       Key := 0;
-if PassEre then begin
+      if PassEre then begin
         ChronAdd(CK_TECH, Format(L(115), [ERE_NOM(EreCourante)]));
         Toast(Format(L(116), [ERE_NOM(EreCourante)]));
         AudioEre(EreCourante);
@@ -487,6 +475,66 @@ if PassEre then begin
         Toast(L(124))
       else
         Toast(L(123));
+      Invalidate;
+    end;
+    if Key = Ord('U') then begin              // ★ triche : fonder une ville ici
+      Key := 0;
+      var H: THut;
+      var V: TCity;
+      var j: Integer;
+      var A, R: Single;
+      var CX, CY: Single;
+      var Nom: string;
+      FSimCS.Enter;
+      try
+        CX := FCamX; CY := FCamY;
+        if not Walkable(CX, CY) then
+          for j := 1 to 50 do begin
+            CX := FCamX + Random * 10 - 5;
+            CY := FCamY + Random * 10 - 5;
+            if Walkable(CX, CY) then Break;
+          end;
+        Nom := '';
+        for j := 1 to 2 + Random(2) do
+          Nom := Nom + SYL[Random(Length(SYL))];
+        Nom[1] := UpCase(Nom[1]);
+        V := TCity.Create;
+        V.Nom := Nom;
+        V.Niveau := 2;
+        V.Jour := DayCount;
+        V.Rayon := 16.0;
+        V.X := CX; V.Y := CY;
+        for j := 0 to 11 do begin
+          H := THut.Create;
+          A := j * 2.399963;                  // l'angle d'or
+          R := 1.1 + 0.30 * Sqrt(j);          // spirale de Fermat
+          H.X := CX + Cos(A) * R;
+          H.Y := CY + Sin(A) * R;
+          if not Walkable(H.X, H.Y) then begin
+            H.X := CX + Cos(A) * (R + 0.6);
+            H.Y := CY + Sin(A) * (R + 0.6);
+          end;
+          H.Fire := False; H.Cult := False; H.Stock := 0;
+          H.Ville := V;
+          Huts.Add(H);
+        end;
+        Cities.Add(V);
+        Toast('ville fondée (triche) : ' + Nom);
+        ChronAdd(CK_PEOPLE, 'ville de test : ' + Nom);
+      finally
+        FSimCS.Leave;
+      end;
+      Invalidate;
+    end;
+    if Key = Ord('V') then begin
+      Key := 0;
+      AudioSpeak('abgd', Round(FCamX), Round(FCamY), False);
+      Toast('test voix envoyé (abgd)');
+      Invalidate;
+    end;
+    if Key = Ord('W') then begin
+      Key := 0;
+      Toast(AudioDebug);
       Invalidate;
     end;
   end;
@@ -521,7 +569,6 @@ begin
     FSimCS.Enter;
     try
       if FVue = 2 then begin
-        // ★ F7 : l'Observatoire
         DrawObservatoire(Canvas, ClientWidth, ClientHeight);
       end else begin
         RenderWorld;
@@ -581,19 +628,19 @@ begin
 
       BR := Rect(FVP.Left + FVP.Width div 2 - 100, FVP.Top + FVP.Height div 2 + 210,
                  FVP.Left + FVP.Width div 2 + 100, FVP.Top + FVP.Height div 2 + 252);
-      AddBtn(BR, L(0), BID_START, True);                       // ★i18n
+      AddBtn(BR, L(0), BID_START, True);
       Canvas.Brush.Style := bsSolid; Canvas.Brush.Color := Col(208, 167, 92);
       Canvas.FillRect(BR);
       Canvas.Brush.Style := bsClear; Canvas.Font.Name := 'Segoe UI';
       Canvas.Font.Size := 10; Canvas.Font.Style := [fsBold];
       Canvas.Font.Color := Col(20, 22, 16);
       Canvas.TextOut((BR.Left + BR.Right - Canvas.TextWidth(L(0))) div 2,
-                     BR.Top + 13, L(0));                        // ★i18n
+                     BR.Top + 13, L(0));
 
       Canvas.Font.Name := 'Segoe UI'; Canvas.Font.Size := 9; Canvas.Font.Style := [];
       Canvas.Font.Color := Col(100, 105, 88);
       Canvas.TextOut(FVP.Left + (FVP.Width - Canvas.TextWidth(L(1))) div 2,
-                     BR.Bottom + 14, L(1));                     // ★i18n
+                     BR.Bottom + 14, L(1));
     end;
 
     if HelpOn then
@@ -636,6 +683,7 @@ begin
   Plants := TList<TPlant>.Create;
   Huts := TList<THut>.Create;
   Cities := TList<TCity>.Create;
+  Roads := TList<TRoad>.Create;
   Fishes := TList<TFish>.Create;
   Marks := TList<TMark>.Create;
   Creatures := TList<TCreature>.Create;
@@ -650,7 +698,6 @@ begin
   FTintN := TBitmap.Create;
   FTintW := TBitmap.Create;
   FPanelBM := TBitmap.Create;
-  Cities := TList<TCity>.Create;
   FPanelBM.PixelFormat := pf32bit;
   FPanelScroll := 0;
   FPanelH := 0;
@@ -678,8 +725,7 @@ begin
 end;
 
 destructor TMainForm.Destroy;
-var i : integer;
-
+var i: Integer;
 begin
   if FSimThread <> nil then begin
     FSimThread.Terminate;
@@ -688,13 +734,18 @@ begin
   end;
   ClearWorldObjects;
   if Cities <> nil then begin
-      for I := 0 to Cities.Count - 1 do Cities[I].Free;
-      Cities.Clear;
-    end;
+    for i := 0 to Cities.Count - 1 do Cities[i].Free;
+    Cities.Clear;
+  end;
+  if Roads <> nil then begin
+    for i := 0 to Roads.Count - 1 do Roads[i].Free;
+    Roads.Clear;
+  end;
   if FDiag <> nil then FreeAndNil(FDiag);
   FreeAndNil(FSimCS);
   Plants.Free; Huts.Free; Fishes.Free; Marks.Free; Creatures.Free; NB.Free;
-  FTerrain.Free; FThumb.Free; FWorld.Free; FTintN.Free; FTintW.Free;Cities.Free;
+  Cities.Free; Roads.Free;
+  FTerrain.Free; FThumb.Free; FWorld.Free; FTintN.Free; FTintW.Free;
   FreeAndNil(FPanelBM);
   Savecfg;
   inherited;

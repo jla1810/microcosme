@@ -19,7 +19,8 @@ uses
   Micrologo in 'Micrologo.pas',
   MicroEre in 'MicroEre.pas',
   MicroLang in 'MicroLang.pas',
-  MicroSim in 'MicroSim.pas';
+  MicroSim in 'MicroSim.pas',
+  MicroVilles in 'MicroVilles.pas';
 
 {$R *.res}
 
