@@ -1,7 +1,9 @@
 unit MicroConfig;
 
 { Microcosme — panneau de réglages : paramètres ajustables en cours de
-  partie, valeurs par défaut au démarrage, sauvegarde microcosme.ini. }
+  partie, valeurs par défaut au démarrage, sauvegarde microcosme.ini.
+  v15 : + CfgEreAuto (index 12) — passage d'ère automatique quand les
+  critères sont réunis (0 = manuel, 1 = auto). }
 
 interface
 
@@ -9,7 +11,7 @@ uses
   System.SysUtils, System.IniFiles;
 
 const
-  CN = 12;                 { nombre de paramètres réglables }
+  CN = 13;                 { nombre de paramètres réglables }
   BID_CFGSHOW = 200;       { bouton "réglages" }
   BID_CFGDEF  = 201;       { bouton "tout par défaut" }
   BID_CFGDEC  = 210;       { 210..210+CN-1 : boutons [-] }
@@ -26,6 +28,8 @@ var
   CfgMut: Single;          { multiplicateur du taux de mutation }
   { population }
   CfgImmig: Integer;       { immigrants sapiens par vague }
+  { ères }
+  CfgEreAuto: Single = 0;  { 0 = passage manuel (bouton doré) · 1 = automatique }
 
   FCfgShow: Boolean = False;   { panneau visible ? }
 
@@ -48,6 +52,7 @@ begin
   CfgMemoire := 1.0;
   CfgMut := 1.0;
   CfgImmig := 3;
+  CfgEreAuto := 0;
 end;
 
 function CfgGet(Idx: Integer): Single;
@@ -59,6 +64,7 @@ begin
     6: Result := CfgEcrit;  7: Result := CfgGap;
     8: Result := CfgDiffu;  9: Result := CfgMemoire;
    10: Result := CfgMut;   11: Result := CfgImmig;
+   12: Result := CfgEreAuto;
   else Result := 0;
   end;
 end;
@@ -72,6 +78,7 @@ begin
     6: CfgEcrit := V;  7: CfgGap := Round(V);
     8: CfgDiffu := V;  9: CfgMemoire := V;
    10: CfgMut := V;   11: CfgImmig := Round(V);
+   12: CfgEreAuto := V;
   end;
 end;
 
@@ -79,7 +86,7 @@ function CfgStep(Idx: Integer): Single;
 begin
   case Idx of
     0..6: Result := 0.001;
-    7, 9, 11: Result := 1;
+    7, 9, 11, 12: Result := 1;
     8: Result := 0.01;
    10: Result := 0.25;
   else Result := 0.001;
@@ -95,6 +102,7 @@ begin
     9:    begin A := 0;     B := 1    end;
    10:    begin A := 0.25;  B := 4    end;
    11:    begin A := 0;     B := 8    end;
+   12:    begin A := 0;     B := 1    end;
   else begin A := 0; B := 1 end;
   end;
 end;
@@ -131,6 +139,7 @@ begin
     9: Result := 'mémoire peuple';
    10: Result := 'mutations ×';
    11: Result := 'immigrants';
+   12: Result := 'ère auto';
   else Result := '?';
   end;
 end;
@@ -143,6 +152,7 @@ begin
     8: Result := Format('%.2f', [CfgGet(Idx)]);
     9: if CfgGet(Idx) >= 0.5 then Result := 'oui' else Result := 'non';
    10: Result := Format('%.2f ×', [CfgGet(Idx)]);
+   12: if CfgGet(Idx) >= 0.5 then Result := 'auto' else Result := 'manuel';
   else Result := '?';
   end;
 end;
@@ -169,6 +179,7 @@ begin
     INI.WriteFloat('Reglages', 'Memoire', CfgMemoire);
     INI.WriteFloat('Reglages', 'Mut', CfgMut);
     INI.WriteInteger('Reglages', 'Immig', CfgImmig);
+    INI.WriteInteger('Reglages', 'EreAuto', Round(CfgEreAuto));
   finally INI.Free end;
 end;
 
@@ -191,6 +202,7 @@ begin
     CfgMemoire := INI.ReadFloat('Reglages', 'Memoire', CfgMemoire);
     CfgMut := INI.ReadFloat('Reglages', 'Mut', CfgMut);
     CfgImmig := INI.ReadInteger('Reglages', 'Immig', CfgImmig);
+    CfgEreAuto := INI.ReadInteger('Reglages', 'EreAuto', Round(CfgEreAuto));
   finally INI.Free end;
 end;
 

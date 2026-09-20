@@ -1594,18 +1594,20 @@ begin
   Btn('3D', BID_G3D, (PW - 46) div 2, False);
   Btn(L(46), BID_RELIEF, (PW - 46) div 2, FRelief);
   Inc(Y, 32);
-  if FCfgShow then begin
+   if FCfgShow then begin
     Section(L(14));
     for I := 0 to CN - 1 do begin
       C.Font.Name := 'Segoe UI'; C.Font.Size := IfThen(FPanelW > 320, 11, 9); C.Font.Style := [];
       C.Brush.Style := bsClear;
       C.Font.Color := Col(139, 138, 116);
       C.TextOut(20, Y + 5, CfgName(I));
-      C.Font.Color := Col(230, 224, 205);
-      C.TextOut(PW - 230, Y + 5, CfgText(I));
-      BX := PW - 190;
+      // ★ boutons - / + juste après le nom, valeur alignée à droite
+      BX := 150;
       Btn('-', BID_CFGDEC + I, 26, False);
       Btn('+', BID_CFGINC + I, 26, False);
+      C.Font.Color := Col(230, 224, 205);
+      S := CfgText(I);
+      C.TextOut(PW - 20 - C.TextWidth(S), Y + 5, S);   // aligné à droite
       Inc(Y, IfThen(FPanelW > 320, 32, 28));
     end;
     BX := 20;

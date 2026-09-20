@@ -607,6 +607,13 @@ end;
 
 procedure TMainForm.TimerTick(Sender: TObject);
 begin
+  // ★ passage d'ère automatique si le réglage F2 est sur « auto »
+  if FRunning and (CfgEreAuto >= 0.5) and CanPassEre then
+    if PassEre then begin
+      ChronAdd(CK_TECH, Format(L(117), [EreCourante, ERE_NOM(EreCourante)]));
+      Toast(Format(L(116), [ERE_NOM(EreCourante)]));
+      AudioEre(EreCourante);
+    end;
   Invalidate;
 end;
 
