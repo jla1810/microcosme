@@ -12,7 +12,7 @@ interface
 uses
   System.SysUtils, System.Classes, System.Math, System.Generics.Collections,
   System.Diagnostics, System.SyncObjs,
-  MicroTypes, MicroBrain, MicroConfig, MicroEvo, MicroIno, MicroChrono;
+  MicroTypes, MicroBrain, MicroConfig, MicroEvo, MicroIno, MicroChrono,MicroAudio;
 
 procedure SpawnCreature(Kind: Integer; X, Y: Single;
   Parent, Parent2: TCreature; Gen: Integer);
@@ -36,6 +36,7 @@ uses MicroRender, MicroEre, MicroLang, MicroVilles;
 var
   Heard: array[0..3] of Single;
   FireT: Single = 0;
+  gNextId: Integer = 1;
 
 function NearestHutDist(X, Y: Single): Single;
 var I: Integer; D: Single;
@@ -157,6 +158,8 @@ begin
        end;
   end;
   C.Age := 0; C.Gen := Gen; C.Alive := True; C.State := L(50);
+  C.CId := gNextId; Inc(gNextId);
+  if Parent <> nil then C.ParentId := Parent.CId else C.ParentId := 0;
   C.ThinkT := Random * 0.3; C.RepCd := 6 + Random * 6;
   C.Born := FSimTime;
   C.Word := -1; C.WordT := 0;
@@ -634,6 +637,8 @@ end;
 
 procedure TryBuild(C: TCreature);
 var H: THut;
+   K: Integer;
+   R2: Single;
 begin
   if (Huts.Count >= IfThen(teCite in C.Tech, HUTCAP * 2, HUTCAP)) or
      (C.Energy < IfThen(teGeometrie in C.Tech, 42, 62)) or (C.BuildCd > 0) then Exit;
@@ -643,6 +648,13 @@ begin
     if NearestHutDist(C.X, C.Y) < 2.0 then Exit;   // la ville se tasse
   end else
     if NearestHutDist(C.X, C.Y) < 7 then Exit;
+  // ★A-fix — zone rurale : interdiction entre 8 et 50 cases du centre des
+  // villes. Le cordon 2-8 reste libre : c'est là que la ville grandit,
+  // et la veille (MicroVilles) resserre ensuite les foyers en spirale.
+  for K := 0 to Cities.Count - 1 do begin
+    R2 := Sqr(C.X - Cities[K].X) + Sqr(C.Y - Cities[K].Y);
+    if (R2 < Sqr(50.0)) and (R2 > Sqr(8.0)) then Exit;
+  end;
   C.Energy := C.Energy - 26;
   C.BuildCd := 9;
   H := THut.Create;
@@ -787,6 +799,7 @@ begin
   C.AtkCd := C.AtkCd - DT; C.RepCd := C.RepCd - DT;
   C.BuildCd := C.BuildCd - DT;
   C.CatchT := C.CatchT - DT;
+  if C.SpeechCD > 0 then C.SpeechCD := C.SpeechCD - DT;
   if C.Flash > 0 then C.Flash := Max(0, C.Flash - DT);
   C.WordT := C.WordT - DT;
   if C.WordT <= 0 then C.Word := -1;
@@ -894,12 +907,18 @@ begin
           Include(C.Tech, TTech(I));
       C.InnoK := C.InnoK or InnoAllMask;
     end;
-    Bw := -1; Bv := 0.25;
+        Bw := -1; Bv := 0.25;
     for O := 5 to 8 do
       if C.Oo[O] > Bv then begin Bv := C.Oo[O]; Bw := O - 5 end;
     if Bw >= 0 then begin
       if C.Word <> Bw then LogWord(Bw, C);
       C.Word := Bw; C.WordT := 1.5;
+      // ★AUDIO — le cri sonne : chaque sapiens sa voix (ID = CId),
+      // le mot est dérivé de l'identité (AudioVoiceID construit αβγδ…)
+      AudioVoiceID(C.CId, Round(C.X), Round(C.Y));
+      // tambouriné si le crieur porte le tambour (1 lettre = 1 coup)
+      if HasInno(C, IN_TAMBOUR) then
+        AudioSpeak(WORDS[C.Word], Round(C.X), Round(C.Y), True);
     end;
   end;
 

@@ -38,6 +38,7 @@ const
 
 var
   VilleT: Single = 0;
+  RouteGrid: TArray<Byte>;    // ★FIX3 : 1 = cellule couverte par une route
 
 {─── noms ─────────────────────────────────────────────────────────────────}
 
@@ -235,17 +236,25 @@ begin
        ((Roads[I].A = VB) and (Roads[I].B = VA)) then Exit(Roads[I]);
 end;
 
-function SurRoute(X, Y: Single): Boolean;
+{ ★FIX3 — grille de routes : mise à jour 1×/jour, réponse O(1) }
+procedure RebuildRouteGrid;
 var I, J: Integer;
    R: TRoad;
 begin
-  Result := False;
+  if Length(RouteGrid) <> NC then SetLength(RouteGrid, NC);
+  if NC > 0 then FillChar(RouteGrid[0], NC, 0);
   for I := 0 to Roads.Count - 1 do begin
     R := Roads[I];
     for J := 0 to Min(R.Prog, High(R.Chemin)) do
-      if Sqr(R.Chemin[J].X - X) + Sqr(R.Chemin[J].Y - Y) < 1.44 then
-        Exit(True);
+      RouteGrid[R.Chemin[J].Y * GW + R.Chemin[J].X] := 1;
   end;
+end;
+
+function SurRoute(X, Y: Single): Boolean;
+var CI: Integer;
+begin
+  CI := CellIdx(X, Y);
+  Result := (CI >= 0) and (CI < Length(RouteGrid)) and (RouteGrid[CI] <> 0);
 end;
 
 procedure VeilleRoutes;
@@ -287,6 +296,7 @@ begin
       ChronAdd(CK_PEOPLE, Format(L(157), [VA.Nom, BestVB.Nom]));
     end;
   end;
+  RebuildRouteGrid;     // ★FIX3 : le calque suit la croissance
 end;
 
 {─── point d'entrée unique pour MicroSim.DoStep ───────────────────────────}

@@ -16,7 +16,7 @@ uses
   Winapi.Windows, Winapi.Messages,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls,
   MicroTypes, MicroBrain, MicroSim, MicroRender, MicroIO, MicroConfig,
-  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo;
+  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo,MicroVilles;
 
 const
   BID_HELP = 207;
@@ -451,6 +451,28 @@ begin
       end;
       Invalidate;
     end;
+
+        if Key = Ord('R') then begin              // ★ triche : route forcée
+      Key := 0;
+      var R: TRoad;
+      if Cities.Count < 2 then
+        Toast('il faut 2 villes d''abord (Ctrl+Shift+U ×2)')
+      else begin
+        R := TRoad.Create;
+        R.A := Cities[0];
+        R.B := Cities[1];
+        R.Chemin := CheminRoute(Trunc(R.A.X), Trunc(R.A.Y),
+                                Trunc(R.B.X), Trunc(R.B.Y));
+        R.Prog := High(R.Chemin);             // complète d'un coup
+        R.Jour := DayCount;
+        Roads.Add(R);
+        Toast(Format('route forcée : %s — %s (%d cellules)',
+          [R.A.Nom, R.B.Nom, Length(R.Chemin)]));
+      end;
+      Invalidate;
+    end;
+
+
     if Key = Ord('B') then begin
       Key := 0;
       var MsgP: string;

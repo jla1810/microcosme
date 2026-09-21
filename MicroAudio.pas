@@ -622,7 +622,7 @@ begin
 end;
 
 procedure AudioVoiceID(ID: Integer; X, Y: Integer);
-const LETTRES = 'αβγδ';
+const LETTRES = 'abgd';
 var s: string; i, n: Integer;
 begin
   s := '';
