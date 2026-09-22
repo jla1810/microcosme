@@ -22,7 +22,7 @@ var
 implementation
 
 const
-  FR: array[0..159] of string = (
+  FR: array[0..161] of string = (
     'Observer le monde',            // 0
     'l''île s''éveille…',           // 1
     'nouveau monde',                // 2
@@ -182,11 +182,12 @@ const
     ' ',                                        //156
     ' ',                                        //157
     '%d familles rejoignent les villes',   // 158 — 1 arg (%d)
-    'le peuple devient citadin'            // 159 — 0 arg
-
+    'le peuple devient citadin' ,           // 159 — 0 arg
+        '%s est élu chef de %s',              // 160 — 2 args (%s %s)
+    '%s succède à %s à la tête de %s'     // 161 — 3 args (%s %s %s)
   );
 
-  EN: array[0..159] of string = (
+  EN: array[0..161] of string = (
     'Observe the world',            // 0
     'the island awakens…',          // 1
     'new world',                    // 2
@@ -342,7 +343,13 @@ const
     '%s becomes a city — %d hearths live behind its walls',  // 152
     '%s is now a city (%d hearths)',                  // 153
     '%s is proclaimed a city-state — %d hearths under its monument',  // 154
-    'the city-state of %s shines — %d hearths'       // 155
+    'the city-state of %s shines — %d hearths',       // 155
+     ' ',                                        //156
+    ' ',                                        //157
+    '%d families move to the cities',      // 158 — 1 arg (%d)
+    'the people turn urban',               // 159 — 0 arg
+    '%s is elected chief of %s',          // 160
+    '%s succeeds %s as chief of %s'       // 161
 
   );
 

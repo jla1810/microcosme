@@ -38,6 +38,8 @@ type
     Niveau: Integer;       // 2 bourg · 3 ville · 4 cité
     Jour: Integer;         // jour de fondation
     Rayon: Single;         // rayon de rattachement
+    ChefCId: Integer;   // ★Phase C : CId du chef (0 = aucun)
+    ChefNom: string;    // ★Phase C : son nom (succession aux annales)
   end;
 
 
