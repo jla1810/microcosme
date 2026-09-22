@@ -632,9 +632,22 @@ begin
     if NearestHutDist(C.X, C.Y) < 2.0 then Exit;
   end else
     if NearestHutDist(C.X, C.Y) < 7 then Exit;
-  for K := 0 to Cities.Count - 1 do begin
+    for K := 0 to Cities.Count - 1 do begin
     R2 := Sqr(C.X - Cities[K].X) + Sqr(C.Y - Cities[K].Y);
-    if (R2 < Sqr(50.0)) and (R2 > Sqr(8.0)) then Exit;
+    if (R2 < Sqr(50.0)) and (R2 > Sqr(8.0)) then begin
+      // ★Exode — la banlieue : dès l'ère 2 on bâtit près des murailles,
+      // et la maison naît CITADINE (rattachée, comptée dans les niveaux)
+      if (EreCourante >= 2) and (R2 <= Sqr(20.0)) then begin
+        C.Energy := C.Energy - 26;
+        C.BuildCd := 9;
+        H := THut.Create;
+        H.X := C.X; H.Y := C.Y;
+        H.Fire := False; H.Cult := False; H.Stock := 0;
+        H.Ville := Cities[K];          // né citadin
+        Huts.Add(H);
+      end;
+      Exit;
+    end;
   end;
   C.Energy := C.Energy - 26;
   C.BuildCd := 9;

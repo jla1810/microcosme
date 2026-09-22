@@ -1,4 +1,4 @@
-﻿unit MicroLang;
+unit MicroLang;
 
 { Microcosme — bilinguisme FR/EN. L(id) selon FLangue (0=FR, 1=EN).
   Tableaux PARALLÈLES, ordre GELÉ : ajouter = ajouter EN FIN des deux.
@@ -342,7 +342,11 @@ const
     '%s becomes a city — %d hearths live behind its walls',  // 152
     '%s is now a city (%d hearths)',                  // 153
     '%s is proclaimed a city-state — %d hearths under its monument',  // 154
-    'the city-state of %s shines — %d hearths'       // 155
+    'the city-state of %s shines — %d hearths',       // 155
+     ' ',                                        //156
+    ' ',                                        //157
+    '%d families move to the cities',      // 158 — 1 arg (%d)
+    'the people turn urban'                // 159 — 0 arg
 
   );
 

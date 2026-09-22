@@ -50,9 +50,11 @@ const
   VILLE_RAYON   = 14.0;
   ROAD_DIST       = 200.0;  // distance max ville-ville pour fonder une route
   ROAD_CROISSANCE = 3;     // cellules construites par jour
+  MIGR_DIST       = 60.0;  // ★Exode : au-delà, les pionniers restent aux frontières
 
 var
   VilleT: Single = 0;
+  gCitadinDit: Boolean = False;   // ★Exode : annale « peuple citadin », une seule fois
   RouteGrid: TArray<Byte>;    // ★FIX3 : 1 = cellule couverte par une route
 
 {─── noms ─────────────────────────────────────────────────────────────────}
@@ -231,6 +233,63 @@ begin
   end;
 end;
 
+
+{─── exode rural : la campagne se vide dans les villes ────────────────────}
+{ ★Zéro Free, zéro suppression : la hutte DÉMÉNAGE (Ville + spirale).
+  Les HomeH des bêtes restent valides — les troupeaux suivent (ou
+  s'échappent en route : émergence gratuite). }
+procedure ExodeRural;
+var I, K, Nb: Integer;
+   H: THut;
+   V, Best: TCity;
+   D, BD, Proba: Single;
+begin
+  if Cities.Count = 0 then Exit;
+  case EreCourante of           // l'urbanisation s'accélère avec les ères
+    2: Proba := 0.04;
+    3: Proba := 0.08;
+    4: Proba := 0.14;
+    5: Proba := 0.20;
+    6: Proba := 0.28;
+  else Exit;                    // ère 1 : le monde est encore dispersé
+  end;
+  Nb := 0;
+  for I := 0 to Huts.Count - 1 do begin
+    H := Huts[I];
+    if H.Ville <> nil then Continue;           // déjà citadine
+    if Random >= Proba then Continue;          // cette famille reste encore
+    Best := nil; BD := 1e9;
+    for K := 0 to Cities.Count - 1 do begin    // la ville la plus proche
+      V := Cities[K];
+      D := Sqr(H.X - V.X) + Sqr(H.Y - V.Y);
+      if D < BD then begin BD := D; Best := V end;
+    end;
+    if (Best = nil) or (BD > Sqr(MIGR_DIST)) then Continue;
+    H.Ville := Best;             // la famille déménage…
+    PlaceHutInVille(H, Best);    // …et rebâtit dans la spirale
+    Inc(Nb);
+  end;
+  if Nb > 0 then begin
+    Toast(Format(L(158), [Nb]));
+    ChronAdd(CK_PEOPLE, Format(L(158), [Nb]));
+  end;
+end;
+
+{ l'annale du basculement : plus de la moitié des foyers sont urbains }
+procedure VeilleCitadin;
+var I, NbU: Integer;
+begin
+  if gCitadinDit or (EreCourante < 2) or (Cities.Count < 2) then Exit;
+  NbU := 0;
+  for I := 0 to Huts.Count - 1 do
+    if Huts[I].Ville <> nil then Inc(NbU);
+  if (Huts.Count > 0) and (NbU * 2 >= Huts.Count) then begin
+    gCitadinDit := True;
+    Toast(L(159));
+    ChronAdd(CK_PEOPLE, L(159));
+  end;
+end;
+
 {─── routes ────────────────────────────────────────────────────────────────}
 
 { ★FIX4 — BFS terrestre 8-connexe : plus court chemin garanti s'il existe,
@@ -394,6 +453,8 @@ begin
     VilleT := 0;
     if Huts.Count > 0 then begin
       VeilleVilles;
+      ExodeRural;       // ★Exode : la campagne se vide vers les villes
+      VeilleCitadin;    // ★Exode : l'annale du basculement (une seule fois)
       DefricherVilles;
       VeilleRoutes;
     end;

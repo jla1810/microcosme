@@ -194,7 +194,13 @@ begin
     for I := 0 to Huts.Count - 1 do begin
       HHut := Huts[I];
       if not InV(HHut.X, HHut.Y, 10) then Continue;
-      if HHut.Ville <> nil then Continue;   // ★ la ville dessine ses foyers
+        if HHut.Ville <> nil then begin
+        // ★Exode — dans la couronne dense (< 4.5 cases) : la ville dessine
+        // en stylisé ; au-delà (banlieue, 8-20 cases) : vraie maison dessinée
+        // ci-dessous avec tout le décor existant (feu, fumée, fanion…)
+        if Sqr(HHut.X - HHut.Ville.X) + Sqr(HHut.Y - HHut.Ville.Y) < Sqr(4.5) then
+          Continue;
+      end;
       PX := Trunc(OX + HHut.X * S); PY := Trunc(OY + HHut.Y * S);
       if HHut.Cult then begin
         Brush.Style := bsSolid; Pen.Style := psClear;
