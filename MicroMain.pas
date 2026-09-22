@@ -452,25 +452,35 @@ begin
       Invalidate;
     end;
 
-        if Key = Ord('R') then begin              // ★ triche : route forcée
-      Key := 0;
-      var R: TRoad;
-      if Cities.Count < 2 then
-        Toast('il faut 2 villes d''abord (Ctrl+Shift+U ×2)')
-      else begin
-        R := TRoad.Create;
-        R.A := Cities[0];
-        R.B := Cities[1];
-        R.Chemin := CheminRoute(Trunc(R.A.X), Trunc(R.A.Y),
-                                Trunc(R.B.X), Trunc(R.B.Y));
-        R.Prog := High(R.Chemin);             // complète d'un coup
-        R.Jour := DayCount;
-        Roads.Add(R);
+ if Key = Ord('R') then begin              // ★ triche : route forcée (ou achevée)
+  Key := 0;
+  var R: TRoad;
+  if Cities.Count < 2 then
+    Toast('il faut 2 villes d''abord (Ctrl+Shift+U ×2)')
+  else begin
+    R := RouteEntre(Cities[0], Cities[1]);
+    if R = nil then begin
+      R := TRoad.Create;
+      R.A := Cities[0];
+      R.B := Cities[1];
+      R.Chemin := CheminRoute(Trunc(R.A.X), Trunc(R.A.Y),
+                              Trunc(R.B.X), Trunc(R.B.Y));
+      if Length(R.Chemin) < 2 then begin
+        R.Free; R := nil;
+        Toast(Format('%s — %s : pas de chemin terrestre (îles ?)',
+          [Cities[0].Nom, Cities[1].Nom]));
+      end else
         Toast(Format('route forcée : %s — %s (%d cellules)',
           [R.A.Nom, R.B.Nom, Length(R.Chemin)]));
-      end;
-      Invalidate;
+    end else
+      Toast('route existante : achevée d''un coup');
+    if R <> nil then begin
+      R.Prog := High(R.Chemin);           // complète d'un coup
+      if Roads.IndexOf(R) < 0 then Roads.Add(R);
     end;
+  end;
+  Invalidate;
+end;
 
 
     if Key = Ord('B') then begin
@@ -588,6 +598,7 @@ begin
   try
     if (FWorld.Width <> FVP.Width) or (FWorld.Height <> FVP.Height) then
       FormResize(Self);
+    AudioSetListener(Trunc(FCamX), Trunc(FCamY));   // ★ l'oreille = la caméra
     FSimCS.Enter;
     try
       if FVue = 2 then begin

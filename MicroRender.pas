@@ -11,7 +11,7 @@ interface
 uses
   System.SysUtils, System.Classes, System.Math, System.Generics.Collections,
   Winapi.Windows, Vcl.Graphics, System.Types, System.UITypes, System.SyncObjs,
-  MicroTypes, MicroBrain, MicroConfig, MicroEvo, MicroIno, MicroChrono;
+  MicroTypes, MicroBrain, MicroConfig, MicroEvo, MicroIno, MicroChrono,Microvilles;
 
 const
   BID_BRAIN = 202;
@@ -154,20 +154,21 @@ begin
 end;
 
 procedure RenderWorld;
+{ ★FIX5 : le rendu des villes était dupliqué inline (6e collage fantôme,
+  avec dérive Niveau>=6 vs EreCourante>=6 — facades Renaissance mortes)
+  et DrawRoads n'était JAMAIS appelé (routes invisibles).
+  Désormais : délégation à MicroVilles (source unique) :
+    terrain → routes → huttes isolées → villes → camp → poissons →
+    flore → faune → sélection → teintes. }
 var S, OX, OY, VX0, VY0, VX1, VY1: Double;
-   W, H, PX, PY,K2 , RR, RR2, K, I, MO, MK, Flags: Integer;
+   W, H, PX, PY, RR, RR2, K, I, MO, MK, Flags: Integer;
    P: TPlant; C: TCreature;
    R, HR, HeadX, HeadY, Grow, CA, SA, SinD, Warm, A, Froid, Phase: Single;
    HHut: THut;
    FF: TFish;
    CA2, SA2: Single;
    MXp, MYp: Integer;
-   NbV, NB2, HX, HY: Integer;      // ★ villes : compteurs et positions
-   HasFeu: Boolean;
-   R2 : single;
-
    Poly: array[0..2] of TPoint;
-   V :Tcity;
    function InV(X, Y, M: Double): Boolean;
    begin
      Result := (X > VX0 - M) and (X < VX1 + M) and (Y > VY0 - M) and (Y < VY1 + M);
@@ -186,7 +187,10 @@ begin
     FillRect(Rect(0, 0, W, H));
     StretchDraw(Rect(Trunc(OX), Trunc(OY), Trunc(OX + GW * S), Trunc(OY + GH * S)), FTerrain);
 
-       // ===== HUTTES =====
+    // ===== ROUTES — ★FIX5 : enfin dessinées (sous tout le bâti) =====
+    DrawRoads(FWorld.Canvas, OX, OY, S, VX0, VY0, VX1, VY1);
+
+    // ===== HUTTES ISOLÉES (les foyers des villes sont dessinés par DrawVilles) =====
     for I := 0 to Huts.Count - 1 do begin
       HHut := Huts[I];
       if not InV(HHut.X, HHut.Y, 10) then Continue;
@@ -302,112 +306,8 @@ begin
         end;
     end; // fin boucle HUTTES
 
-    // ===== ★VILLES — structure unifiée (les foyers ne sont plus dessinés) =====
-    for I := 0 to Cities.Count - 1 do begin
-      V := Cities[I];
-      if not InV(V.X, V.Y, 30) then Continue;
-      // — compte les foyers et cherche le feu (coût négligeable) —
-      NbV := 0;
-      HasFeu := False;
-      for K2 := 0 to Huts.Count - 1 do
-        if Huts[K2].Ville = V then begin
-          Inc(NbV);
-          if Huts[K2].Fire then HasFeu := True;
-        end;
-      PX := Trunc(OX + V.X * S);
-      PY := Trunc(OY + V.Y * S);
-
-      // — l'assiette urbaine (la clairière pavée) —
-      Brush.Style := bsSolid; Pen.Style := psClear;
-      RR := Trunc(S * (2.6 + V.Niveau * 0.8));
-      Brush.Color := AlphaColorBlend(Col(168, 158, 138), Col(11, 14, 11), 95);
-      Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
-
-      // — les remparts (ville et cité) : cercle de pierre + 4 portes —
-      if V.Niveau >= 3 then begin
-        Brush.Style := bsClear;
-        Pen.Style := psSolid;
-        Pen.Width := Max(2, Trunc(S * 0.45));
-        Pen.Color := Col(138, 132, 122);
-        RR := Trunc(S * (4.6 + V.Niveau * 0.6));
-        Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
-        Pen.Color := Col(176, 170, 158);
-        Pen.Width := 1;
-        Ellipse(PX - RR - 2, PY - RR - 2, PX + RR + 2, PY + RR + 2);
-        Pen.Color := Col(96, 88, 76);
-        Pen.Width := Max(2, Trunc(S * 0.5));
-        MoveTo(PX, PY - RR); LineTo(PX, PY - RR + Trunc(S * 1.2));
-        MoveTo(PX, PY + RR); LineTo(PX, PY + RR - Trunc(S * 1.2));
-        MoveTo(PX - RR, PY); LineTo(PX - RR + Trunc(S * 1.2), PY);
-        MoveTo(PX + RR, PY); LineTo(PX + RR - Trunc(S * 1.2), PY);
-      end;
-
-      // — les foyers : petites maisons en couronne (structure, pas amas) —
-      Brush.Style := bsSolid;
-      Pen.Style := psSolid; Pen.Width := 1; Pen.Color := Col(52, 46, 36);
-      NB2 := Min(NbV, 12);
-      for K2 := 0 to NB2 - 1 do begin
-        A := K2 * 2.399963;                        // l'angle d'or, comme la spirale
-        R2 := (1.3 + 0.22 * Sqrt(K2)) * IfThen(V.Niveau >= 3, 1.15, 1.0);
-        HX := PX + Trunc(Cos(A) * R2 * S);
-        HY := PY + Trunc(Sin(A) * R2 * S);
-        RR2 := Max(2, Trunc(S * 0.55));
-        if V.Niveau >= 6 then begin                // la Renaissance peint aussi la ville
-          case (V.Jour + K2) mod 4 of
-            0: Brush.Color := Col(198, 168, 130);
-            1: Brush.Color := Col(172, 178, 150);
-            2: Brush.Color := Col(186, 152, 148);
-          else Brush.Color := Col(158, 170, 182);
-          end;
-        end else
-          Brush.Color := Col(150, 146, 138);
-        Rectangle(HX - RR2, HY - RR2 div 2, HX + RR2, HY + RR2);
-        Brush.Color := Col(140, 82, 62);           // toit tuile
-        Poly[0] := Point(HX - RR2 - 1, HY - RR2 div 2);
-        Poly[1] := Point(HX + RR2 + 1, HY - RR2 div 2);
-        Poly[2] := Point(HX, HY - RR2 - Max(2, RR2 div 2));
-        Polygon(Poly);
-      end;
-
-      // — le feu de la ville : une lueur unique si un foyer brûle —
-      if HasFeu then begin
-        Brush.Style := bsSolid; Pen.Style := psClear;
-        RR := Trunc(S * 4.0);
-        if FDayLight < 0.5 then
-          Brush.Color := AlphaColorBlend(Col(255,165,70), Col(11,14,11), 120)
-        else
-          Brush.Color := AlphaColorBlend(Col(255,165,70), Col(11,14,11), 35);
-        Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
-        RR := Max(2, Trunc(S * 0.5));
-        Brush.Color := Col(240, 180, 95);
-        Ellipse(PX - RR, PY - RR * 2, PX + RR, PY + RR);
-      end;
-
-      // — le monument (cité) —
-      if V.Niveau >= 4 then begin
-        Brush.Style := bsSolid;
-        Pen.Style := psSolid; Pen.Width := 1; Pen.Color := Col(60, 56, 50);
-        Brush.Color := Col(140, 136, 128);
-        RR2 := Max(3, Trunc(S * 0.9));
-        Rectangle(PX - RR2, PY - RR2 * 4, PX + RR2, PY - RR2);
-        Brush.Color := Col(84, 88, 96);
-        Poly[0] := Point(PX - RR2 - 1, PY - RR2 * 4);
-        Poly[1] := Point(PX + RR2 + 1, PY - RR2 * 4);
-        Poly[2] := Point(PX, PY - RR2 * 5);
-        Polygon(Poly);
-      end;
-
-      // — le nom, au zoom —
-      if FZoom >= 1.8 then begin
-        Brush.Style := bsClear;
-        Font.Name := 'Georgia';
-        Font.Size := Max(9, Trunc(FZoom * 6));
-        Font.Style := [fsItalic, fsBold];
-        Font.Color := AlphaColorBlend(Col(232, 226, 206), Col(11, 14, 11), 200);
-        TextOut(PX - TextWidth(V.Nom) div 2,
-                PY - Trunc(S * (7 + V.Niveau)) - Font.Size - 2, V.Nom);
-      end;
-    end;
+    // ===== ★VILLES — délégué à MicroVilles (source unique du rendu) =====
+    DrawVilles(FWorld.Canvas, OX, OY, S, VX0, VY0, VX1, VY1);
 
     // ===== CAMP ANCESTRAL =====
     if FHomeSet and (Huts.Count = 0) then begin
@@ -418,6 +318,7 @@ begin
       Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
       Pen.Style := psSolid;
     end;
+
     // ===== POISSONS =====
     Brush.Style := bsSolid;
     Pen.Style := psClear;
@@ -459,7 +360,7 @@ begin
         end;
       end;
 
-        // ===== FAUNE =====
+    // ===== FAUNE =====
     for C in Creatures do begin
       if not C.Alive then Continue;
       if not InV(C.X, C.Y, 3) then Continue;
@@ -617,7 +518,8 @@ begin
       end;
     end;
     ProFlush;
-        // ===== SÉLECTION =====
+
+    // ===== SÉLECTION =====
     if (FSelected <> nil) and FSelected.Alive then begin
       PX := Trunc(OX + FSelected.X * S); PY := Trunc(OY + FSelected.Y * S);
       R := S * (0.55 + 0.55 * FSelected.Sz) * (0.55 + 0.45 * Min(1, FSelected.Age / 8));
@@ -644,7 +546,6 @@ begin
       AlphaFill(FWorld.Canvas, W, H, FTintW, Col(255, 205, 90), Trunc((1 - Froid) * 14));
   end;
 end;
-
 procedure AddBtn(const R: TRect; const Cap: string; Id: Integer; Active: Boolean);
 var N: Integer;
 begin

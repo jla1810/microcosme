@@ -10,7 +10,7 @@ interface
 uses
   System.SysUtils, System.Classes, System.Math, System.Generics.Collections,
   Winapi.Windows, Vcl.Graphics,
-  MicroTypes;
+  MicroTypes,MicroVilles;
 
 function Col(R, G, B: Integer): TColor;
 function HueColor(H: Single): TColor;
@@ -305,7 +305,8 @@ var I: Integer; P: TPlant; A, R, GB: Single;
 begin
   for I := Plants.Count - 1 downto 0 do begin
     P := Plants[I];
-    if P.S <= 0.03 then begin RemovePlant(P); Continue end;
+    if P.Morte then Continue;                        // ★ garde : plante marquée
+    if P.S <= 0.03 then begin KillPlantEx(P); Continue end;
     GB := 1;
     if (Length(FieldGrid) = NC) and (FieldGrid[P.Cell] = 1) then GB := 1.6;
     if P.S < 1 then

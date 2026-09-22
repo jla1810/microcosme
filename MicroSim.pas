@@ -1,18 +1,17 @@
-﻿unit MicroSim;
+﻿                      unit MicroSim;
 
 { Microcosme — créatures, sapiens, boucle DoStep, thread.
-  v15 : ères 1-6 en table (TECHBASE), effets et inventions bilingues (L()),
-  plafond EreMaxS, bibliothèque + Science/Maths/Universités/Méthode,
-  ★REFACTOR : tout l'URBAIN (villes, routes, défrichage) délégué à
-  MicroVilles — DoStep appelle VeilleUrbaine(DT) une fois par jour de sim ;
-  effets SurRoute : vitesse ×1,5 et diffusion renforcée. }
+  v15.1 : ères 1-6, i18n complet, urbain délégué à MicroVilles,
+  ★AUDIT : filets nommés par section dans DoStep (StepPlants/StepFish/
+  StepEvo/RebuildGrid/VeilleUrbaine), gardes Morte sur le broutage,
+  cooldown des cris (SpeechCD), CId uniques (gNextId). }
 
 interface
 
 uses
   System.SysUtils, System.Classes, System.Math, System.Generics.Collections,
   System.Diagnostics, System.SyncObjs,
-  MicroTypes, MicroBrain, MicroConfig, MicroEvo, MicroIno, MicroChrono,MicroAudio;
+  MicroTypes, MicroBrain, MicroConfig, MicroEvo, MicroIno, MicroChrono;
 
 procedure SpawnCreature(Kind: Integer; X, Y: Single;
   Parent, Parent2: TCreature; Gen: Integer);
@@ -30,13 +29,14 @@ implementation
 
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
+{$RANGECHECKS ON}   // DIAGNOSTIC TEMPORAIRE — retirer après
 
-uses MicroRender, MicroEre, MicroLang, MicroVilles;
+uses MicroRender, MicroEre, MicroLang, MicroVilles, MicroAudio;
 
 var
   Heard: array[0..3] of Single;
   FireT: Single = 0;
-  gNextId: Integer = 1;
+  gNextId: Integer = 1;        // ★ identifiants uniques des créatures
 
 function NearestHutDist(X, Y: Single): Single;
 var I: Integer; D: Single;
@@ -158,7 +158,7 @@ begin
        end;
   end;
   C.Age := 0; C.Gen := Gen; C.Alive := True; C.State := L(50);
-  C.CId := gNextId; Inc(gNextId);
+  C.CId := gNextId; Inc(gNextId);                                     // ★CId uniques
   if Parent <> nil then C.ParentId := Parent.CId else C.ParentId := 0;
   C.ThinkT := Random * 0.3; C.RepCd := 6 + Random * 6;
   C.Born := FSimTime;
@@ -414,7 +414,7 @@ begin
   else C.Angle := C.Angle + 2.4 * DT;
   C.X := ClampF(C.X, 0.01, GW - 0.01); C.Y := ClampF(C.Y, 0.01, GH - 0.01);
 
-  if C.TargetP <> nil then begin
+  if (C.TargetP <> nil) and (not C.TargetP.Morte) then begin        // ★garde Morte
     T := C.TargetP;
     D := Sqrt(D2(C.X, C.Y, T.X, T.Y));
     if D < 1.05 then begin
@@ -427,24 +427,8 @@ begin
       end;
     end;
   end;
-  if (C.TargetC <> nil) and (C.Kind = 1) then begin
-    O := C.TargetC;
-    D := Sqrt(D2(C.X, C.Y, O.X, O.Y));
-    if (D < 1.15) and (C.AtkCd <= 0) then begin
-      C.AtkCd := 1.1; C.Flash := 0.6;
-      Esc := ClampF(0.92 - (O.Sp - C.Sp) * 0.16, 0.32, 0.92);
-      if (O.Kind = 2) and HasInno(O, IN_ARMURE) then Esc := Esc * 0.7;
-      if Random < Esc then begin
-        Gain := 32 + 26 * O.Sz + O.Energy * 0.2;
-        Kill(O, L(101));
-        C.Energy := Min(C.MaxE, C.Energy + Gain);
-        C.TargetC := nil;
-      end else begin
-        O.Fleeing := True; O.FleeA := ArcTan2(O.Y - C.Y, O.X - C.X);
-        C.State := L(141);
-      end;
-    end;
-  end;
+  if (C.TargetP <> nil) and C.TargetP.Morte then C.TargetP := nil;  // ★purge différée
+  if (C.TargetC <> nil) and (not C.TargetC.Alive) then C.TargetC := nil;
 
   if C.Kind = 0 then
     C.Energy := C.Energy - (0.45 + 0.10 * Des + 0.32 * C.Sz) * DT
@@ -645,12 +629,9 @@ begin
   if not Walkable(C.X, C.Y) then Exit;
   if TerrType[CellIdx(C.X, C.Y)] > T_FOR then Exit;
   if PeopleHas(teCite) then begin
-    if NearestHutDist(C.X, C.Y) < 2.0 then Exit;   // la ville se tasse
+    if NearestHutDist(C.X, C.Y) < 2.0 then Exit;
   end else
     if NearestHutDist(C.X, C.Y) < 7 then Exit;
-  // ★A-fix — zone rurale : interdiction entre 8 et 50 cases du centre des
-  // villes. Le cordon 2-8 reste libre : c'est là que la ville grandit,
-  // et la veille (MicroVilles) resserre ensuite les foyers en spirale.
   for K := 0 to Cities.Count - 1 do begin
     R2 := Sqr(C.X - Cities[K].X) + Sqr(C.Y - Cities[K].Y);
     if (R2 < Sqr(50.0)) and (R2 > Sqr(8.0)) then Exit;
@@ -799,7 +780,7 @@ begin
   C.AtkCd := C.AtkCd - DT; C.RepCd := C.RepCd - DT;
   C.BuildCd := C.BuildCd - DT;
   C.CatchT := C.CatchT - DT;
-  if C.SpeechCD > 0 then C.SpeechCD := C.SpeechCD - DT;
+  if C.SpeechCD > 0 then C.SpeechCD := C.SpeechCD - DT;    // ★cooldown des cris
   if C.Flash > 0 then C.Flash := Max(0, C.Flash - DT);
   C.WordT := C.WordT - DT;
   if C.WordT <= 0 then C.Word := -1;
@@ -892,7 +873,7 @@ begin
                         * IfThen(HasInno(OM, IN_PARCHEMIN), 1.1, 1.0)
                         * IfThen(teImprimerie in OM.Tech, 1.6, 1.0)
                         * IfThen(teBanque in OM.Tech, 1.25, 1.0)
-                        * IfThen(SurRoute(C.X, C.Y) or SurRoute(OM.X, OM.Y), 1.3, 1.0)) then   // ★B2
+                        * IfThen(SurRoute(C.X, C.Y) or SurRoute(OM.X, OM.Y), 1.3, 1.0)) then
         C.Tech := C.Tech + OM.Tech;
     for OM in NB do
       if OM.Alive and (OM.Kind = 2) and (Random < 0.04) then
@@ -907,18 +888,18 @@ begin
           Include(C.Tech, TTech(I));
       C.InnoK := C.InnoK or InnoAllMask;
     end;
-        Bw := -1; Bv := 0.25;
+    Bw := -1; Bv := 0.25;
     for O := 5 to 8 do
       if C.Oo[O] > Bv then begin Bv := C.Oo[O]; Bw := O - 5 end;
     if Bw >= 0 then begin
       if C.Word <> Bw then LogWord(Bw, C);
       C.Word := Bw; C.WordT := 1.5;
-      // ★AUDIO — le cri sonne : chaque sapiens sa voix (ID = CId),
-      // le mot est dérivé de l'identité (AudioVoiceID construit αβγδ…)
-      AudioVoiceID(C.CId, Round(C.X), Round(C.Y));
-      // tambouriné si le crieur porte le tambour (1 lettre = 1 coup)
-      if HasInno(C, IN_TAMBOUR) then
-        AudioSpeak(WORDS[C.Word], Round(C.X), Round(C.Y), True);
+      if C.SpeechCD <= 0 then begin                          // ★cooldown des cris
+        AudioVoiceID(C.CId, Round(C.X), Round(C.Y));
+        if HasInno(C, IN_TAMBOUR) then
+          AudioSpeak(WORDS[C.Word], Round(C.X), Round(C.Y), True);
+        C.SpeechCD := 2 + Random * 3;
+      end;
     end;
   end;
 
@@ -1083,7 +1064,7 @@ begin
       end
     end else begin
       F := FindPlant(C);
-      if (F <> nil) and (F.S > 0.12) and (D2(C.X, C.Y, F.X, F.Y) < 1.2) then begin
+      if (F <> nil) and (not F.Morte) and (F.S > 0.12) and (D2(C.X, C.Y, F.X, F.Y) < 1.2) then begin   // ★garde Morte
         C.State := L(55);
         C.BiteT := C.BiteT - DT;
         if C.BiteT <= 0 then begin
@@ -1236,9 +1217,13 @@ begin
     RebuildFields;
   end;
 
-  // ★VILLES+ROUTES — la veille urbaine (MicroVilles), 1×/jour de sim
+  // ★VILLES+ROUTES — filet nommé (le crash sera désigné)
   if (Huts.Count > 0) and (Creatures <> nil) then
-    VeilleUrbaine(DT);
+    try
+      VeilleUrbaine(DT);
+    except
+      on E: Exception do Toast('CRASH Veille: ' + E.Message);
+    end;
 
   Froid := SaisonFroid;
   if PeopleHas(teAstronomie) then Froid := Froid * 0.7;
@@ -1247,10 +1232,19 @@ begin
   if PeopleHas(teAqueduc)    then Croiss := Croiss * 1.2;
   if PeopleHas(teMoulins)    then Croiss := Croiss * 1.15;
   if PeopleHas(teAssolement) then Croiss := Croiss * 1.20;
-  StepPlants(DT, (0.25 + 0.75 * FDayLight) * (0.25 + 0.75 * (1 - Froid)) * Croiss);
-  StepFish(DT, (0.25 + 0.75 * FDayLight) * (0.30 + 0.70 * (1 - Froid)));
-  StepEvo(DT);
-  RebuildGrid;
+  try
+    StepPlants(DT, (0.25 + 0.75 * FDayLight) * (0.25 + 0.75 * (1 - Froid)) * Croiss);
+  except on E: Exception do Toast('CRASH StepPlants: ' + E.Message) end;
+  try
+    StepFish(DT, (0.25 + 0.75 * FDayLight) * (0.30 + 0.70 * (1 - Froid)));
+  except on E: Exception do Toast('CRASH StepFish: ' + E.Message) end;
+  try
+    StepEvo(DT);
+  except on E: Exception do Toast('CRASH StepEvo: ' + E.Message) end;
+  try
+    RebuildGrid;
+  except on E: Exception do Toast('CRASH RebuildGrid: ' + E.Message) end;
+
   for I := Creatures.Count - 1 downto 0 do begin
     C := Creatures[I];
     if not C.Alive then begin Creatures.Delete(I); C.Free; Continue end;

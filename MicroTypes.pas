@@ -21,6 +21,7 @@ type
   TPlant = class
     X, Y, S: Single;
     Cell: Integer;
+    Morte : Boolean;
   end;
 
   THut = class

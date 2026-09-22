@@ -63,6 +63,9 @@ type
     Ons, OnsD: Double;
     B1, B2: TBiquad;
     FEnd: Double;
+    Amp: array[0..5] of Double;   // amplitudes des 6 harmoniques (modèle voyelle)
+    NVib: Double;                 // vitesse de vibrato (propre au locuteur)
+    NJit: Double;                 // jitter (instabilité humaine)
   end;
   PVoice = ^TVoice;
 
@@ -114,6 +117,8 @@ var
   gDbgCall: Integer = 0;    // entrées effectives dans SpawnWord
   gDbgSpeak: Integer = 0;   // (= gDbgCall en théorie — cohérence)
   gDbgVox: Integer = 0;     // voix vkVoice actives au dernier buffer
+
+  gVoixDepuisDernier: Integer = 0;
 
 const
   PENTA: array[0..4] of Double = (1.0, 1.125, 1.25, 1.5, 1.6667);
@@ -261,38 +266,80 @@ begin
   end;
 end;
 
+{ voix v2 — synthèse additive : 6 harmoniques modelées par voyelle,
+  enveloppe naturelle, vibrato + jitter propres au locuteur. }
 procedure SpawnWord(const AWord: string; X, Y: Integer);
-var i, n, k: Integer; h: Cardinal;
-    f0, F1, F2, ons, onsd, GL, GR, t0: Double;
+var i, n, k,k2: Integer; h: Cardinal;
+    f0, GL, GR, t0, dur: Double;
     v: PVoice;
 begin
-  Inc(gDbgCall);                             // ★DIAG preuve d'entrée
+  Inc(gDbgCall);
   if AWord = '' then Exit;
+  gCS.Enter;
+  if Sqr(X - gLX) + Sqr(Y - gLY) > Sqr(50) then begin gCS.Leave; Exit end;
+  gCS.Leave;
   h := WordHash(AWord);
   PlaceAt(X, Y, GL, GR);
-  n := Min(Length(AWord), 8);
+  n := Min(Length(AWord), 6);
   t0 := 0;
   for i := 1 to n do
   begin
-    F1 := 500; F2 := 1900; ons := 0.12; onsd := 60;
+    // — modèle d'harmoniques par voyelle (le cœur du timbre) —
     case AWord[i] of
-      'α','a','A': begin F1 := 820; F2 := 1250; ons := 0;    onsd := 60;  end;
-      'β','b','B': begin F1 := 760; F2 := 1150; ons := 0.9;  onsd := 150; end;
-      'γ','g','G': begin F1 := 460; F2 := 900;  ons := 0.45; onsd := 26;  end;
-      'δ','d','D': begin F1 := 320; F2 := 2250; ons := 0.8;  onsd := 140; end;
+      'α','a','A': begin          // « a » : riche, ouvert
+        k := Integer((h shr ((i and 7)*2)) and $F);
+        f0 := 140.0*PENTA[k mod 5];
+        if (k and 8) <> 0 then f0 := f0*1.335;
+        v := NewVoice(vkVoice, gT + t0, 0.22 + ARand*0.05, 0.5*GL, 0.5*GR);
+        if v = nil then Break;
+        v.Amp[0] := 1.00; v.Amp[1] := 0.72; v.Amp[2] := 0.48;
+        v.Amp[3] := 0.22; v.Amp[4] := 0.10; v.Amp[5] := 0.05;
+      end;
+      'β','b','B': begin          // « o » : rond, sombre
+        k := Integer((h shr ((i and 7)*2)) and $F);
+        f0 := 118.0*PENTA[k mod 5];
+        if (k and 8) <> 0 then f0 := f0*1.335;
+        v := NewVoice(vkVoice, gT + t0, 0.24 + ARand*0.05, 0.5*GL, 0.5*GR);
+        if v = nil then Break;
+        v.Amp[0] := 1.00; v.Amp[1] := 0.55; v.Amp[2] := 0.20;
+        v.Amp[3] := 0.07; v.Amp[4] := 0.03; v.Amp[5] := 0.01;
+      end;
+      'γ','g','G': begin          // « é/i » : clair, front
+        k := Integer((h shr ((i and 7)*2)) and $F);
+        f0 := 165.0*PENTA[k mod 5];
+        if (k and 8) <> 0 then f0 := f0*1.335;
+        v := NewVoice(vkVoice, gT + t0, 0.20 + ARand*0.04, 0.46*GL, 0.46*GR);
+        if v = nil then Break;
+        v.Amp[0] := 0.45; v.Amp[1] := 1.00; v.Amp[2] := 0.85;
+        v.Amp[3] := 0.40; v.Amp[4] := 0.18; v.Amp[5] := 0.07;
+      end;
+      'δ','d','D': begin          // « ou/u » : profond, gorge
+        k := Integer((h shr ((i and 7)*2)) and $F);
+        f0 := 105.0*PENTA[k mod 5];
+        if (k and 8) <> 0 then f0 := f0*1.335;
+        v := NewVoice(vkVoice, gT + t0, 0.26 + ARand*0.05, 0.5*GL, 0.5*GR);
+        if v = nil then Break;
+        v.Amp[0] := 1.00; v.Amp[1] := 0.38; v.Amp[2] := 0.08;
+        v.Amp[3] := 0.02; v.Amp[4] := 0.01; v.Amp[5] := 0;
+      end;
+    else begin                    // défaut : « e » neutre
+        k := Integer((h shr ((i and 7)*2)) and $F);
+        f0 := 150.0*PENTA[k mod 5];
+        v := NewVoice(vkVoice, gT + t0, 0.22, 0.46*GL, 0.46*GR);
+        if v = nil then Break;
+        v.Amp[0] := 1.00; v.Amp[1] := 0.80; v.Amp[2] := 0.50;
+        v.Amp[3] := 0.25; v.Amp[4] := 0.12; v.Amp[5] := 0.05;
+      end;
     end;
-    k := Integer((h shr ((i and 7)*2)) and $F);
-    f0 := 150.0*PENTA[k mod 5];
-    if (k and 8) <> 0 then f0 := f0*1.335;
-    v := NewVoice(vkVoice, gT + t0, 0.10 + 0.02*(k mod 3), 0.34*GL, 0.34*GR);
-    if v = nil then Break;
+    // — hauteur de fin : la syllabe « tombe » légèrement —
     v.F0 := f0;
-    v.FEnd := f0*0.84;
-    v.B1.SetBP(F1, 6.0);  v.B2.SetBP(F2, 7.0);
-    t0 := t0 + 0.105 + ARand*0.04;
+    v.FEnd := f0*0.90;
+    // — vibrato + jitter : la signature vivante du locuteur —
+    v.NVib := 4.5 + (h mod 20)/10.0;          // 4.5-6.5 Hz selon l'individu/mot
+    v.NJit := 0.004 + (h shr 5 mod 100)/20000.0;
+    t0 := t0 + 0.19 + ARand*0.06;             // ~5 syllabes/s, posées
   end;
 end;
-
 procedure PushTrig(const t: TTrig);
 begin
   gCS.Enter;
@@ -382,7 +429,7 @@ begin
 end;
 
 procedure MixSample(out L, R: Double);
-var i: Integer; v: PVoice;
+var i,k2: Integer; v: PVoice;
     s, e, f, src, n, et: Double;
 begin
   L := 0; R := 0;
@@ -405,19 +452,36 @@ begin
           n := ARand*Exp(-et*140);
           s := 1.15*e*s + 0.8*n;
         end;
-      vkVoice:
+              vkVoice:  // ★ synthèse additive : 6 harmoniques, enveloppe, vibrato, jitter
         begin
-          e := et/0.02; if e > 1 then e := 1;
-          e := e*(1 - Sqr(et/v.Dur)); if e < 0 then e := 0;
+          // enveloppe : attaque 30 ms · tenue ondulée · chute douce
+          e := et/0.03; if e > 1 then e := 1;
+          e := e * Exp(-2.2*(et/v.Dur));
+          if e > 1 then e := 1;
+          // fréquence : glissando descendant + vibrato + jitter
           f := (v.F0 + (v.FEnd - v.F0)*(et/v.Dur)) *
-               (1 + 0.012*Sin(2*Pi*5.3*et));
+               (1 + 0.010*Sin(2*Pi*v.NVib*et)
+                  + v.NJit*Sin(2*Pi*7.7*et + 1.3)
+                  + v.NJit*0.6*Sin(2*Pi*11.3*et));
+          s := 0;
+          // — la somme des 6 harmoniques (phases accumulées séparément) —
+          src := 0;
+          for k2 := 0 to 5 do begin
+            v.Phase := v.Phase;   // (Phase sert à l'harmonique 1, voir ci-dessous)
+          end;
+          // harmonique 1 (fondamentale)
           v.Phase := v.Phase + 2*Pi*f*INV_SR;
           if v.Phase > 2*Pi then v.Phase := v.Phase - 2*Pi;
-          src := Sin(v.Phase);
-          src := 0.9*src + 0.35*src*Abs(src) + 0.12*Sin(2*v.Phase);
-          s := 1.2*v.B1.Process(src) + 0.8*v.B2.Process(src) + 0.03*src;
-          n := ARand*v.Ons*Exp(-et*v.OnsD);
-          s := 1.35*(s + n)*e;
+          s := v.Amp[0]*Sin(v.Phase);
+          // harmoniques 2..6 : phases dérivées (2×, 3×, 4×, 5×, 6× la fondamentale)
+          if v.Amp[1] > 0 then s := s + v.Amp[1]*Sin(2*v.Phase + 0.5);
+          if v.Amp[2] > 0 then s := s + v.Amp[2]*Sin(3*v.Phase + 1.1);
+          if v.Amp[3] > 0 then s := s + v.Amp[3]*Sin(4*v.Phase + 0.2);
+          if v.Amp[4] > 0 then s := s + v.Amp[4]*Sin(5*v.Phase + 2.0);
+          if v.Amp[5] > 0 then s := s + v.Amp[5]*Sin(6*v.Phase + 1.7);
+          // micro-souffle glottal (humanise l'attaque)
+          n := ARand*0.02*e;
+          s := 1.15*(s*e + n);
         end;
       vkChirp:
         begin
@@ -507,6 +571,7 @@ begin
   gA_Day := gDay;  gA_Wave := gWave;  gA_Fire := gFire;  gA_Vol := gVol;
   gCS.Leave;
   DrainTrigs;
+  gVoixDepuisDernier := 0;
   gDbgVox := 0;
   for I2 := 0 to AUD_MAXVOICES-1 do
     if gVoices[I2].Active and (gVoices[I2].Kind = vkVoice) then Inc(gDbgVox);
@@ -622,7 +687,8 @@ begin
 end;
 
 procedure AudioVoiceID(ID: Integer; X, Y: Integer);
-const LETTRES = 'abgd';
+//const LETTRES = 'abgd';
+const LETTRES = 'αβγδ';
 var s: string; i, n: Integer;
 begin
   s := '';

@@ -4,7 +4,16 @@
   empreinte écologique, routes qui poussent, rendu des structures urbaines.
   Les DONNÉES (TCity, TRoad, listes Cities/Roads) vivent dans MicroTypes ;
   toute la LOGIQUE est ici. MicroSim appelle VeilleUrbaine(DT) une fois
-  par jour de sim, et SurRoute pour les effets de vitesse/diffusion. }
+  par jour de sim, et SurRoute pour les effets de vitesse/diffusion.
+
+  v15.2 — FIX4 :
+    ★ DefricherVilles supprime via KillPlantEx (le P.Free nu laissait un
+      pointeur fantôme dans Plants → AV StepPlants en boucle) ;
+    ★ CheminRoute en BFS terrestre : plus court chemin garanti, tableau VIDE
+      si la cible est inatteignable (île) — fini les tronçons morts du glouton ;
+    ★ VeilleRoutes purge les routes fantômes (Chemin qui n'atteint pas B)
+      et ne fonde plus que sur chemin viable (>= 2 points) ;
+    ★ retrait des toasts DEBUG (veille urbaine + DBG villes). }
 
 interface
 
@@ -19,8 +28,14 @@ function  RouteEntre(VA, VB: TCity): TRoad;
 function  SurRoute(X, Y: Single): Boolean;
 procedure DrawVilles(C: TCanvas; OX, OY, S, VX0, VY0, VX1, VY1: Double);
 procedure DrawRoads(C: TCanvas; OX, OY, S, VX0, VY0, VX1, VY1: Double);
+procedure KillPlantEx(P: TPlant);
 
 implementation
+
+
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+
 
 uses
   MicroBrain,   // Toast, DayCount, Walkable, Col, AlphaColorBlend, ClampF
@@ -33,7 +48,7 @@ const
   VILLE_NIVEAU3 = 18;    // ville
   VILLE_NIVEAU4 = 28;    // cité
   VILLE_RAYON   = 14.0;
-  ROAD_DIST       = 80.0;  // distance max ville-ville pour fonder une route
+  ROAD_DIST       = 200.0;  // distance max ville-ville pour fonder une route
   ROAD_CROISSANCE = 3;     // cellules construites par jour
 
 var
@@ -151,12 +166,12 @@ begin
     if (Nb >= VILLE_NIVEAU4) and (V.Niveau < 4) then begin
       V.Niveau := 4;
       V.Rayon := VILLE_RAYON + 6;
-      Toast(Format(L(154), [V.Nom]));
+      Toast(Format(L(154), [V.Nom, Nb]));
       ChronAdd(CK_PEOPLE, Format(L(155), [V.Nom, Nb]));
     end else if (Nb >= VILLE_NIVEAU3) and (V.Niveau < 3) then begin
       V.Niveau := 3;
       V.Rayon := VILLE_RAYON + 4;
-      Toast(Format(L(152), [V.Nom]));
+      Toast(Format(L(152), [V.Nom, Nb]));
       ChronAdd(CK_PEOPLE, Format(L(153), [V.Nom, Nb]));
     end;
   end;
@@ -169,8 +184,35 @@ end;
 
 {─── empreinte écologique ──────────────────────────────────────────────────}
 
+{ Supprime une plante PROPREMENT : panneau "morte" AVANT tout,
+  puis liste, puis grille, puis tous les pointeurs vivants des créatures.
+  ★RÈGLE : TOUTE suppression de plante passe ICI — jamais de P.Free nu,
+  jamais de fragment recopié de ce corps (leçon DefricherVilles/AV StepPlants). }
+procedure KillPlantEx(P: TPlant);
+var I, CI: Integer;
+   O: TCreature;
+begin
+  if (P = nil) or P.Morte then Exit;   // déjà morte : rien à faire (anti double-kill)
+  P.Morte := True;                     // ★ le panneau est posé PREMIER
+  CI := P.Cell;
+  I := Plants.IndexOf(P);
+  if I >= 0 then Plants.Delete(I);
+  if (CI >= 0) and (CI < Length(PlantGrid)) and (PlantGrid[CI] = P) then
+    PlantGrid[CI] := nil;
+  if Creatures <> nil then
+    for O in Creatures do
+      if O.Alive then begin
+        if O.TargetP = P then O.TargetP := nil;
+        if O.SFood = P then O.SFood := nil;
+      end;
+  P.Free;
+end;
+
+{ ★FIX4 — toute la suppression passe par KillPlantEx : liste, grille,
+  TargetP/SFood purge's, panneau Morte. L'ancien corps (P.Free sans
+  Plants.Delete + CI jamais assignée) fabriquait des fantômes dans Plants. }
 procedure DefricherVilles;
-var I, K, CI: Integer;
+var I, K: Integer;
    P: TPlant;
    V: TCity;
    R: Single;
@@ -180,16 +222,9 @@ begin
     P := Plants[I];
     for K := 0 to Cities.Count - 1 do begin
       V := Cities[K];
-      R := 2.0 + V.Niveau * 2.0;             // bourg 6 · ville 8 · cité 10
+      R := 3.0 + V.Niveau * 2.5;               // la clairière (au-delà du bâti)
       if Sqr(P.X - V.X) + Sqr(P.Y - V.Y) < Sqr(R) then begin
-        P.S := P.S - 0.15;
-        if P.S <= 0.05 then begin
-          CI := P.Cell;
-          Plants.Delete(I);
-          if (CI >= 0) and (CI < Length(PlantGrid)) and (PlantGrid[CI] = P) then
-            PlantGrid[CI] := nil;
-          P.Free;
-        end;
+        KillPlantEx(P);        // ★ la suppression PROPRE — on appelle, on n'imite pas
         Break;
       end;
     end;
@@ -198,32 +233,58 @@ end;
 
 {─── routes ────────────────────────────────────────────────────────────────}
 
+{ ★FIX4 — BFS terrestre 8-connexe : plus court chemin garanti s'il existe,
+  tableau VIDE si la cible est inatteignable (île). L'ancien glouton
+  fabriquait des tronçons morts (coincés sur une rive) = routes fantômes
+  qui bloquaient RouteEntre à jamais. }
 function CheminRoute(x1, y1, x2, y2: Integer): TArray<TPoint>;
-var CX, CY, T, DX, DY: Integer;
-   BestD, D: Single;
-   NX, NY: Integer;
+const
+  DX8: array[0..7] of Integer = (-1, 0, 1, -1, 1, -1, 0, 1);
+  DY8: array[0..7] of Integer = (-1, -1, -1, 0, 0, 1, 1, 1);
+var
+  Prev, Queue: TArray<Integer>;
+  QH, QT, K, N, Start, Goal, Cur, Idx, NX, NY: Integer;
 begin
   SetLength(Result, 0);
-  CX := x1; CY := y1; T := 0;
-  SetLength(Result, T + 1);
-  Result[T].X := CX; Result[T].Y := CY;
-  while (CX <> x2) or (CY <> y2) do begin
-    Inc(T);
-    if T > GW * GH then Break;                 // garde-fou absolu
-    BestD := 1e9; NX := CX; NY := CY;
-    for DY := -1 to 1 do
-      for DX := -1 to 1 do begin
-        if (DX = 0) and (DY = 0) then Continue;
-        if (CX + DX < 0) or (CX + DX >= GW) or
-           (CY + DY < 0) or (CY + DY >= GH) then Continue;
-        if TerrType[(CY + DY) * GW + (CX + DX)] < T_SAND then Continue;  // pas d'eau
-        D := Sqr(CX + DX - x2) + Sqr(CY + DY - y2);
-        if D < BestD then begin BestD := D; NX := CX + DX; NY := CY + DY end;
-      end;
-    if (NX = CX) and (NY = CY) then Break;     // coincé : route inachevée
-    CX := NX; CY := NY;
-    SetLength(Result, T + 1);
-    Result[T].X := CX; Result[T].Y := CY;
+  if (x1 < 0) or (x1 >= GW) or (y1 < 0) or (y1 >= GH) or
+     (x2 < 0) or (x2 >= GW) or (y2 < 0) or (y2 >= GH) then Exit;
+
+  Start := y1 * GW + x1;
+  Goal  := y2 * GW + x2;
+
+  // Prev : -2 = pas visité, -1 = départ, sinon l'index de la case d'où l'on vient
+  SetLength(Prev, NC);
+  for Idx := 0 to NC - 1 do Prev[Idx] := -2;
+  SetLength(Queue, NC);
+  QH := 0; QT := 0;
+  Prev[Start] := -1;
+  Queue[QT] := Start; Inc(QT);
+
+  while QH < QT do begin
+    Cur := Queue[QH]; Inc(QH);
+    if Cur = Goal then Break;
+    for K := 0 to 7 do begin
+      NX := (Cur mod GW) + DX8[K];
+      NY := (Cur div GW) + DY8[K];
+      if (NX < 0) or (NX >= GW) or (NY < 0) or (NY >= GH) then Continue;
+      Idx := NY * GW + NX;
+      if (Prev[Idx] <> -2) or (TerrType[Idx] < T_SAND) then Continue;  // pas d'eau
+      Prev[Idx] := Cur;
+      Queue[QT] := Idx; Inc(QT);
+    end;
+  end;
+
+  if Prev[Goal] = -2 then Exit;                 // inatteignable → pas de route
+
+  // remontée des "pains d'avoine" Goal → Start, puis écriture à l'endroit
+  N := 0; Cur := Goal;
+  while Cur <> -1 do begin Inc(N); Cur := Prev[Cur] end;
+  SetLength(Result, N);
+  Cur := Goal;
+  for Idx := N - 1 downto 0 do begin
+    Result[Idx].X := Cur mod GW;
+    Result[Idx].Y := Cur div GW;
+    Cur := Prev[Cur];
   end;
 end;
 
@@ -257,22 +318,42 @@ begin
   Result := (CI >= 0) and (CI < Length(RouteGrid)) and (RouteGrid[CI] <> 0);
 end;
 
+{ ★FIX4 — purge des fantômes AVANT tout, croissance, fondation gardée. }
 procedure VeilleRoutes;
 var I, K: Integer;
-   VA, VB: TCity;
+   VA, VB, BestVB: TCity;
    R: TRoad;
    D, BestD: Single;
-   BestVB: TCity;
+   Fant: Boolean;
 begin
   if EreCourante < 4 then Exit;
+
+  // ★SOIN — purge des routes fantômes : une route saine se termine SUR B.
+  // (fait AVANT le plafond de 12 : un fantôme purgé libère une place.)
+  for I := Roads.Count - 1 downto 0 do begin
+    R := Roads[I];
+    if Length(R.Chemin) < 2 then
+      Fant := True
+    else
+      Fant := Sqr(R.Chemin[High(R.Chemin)].X - R.B.X) +
+              Sqr(R.Chemin[High(R.Chemin)].Y - R.B.Y) > Sqr(2.0);
+    if Fant then begin
+      Roads.Delete(I);
+      R.Free;    // sûr : les routes ne sont référencées que par Roads et
+                 // RouteGrid — qui est reconstruit en fin de procédure.
+    end;
+  end;
+
   if Roads.Count >= 12 then Exit;
 
+  // 1) croissance : chaque route existante avance de ROAD_CROISSANCE cases
   for I := 0 to Roads.Count - 1 do begin
     R := Roads[I];
     if R.Prog < High(R.Chemin) then
       R.Prog := Min(High(R.Chemin), R.Prog + ROAD_CROISSANCE);
   end;
 
+  // 2) fondation : chaque ville sans route → vers la ville la plus proche
   for I := 0 to Cities.Count - 1 do begin
     VA := Cities[I];
     BestVB := nil; BestD := 1e9;
@@ -289,11 +370,15 @@ begin
       R.A := VA; R.B := BestVB;
       R.Chemin := CheminRoute(Trunc(VA.X), Trunc(VA.Y),
                               Trunc(BestVB.X), Trunc(BestVB.Y));
-      R.Prog := 0;
-      R.Jour := DayCount;
-      Roads.Add(R);
-      Toast(Format(L(156), [VA.Nom, BestVB.Nom]));
-      ChronAdd(CK_PEOPLE, Format(L(157), [VA.Nom, BestVB.Nom]));
+      if Length(R.Chemin) < 2 then
+        R.Free                              // ★ inatteignable : on renonce,
+      else begin                            //   JAMAIS de route fantôme
+        R.Prog := 0;
+        R.Jour := DayCount;
+        Roads.Add(R);
+        Toast(Format(L(156), [VA.Nom, BestVB.Nom]));
+        ChronAdd(CK_PEOPLE, Format(L(157), [VA.Nom, BestVB.Nom]));
+      end;
     end;
   end;
   RebuildRouteGrid;     // ★FIX3 : le calque suit la croissance
@@ -320,19 +405,24 @@ end;
 procedure DrawRoads(C: TCanvas; OX, OY, S, VX0, VY0, VX1, VY1: Double);
 var I, J: Integer;
    R: TRoad;
-   function InV(X, Y, M: Double): Boolean;
-   begin
-     Result := (X > VX0 - M) and (X < VX1 + M) and (Y > VY0 - M) and (Y < VY1 + M);
-   end;
 begin
   if Roads.Count = 0 then Exit;
+  // passe 1 : le fond de terre (large, sombre)
   C.Brush.Style := bsClear;
   C.Pen.Style := psSolid;
-  C.Pen.Width := Max(1, Trunc(S * 0.35));
-  C.Pen.Color := Col(150, 128, 88);
+  C.Pen.Width := Max(2, Trunc(S * 0.8));
+  C.Pen.Color := Col(96, 78, 50);
   for I := 0 to Roads.Count - 1 do begin
     R := Roads[I];
-    if not InV(R.A.X, R.A.Y, 100) and not InV(R.B.X, R.B.Y, 100) then Continue;
+    C.MoveTo(Trunc(OX + R.A.X * S), Trunc(OY + R.A.Y * S));
+    for J := 1 to Min(R.Prog, High(R.Chemin)) do
+      C.LineTo(Trunc(OX + R.Chemin[J].X * S), Trunc(OY + R.Chemin[J].Y * S));
+  end;
+  // passe 2 : le chemin (plus étroit, ocre clair)
+  C.Pen.Width := Max(1, Trunc(S * 0.45));
+  C.Pen.Color := Col(186, 158, 108);
+  for I := 0 to Roads.Count - 1 do begin
+    R := Roads[I];
     C.MoveTo(Trunc(OX + R.A.X * S), Trunc(OY + R.A.Y * S));
     for J := 1 to Min(R.Prog, High(R.Chemin)) do
       C.LineTo(Trunc(OX + R.Chemin[J].X * S), Trunc(OY + R.Chemin[J].Y * S));
