@@ -57,6 +57,10 @@ var
   CurP: Integer = 0;
   HBtns: array of THBtn;
   FLangueBuild: Integer = -1;    // langue avec laquelle les pages ont été bâties
+  crl: Integer = 0;             // ★ défilement de la page courante (pixels)
+  LastCur: Integer = -1;         // ★ détection de changement de page (reset du scroll)
+  CurMaxScrl: Integer = 0;       // ★ débordement mesuré au dernier rendu (pour la molette)
+  Scrl : Integer =0;
 
 {--- constructeurs de pages --------------------------------------------------}
 
@@ -97,7 +101,7 @@ end;
   LE CONTENU — HelpBuildFR et HelpBuildEN : MÊME ORDRE, MÊME NOMBRE DE PAGES.
 ============================================================================}
 
-procedure HelpBuildFR;
+ procedure HelpBuildFR;
 begin
   SetLength(Pages, 0);
 
@@ -354,9 +358,441 @@ begin
   LT('· peausserie — nuit + hutte : la nuit pèse moins ;');
   LT('· torche — nuit + loin du camp : fuite +25 % ;');
   LT('· fumée — prédateur vu + feu : les loups vous voient mal ;');
-  LT('· piège
+  LT('· piège — forêt + gibier : frappe à distance ;');
+  LT('· appentis — réserves + 3 huttes : stockage ×2.');
+  LT('');
+  LT('Leur nom est une phrase', 1);
+  LT('Chaque invention prend un mot du langage émergent et le nom de son');
+  LT('inventeur : « tambour β de Grok ». Elles se transmettent comme les');
+  LT('technologies — et se perdent aussi.', 4);
+  LT('Elles sont listées dans le carnet, avec l''auteur et le jour.', 2);
+  LT('Les ères apportent d''autres inventions de plus — voir la page des');
+  LT('technologies des ères.', 6, 20);
 
-procedure HelpBuildEN;
+  // ============================================================ 10. SONS
+  P('Les sons du monde');
+  LT('Tout est synthétisé en direct — aucun fichier son.');
+  LT('');
+  LT('Les voix', 1);
+  LT('Chaque cri α β γ δ a sa sonorité (voyelles différentes), chaque sapiens');
+  LT('sa hauteur de voix, chaque mot sa petite mélodie pentatonique —');
+  LT('le même mot retentit toujours pareil : on apprend à le reconnaître.');
+  LT('Un porteur de tambour « parle » en frappant sa peau tendue.');
+  LT('Au passage d''ère, une fanfare : la lyre au bronze, les cloches au fer.');
+  LT('');
+  LT('L''ambiance', 1);
+  LT('· jour : oiseaux çà et là ;');
+  LT('· nuit : grillons et un drone grave ;');
+  LT('· côte : la houle — approchez la caméra du rivage ;');
+  LT('· camp la nuit : le crépitement du feu.');
+  LT('');
+  LT('Commandes', 1);
+  LT('F4 ou le bouton ♪ : couper / remettre.');
+  LT('Pas assez fort ? Réglez le volume Windows — le moteur suit.');
+
+  // ============================================================ 11. CARNET
+  P('Le carnet d''observation');
+  LT('De haut en bas :');
+  LT('');
+  LT('· date, heure, saison, année — et la barre dorée du jour ;');
+  LT('· badge d''ère : où en est le peuple, avec sa progression ;');
+  LT('· populations : flore, vaches, loups, sapiens, poissons, moutons, ours ;');
+  LT('· spirale de Fisher : la plume moyenne (l''esthétique du peuple) ;');
+  LT('· culture : le savoir moyen ;');
+  LT('· marins : navigateurs et pirogues en mer ;');
+  LT('· technologies : qui sait quoi, depuis quand, ou « PERDUE » ;');
+  LT('· dynamique : les courbes croisées des populations ;');
+  LT('· évolution : vitesse, vue, taille, plume, culture, mutations —');
+  LT('  les traits MOYENS qui dérivent de génération en génération ;');
+  LT('· lexique émergent : le sens deviné de chaque mot ;');
+  LT('· inventions du peuple : les 12 dernières ;');
+  LT('· spécimen : la fiche de la créature sélectionnée, avec son cerveau ;');
+  LT('· commandes, réglages, annales, et la mini-carte.');
+  LT('Le carnet défile : molette ou clic sur sa barre grise à droite.', 2);
+
+  // ============================================================ 12. EXPÉRIENCES
+  P('Expériences et défis');
+  LT('Voici ce pour quoi Microcosme est vraiment fait :');
+  LT('');
+  LT('Expérience 1 — la sélection en direct', 1);
+  LT('Relâchez 6 loups. Regardez la courbe « vitesse » des vaches :');
+  LT('en quelques générations, les survivantes sont plus rapides.', 3);
+  LT('');
+  LT('Expérience 2 — la culture sans école', 1);
+  LT('Isolez 2 sapiens à l''est, 6 à l''ouest. Qui découvre le feu le premier ?');
+  LT('Le groupe le plus dense — la densité fait les savants.', 3);
+  LT('');
+  LT('Expérience 3 — l''effondrement', 1);
+  LT('Supprimez tout loup et nourrissez à foison. La population');
+  LT('explose, la forêt recule, puis l''hiver arrive…', 4);
+  LT('');
+  LT('Expérience 4 — la chaîne du feu', 1);
+  LT('Notez le jour de la découverte du feu. Puis « Nouveau monde » :');
+  LT('le feu reviendra-t-il au même jour ? Jamais tout à fait.', 3);
+  LT('');
+  LT('Expérience 5 — le mot perdu', 1);
+  LT('Quand un mot atteint « cri d''alarme ? », éliminez (famine) tous les');
+  LT('locuteurs. Le mot survit-il ailleurs ? Réapparaît-il plus tard ?', 3);
+  LT('');
+  LT('Expérience 6 — la naissance d''une ville', 1);
+  LT('Laissez le peuple bâtir. Quand dix huttes s''assemblent, un bourg');
+  LT('prend un nom. Regardez-le gagner ses remparts, puis son monument.', 3);
+  LT('');
+  LT('Expérience 7 — l''exode', 1);
+  LT('Passez à l''ère du bronze et comptez les huttes isolées : familles');
+  LT('après familles, la campagne se vide dans les villes.', 3);
+  LT('');
+  LT('comparez plusieurs mondes : c''est là que le jeu devient science.', 2);
+
+  // ============================================================ 13. RACCOURCIS
+  P('Les raccourcis clavier');
+  LT('F1', 1);
+  LT('aide : ouvre / ferme ce manuel. Échap ferme aussi. Flèches : pages.');
+  LT('');
+  LT('Espace', 1);
+  LT('pause / lecture. Premier appui : démarre le monde.');
+  LT('');
+  LT('F2', 1);
+  LT('réglages : ouvre/ferme les molettes de rythme du monde');
+  LT('(feu, agriculture, immigration, mémoire du peuple…).');
+  LT('');
+  LT('F3', 1);
+  LT('fiche : ouvre la fenêtre détaillée du spécimen sélectionné.');
+  LT('');
+  LT('F4', 1);
+  LT('son : coupe / remet tout l''audio.');
+  LT('');
+  LT('F5', 1);
+  LT('monde plein écran, sans bordure (F5 à nouveau : revenir).');
+  LT('');
+  LT('F6', 1);
+  LT('revenir à la fenêtre normale, depuis n''importe quel mode.');
+  LT('');
+  LT('F7', 1);
+  LT('l''Observatoire : le réseau neuronal du spécimen en géant, la fiche');
+  LT('à gauche, technologies et annales à droite. Clic = sapiens suivant.');
+  LT('');
+  LT('F8', 1);
+  LT('français / english : bascule toute l''interface — et ce manuel.');
+  LT('');
+  LT('Souris', 1);
+  LT('· clic gauche : action de l''outil courant ;');
+  LT('· clic droit maintenu : déplacer la vue ;');
+  LT('· molette : zoom (monde) ou défilement (carnet).');
+
+  // ============================================================ 14. TECHNOLOGIES
+  P('Les technologies, une à une');
+  LT('feu', 1);
+  LT('La première. Sans lui, presque rien d''autre n''arrive. Chasse les');
+  LT('prédateurs, réchauffe la nuit, permet brochette, torche, fumée, piège…');
+  LT('Chance de découverte par sapiens cultivé (molette « réglages »).');
+  LT('');
+  LT('agriculture', 1);
+  LT('Après le feu. En récoltant, le sapiens replante : des champs naissent');
+  LT('autour du camp (cercle pointillé vert des huttes cultivées).');
+  LT('');
+  LT('réserves', 1);
+  LT('Le surplus de récolte part dans la hutte (anneau doré = niveau du stock).');
+  LT('La nuit ou en famine, on puise dedans. L''appentis double le stockage.');
+  LT('');
+  LT('pastoralisme', 1);
+  LT('Apprivoiser les vaches et moutons sauvages (jauge de confiance invisible),');
+  LT('les parquer près d''une hutte, traire les vaches. Les moutons se laissent');
+  LT('faire deux fois plus vite ; le chien vient avec le feu.');
+  LT('');
+  LT('pêche', 1);
+  LT('Au bord de l''eau, le sapiens attrape les poissons côtiers.');
+  LT('Le filet (invention) accélère beaucoup et ouvre les poissons profonds.');
+  LT('');
+  LT('navigation', 1);
+  LT('La pirogue : l''océan n''est plus une muraille. Les marins vont vers');
+  LT('les îlots — et parfois n''en reviennent pas.', 4);
+  LT('');
+  LT('écriture', 1);
+  LT('La dernière. Les tablettes (petites croix blanches près des huttes)');
+  LT('apparaissent — et l''histoire devient plus longue que les mémoires.', 3);
+
+  // ============================================================ 15. LIRE LE CERVEAU
+  P('Lire le cerveau d''un sapiens');
+  LT('Sélectionnez un sapiens (outil « vue »), cliquez le grand schéma');
+  LT('« Cerveau » dans le carnet — ou appuyez F7 : l''Observatoire.');
+  LT('');
+  LT('Ce qu''on voit', 1);
+  LT('· colonnes de gauche à droite : 34 entrées, 9 neurones, 9 neurones,');
+  LT('  10 sorties ;');
+  LT('· un lien vert = excitation, rouge = inhibition ; plus il est vif,');
+  LT('  plus le signal passe fort EN CE MOMENT ;');
+  LT('· les pointillés = la voie directe (réflexes sans passer par les couches) ;');
+  LT('· les étiquettes s''allument quand le signal est actif :');
+  LT('  « préd.x » quand un loup est vu, « r.β » pour l''écho du cri entendu…');
+  LT('');
+  LT('Ce qu''il faut chercher', 1);
+  LT('· les réflexes : prédateur → fuite (préd.* → tourner/vitesse) ;');
+  LT('· la boucle du langage : α..δ entendus → α..δ émis ;');
+  LT('· la mémoire : m.dan.* allumé = il « pense » à un danger connu.');
+  LT('Comparez un vieux sapiens et un enfant : la densité parle.', 3);
+
+  // ============================================================ 16. FAQ
+  P('Questions fréquentes');
+  LT('Pourquoi mes sapiens meurent de famine alors qu''il y a des plantes ?', 1);
+  LT('Vérifiez l''heure : la nuit, personne ne récolte — et l''hiver divise');
+  LT('la flore par 4. Les réserves et le feu existent pour ça. Patience.', 3);
+  LT('');
+  LT('Pourquoi les loups disparaissent ?', 1);
+  LT('S''il n''y a plus de proies à portée, ils meurent. Le système se');
+  LT('régule : relâchez-en peu, et laissez le bétail revenir.', 2);
+  LT('');
+  LT('Un ours dévore mon troupeau !', 1);
+  LT('C''est sa nature : il ne touche jamais les sapiens, mais le bétail');
+  LT('l''attire. Un berger l''abattra — ou éloignez les parcs des forêts.', 3);
+  LT('');
+  LT('Tant de huttes isolées, et rien ne bouge ?', 1);
+  LT('Dès l''ère du bronze, l''exode les emmène vers les villes — les trop');
+  LT('lointaines restent des hameaux de frontière. Voir la page villes.', 6, 21);
+  LT('');
+  LT('Le feu n''arrive jamais !', 1);
+  LT('Il faut des sapiens adultes, cultivés (savoir > 20 %), et de la chance.');
+  LT('Accélérez le temps. Ou ouvrez « réglages » (F2) et montez la molette feu.', 2);
+  LT('');
+  LT('Un sapiens est tout seul au milieu de nulle part', 1);
+  LT('Il rentre au camp d''instinct (« explore » + attraction du camp).');
+  LT('S''il est bloqué par l''eau sans navigation, il tournera en rond. Désolé.', 5);
+  LT('');
+  LT('Les mots changent d''un monde à l''autre ?', 1);
+  LT('Oui : le lexique est généré à la naissance de chaque esprit. Deux');
+  LT('mondes, deux langues. Comme chez nous.', 3);
+  LT('');
+  LT('Comment sauvegarder une histoire ?', 1);
+  LT('Sauver / Charger dans le carnet : le monde, les esprits, le lexique,');
+  LT('les annales — tout repartira où vous l''avez laissé.');
+
+  // ============================================================ 17. ANATOMIE DU RÉSEAU
+  P('Anatomie du réseau neuronal');
+  LT('Chaque sapiens porte son propre cerveau : environ 600 nombres flottants');
+  LT('en réalité — son ADN mental. Le voici, couche par couche.');
+  LT('');
+  LT('Vue d''ensemble : 34 → 9 → 9 → 10', 1);
+  LT('· 34 entrées : ce que le corps sent du monde, à chaque « pensée » ;');
+  LT('· 9 neurones cachés, puis 9 autres : le traitement ;');
+  LT('· 10 sorties : les actions possibles.');
+  LT('');
+  LT('Les 34 entrées, dans l''ordre', 1);
+  LT('0 biais · 1 énergie (0=faim, 1=replet) · 2 lumière du jour', 5);
+  LT('3-5 nourriture : direction X, Y, proximité', 5);
+  LT('6-8 pair le plus proche : X, Y, proximité', 5);
+  LT('9-11 prédateur le plus proche : X, Y, proximité', 5);
+  LT('12-15 les quatre cris entendus : α, β, γ, δ (force du signal)', 5);
+  LT('16-17 direction d''où vient le cri le plus fort', 5);
+  LT('18-20 mémoire de danger la plus proche : X, Y, force', 5);
+  LT('21-23 mémoire de nourriture : X, Y, force (pondérée par la faim !)', 5);
+  LT('24-32 les NEUF échos : ce que le réseau a décidé à la pensée précédente', 5);
+  LT('33 biais constant = 1', 5);
+  LT('Les directions sont relatives à l''orientation du corps :');
+  LT('« devant moi à gauche », pas « au nord-ouest de l''île ».', 2);
+  LT('');
+  LT('Les 10 sorties', 1);
+  LT('0 tourner (gauche/droite) · 1 avancer (vitesse du corps)', 5);
+  LT('2 BÂTIR une hutte · 3 se reproduire · 4 chasser', 5);
+  LT('5-8 crier α, β, γ, δ · 9 se reposer', 5);
+  LT('La sortie la plus active gagne et devient l''action du moment.');
+  LT('');
+  LT('Comment ça calcule', 1);
+  LT('Chaque neurone caché fait une somme pondérée de ses entrées, puis');
+  LT('écrase le résultat entre -1 et +1 (tangente hyperbolique).');
+  LT('Les couches suivantes refont pareil. C''est tout — et ça suffit :');
+  LT('chaque connexion porte un poids (sa force) qui fait TOUT le caractère.');
+  LT('');
+  LT('Les trois voies', 1);
+  LT('· voie lente : entrées → 9 → 9 → sorties (la réflexion) ;');
+  LT('· voie directe (pointillés à l''écran) : entrées → sorties (les réflexes) ;');
+  LT('· récurrences : les sorties d''hier nourrissent les entrées d''aujourd''hui.');
+  LT('C''est la récurrence qui donne des comportements sostenus :');
+  LT('un sapiens qui fuit CONTINUE de fuir, un crieur continue de crier.', 3);
+  LT('');
+  LT('Où le voir tourner', 1);
+  LT('Sélectionne un sapiens, ouvre « cerveau » : chaque lien s''allume selon');
+  LT('sa force ACTUELLE. Les poids ne changent pas en direct — voir la page');
+  LT('suivante pour ce qui les façonne.', 2);
+
+  // ============================================================ 18. APPRENTISSAGE
+  P('Comment il apprend');
+  LT('Personne n''enseigne rien au réseau. Trois forces le façonnent :');
+  LT('');
+  LT('1. L''héritage', 1);
+  LT('À la naissance, l''enfant copie le réseau d''un parent — le plus souvent');
+  LT('la mère — PUIS la mutation passe :');
+  LT('· ~13 % des poids bougent un peu (+/- 0,3 en moyenne) ;');
+  LT('· ~2 % sautent franchement ailleurs (mutation sauvage) ;');
+  LT('· la VOIX (poids α β γ δ) mute 2 fois plus : c''est voulu, le langage');
+  LT('  doit varier plus vite que le corps — c''est lui qui évolue le plus vite.');
+  LT('· chaque lignée a son taux de mutation, hérité et lui-même mutable :');
+  LT('  familles « innovantes » et « conservatrices » coexistent.');
+  LT('');
+  LT('2. Le mentorat (la culture)', 1);
+  LT('L''enfant choisit le plus savant des voisins comme mentor. Son réseau');
+  LT('glisse doucement vers celui du mentor — MAIS seulement sur 30 % de la');
+  LT('distance génétique au maximum :');
+  LT('l''ADN n''est jamais écrasé, il est GUIDÉ. Un enfant de parents médiocres');
+  LT('peut devenir grand ; il ne deviendra jamais son mentor tout entier.');
+  LT('');
+  LT('3. La sélection (le juge de paix)', 1);
+  LT('Ceux qui savent trouver à manger, éviter les loups, ne pas se noyer…');
+  LT('vivent plus longtemps et se reproduisent plus. Leurs poids se diffusent.');
+  LT('C''est la sélection naturelle, sans autre jugement que la survie.');
+  LT('');
+  LT('Ce qui N''EXISTE PAS (et qu''on croit souvent voir)', 1);
+  LT('· pas de rétroaction d''erreur : le réseau ne « sait » pas quand il se trompe ;');
+  LT('· pas de mémoire entre générations autre que les gènes et la culture ;');
+  LT('· pas de but : personne ne vise « mieux ». L''émergence fait le reste.', 3);
+  LT('');
+  LT('Résultat observable', 1);
+  LT('Après 30-40 générations, regarde le carnet : les courbes de vitesse et');
+  LT('de vue montent si les loups pressent, la culture grimpe en');
+  LT('dents de scie (une invention perdue, réapprise au camp), les mots');
+  LT('apparaissent et disparaissent. L''histoire s''écrit toute seule.', 2);
+
+  // ============================================================ 19. ÈRES
+  P('Les ères de l''humanité');
+  LT('Six âges, du premier feu aux façades peintes', 1);
+  LT('· ère 1 — Néolithique : feu, agriculture, réserves, pastoralisme,');
+  LT('  pêche, navigation, écriture. Le monde des débuts ;');
+  LT('· ère 2 — Âge du bronze : la terre se laboure, le métal mord,');
+  LT('  la voile se dresse, les idées s''échangent de main en main ;');
+  LT('· ère 3 — Âge du fer : l''outillage parfait, l''eau conduite, la');
+  LT('  philosophie — un savoir qui ne meurt plus ;');
+  LT('· ère 4 — Antiquité : la cité, la géométrie, les lois, la colonne');
+  LT('  de marbre sur la place du feu — et les premières routes ;');
+  LT('· ère 5 — Moyen Âge : moulins, universités, corporations, le donjon ;');
+  LT('· ère 6 — Renaissance : l''imprimerie multiplie les mots, les façades');
+  LT('  se peignent, la méthode observe et recommence.');
+  LT('');
+  LT('Rien ne se perd au passage', 1);
+  LT('Les technologies et inventions de l''ère précédente restent actives.');
+  LT('On n''abandonne jamais le feu. On construit dessus.', 3);
+  LT('');
+  LT('Comment on passe', 1);
+  LT('Le passage n''est jamais automatique : quand toutes les technologies');
+  LT('de l''ère sont découvertes, que le peuple compte assez d''adultes');
+  LT('et assez d''inventions, un bouton doré « entrer dans l''ère suivante »');
+  LT('apparaît en tête des commandes du carnet — et attend votre main.');
+  LT('Le carnet affiche votre progression sous le badge d''ère :', 5);
+  LT('technologies 5/7 · peuple 12 · inventions 4/10.', 5);
+  LT('Ne traversez pas en pleine famine ni à la veille de l''hiver.', 4);
+  LT('');
+  LT('Ce qui change', 1);
+  LT('· les découvertes s''accélèrent : chaque jour de recherche ratée');
+  LT('  nourrit la suivante (l''effet bibliothèque) — puis Science,');
+  LT('  Mathématiques, Universités et Méthode l''amplifient encore ;');
+  LT('· le peuple peut croître : le plafond des sapiens monte à chaque ère ;');
+  LT('· le village se transforme : huttes rondes → maisons de pierre →');
+  LT('  façades peintes ; la maison au feu porte le monument de son âge ;');
+  LT('· la campagne se vide : l''exode vers les villes s''emballe ère après');
+  LT('  ère, et dès l''Antiquité les villes se relient de routes.');
+  LT('Chaque passage est consigné dans les annales.', 2);
+
+  // ============================================================ 20. TECHS DES ÈRES
+  P('Les technologies des ères suivantes');
+  LT('Âge du bronze', 1);
+  LT('· charrue — la récolte rapporte moitié plus ;');
+  LT('· roue — chacun marche un tiers plus vite ;');
+  LT('· irrigation — la terre porte un tiers de végétation de plus ;');
+  LT('· métallurgie — la chasse rapporte bien plus à chaque frappe ;');
+  LT('· voile — en mer, la pirogue va aussi vite qu''on marche à terre ;');
+  LT('· monnaie — la diffusion entre voisins s''emballe ;');
+  LT('· archives — la mémoire du peuple se lit partout sur l''île ;');
+  LT('· science — chaque découverte rend les suivantes plus probables.');
+  LT('');
+  LT('Âge du fer', 1);
+  LT('· fer — le métal parfait encore la chasse ;');
+  LT('· aqueduc — la terre nourrit encore davantage ;');
+  LT('· ingénierie — les réserves des huttes gagnent la moitié ;');
+  LT('· philosophie — le savoir ne se perd JAMAIS plus ;');
+  LT('· médecine — la vieillesse recule d''un cinquième ;');
+  LT('· mathématiques — les découvertes s''accélèrent encore ;');
+  LT('· astronomie — les hivers perdent un tiers de leur mordant ;');
+  LT('· école — le mentorat transmet moitié plus de savoir.');
+  LT('');
+  LT('Antiquité', 1);
+  LT('· cité — deux fois plus de huttes peuvent s''assembler ;');
+  LT('· géométrie — bâtir coûte moins d''efforts ;');
+  LT('· législation — la diffusion gagne un quart ;');
+  LT('· rhétorique — le mentorat transmet un cinquième de plus ;');
+  LT('· galères — la mer devient plus vite que la marche ;');
+  LT('· agronomie — la récolte gagne encore un quart ;');
+  LT('· hygiène — la vieillesse recule d''un dixième ;');
+  LT('· cartographie — l''exploration ne divage plus.');
+  LT('');
+  LT('Moyen Âge', 1);
+  LT('· moulins et assolement — la terre porte un tiers de plus ;');
+  LT('· ferrure — des pas sûrs, un dixième plus vifs ;');
+  LT('· universités — les découvertes gagnent un cinquième ;');
+  LT('· corporations — les inventions arrivent moitié plus vite ;');
+  LT('· élevage sélectif — l''apprivoisement va moitié plus vite ;');
+  LT('· médecine arabe — la vieillesse recule encore d''un dixième ;');
+  LT('· navigation hauturière — la mer, un dixième de plus encore.');
+  LT('');
+  LT('Renaissance', 1);
+  LT('· imprimerie — la diffusion s''emballe (×1.6) ;');
+  LT('· optique — le regard porte un cinquième plus loin ;');
+  LT('· anatomie — le corps tient un vingtième d''énergie de plus ;');
+  LT('· caravelles — la mer est maîtrisée (×2.2) ;');
+  LT('· poudre — la chasse gagne encore un tiers ;');
+  LT('· banque — les idées circulent encore plus ;');
+  LT('· méthode — les découvertes gagnent un tiers ;');
+  LT('· humanités — le mentorat gagne un quart.');
+  LT('');
+  LT('Les inventions des nouveaux âges', 1);
+  LT('· bougie, charrette, four (bronze) — la nuit allégée, les réserves');
+  LT('  remplies moitié plus vite, le repas plus nourrissant ;');
+  LT('· horloge, boussole, théâtre (fer) — la marche affine, l''errance');
+  LT('  divisée par deux, la diffusion enflammée par le public ;');
+  LT('· amphore, serpe, fosse (Antiquité) — greniers plus vastes, récolte');
+  LT('  affinée, loups tenus à distance ;');
+  LT('· arbalète, parchemin, armure (Moyen Âge) — chasse au loin, idées');
+  LT('  qui circulent, crocs qui glissent ;');
+  LT('· lunette, violon, carte marine (Renaissance) — voir dans le noir,');
+  LT('  la musique qui apaise, l''exploration guidée.', 2);
+
+  // ============================================================ 21. VILLES (nouveau)
+  P('Villes, campagnes et routes');
+  LT('La naissance d''un bourg', 1);
+  LT('Quand dix huttes isolées s''assemblent à peu de distance, elles');
+  LT('deviennent un bourg : il reçoit un nom — syllabes de nulle part,');
+  LT('une langue à lui — et les huttes se replacent en spirale autour');
+  LT('du feu de la ville.');
+  LT('');
+  LT('Les niveaux', 1);
+  LT('· 10 foyers : le bourg ;');
+  LT('· 18 foyers : la ville — les remparts montent, percés de quatre portes ;');
+  LT('· 28 foyers : la cité — et son monument face au feu.');
+  LT('Le nom s''affiche au zoom ; à la Renaissance, les façades se peignent.', 2);
+  LT('');
+  LT('L''espace du sauvage', 1);
+  LT('On ne bâtit pas entre 8 et 50 cases d''une ville : ce cordon, c''est');
+  LT('la chasse, la forêt, le gibier. Mais près des murailles (moins de');
+  LT('20 cases), dès le bronze, la maison qui naît est CITADINE — c''est');
+  LT('la banlieue, et la ville grossit par sa périphérie.', 3);
+  LT('');
+  LT('La clairière', 1);
+  LT('La ville défriche : ni arbre ni buisson dans son enceinte.');
+  LT('L''empreinte écologique des cités se lit à la carte.', 2);
+  LT('');
+  LT('L''exode', 1);
+  LT('Dès l''ère 2 — et de plus en plus à chaque ère — les familles isolées');
+  LT('quittent les bois pour la ville la plus proche (dans un rayon');
+  LT('raisonnable ; les trop lointaines restent des hameaux).');
+  LT('Le jour où plus d''un foyer sur deux est urbain, les annales écrivent :');
+  LT('« le peuple devient citadin ».', 2);
+  LT('');
+  LT('Les routes', 1);
+  LT('À l''Antiquité, les villes proches (moins de 200 cases) se relient.');
+  LT('Les routes poussent d''elles-mêmes, trois cases par jour, contournant');
+  LT('l''eau. Sur la route, on marche moitié plus vite — et les idées y');
+  LT('circulent mieux.', 3);
+  LT('Un anneau de routes reliant plusieurs villes : le signe d''un monde', 2);
+  LT('qui se tient.', 2);
+end;
+  procedure HelpBuildEN;
 begin
   SetLength(Pages, 0);
 
@@ -1046,6 +1482,7 @@ begin
   LT('that holds together.', 2);
 end;
 
+
 procedure HelpBuild;
 begin
   if FLangue = LANG_EN then HelpBuildEN
@@ -1053,6 +1490,7 @@ begin
   FLangueBuild := FLangue;
   Cur := 0;
 end;
+
 
 {--- service ----------------------------------------------------------------}
 
@@ -1076,9 +1514,10 @@ begin
   Result := FOn;
 end;
 
+{ ★ retourne la HAUTEUR dessinée (au lieu du Y suivant) — sert au scroll }
 function DrawWrapped(C: TCanvas; const S: string; X, Y, MaxW: Integer;
   Clr: TColor): Integer;
-var P0, Px: Integer; Wd, Ln: string;
+var P0, Px, Y0: Integer; Wd, Ln: string;
 
   procedure FlushLn;
   begin
@@ -1092,7 +1531,7 @@ var P0, Px: Integer; Wd, Ln: string;
 
 begin
   C.Brush.Style := bsClear;
-  Ln := '';  P0 := 1;
+  Ln := '';  P0 := 1;  Y0 := Y;
   while P0 <= Length(S) do begin
     Px := P0;
     while (Px <= Length(S)) and (S[Px] <> ' ') do Inc(Px);
@@ -1103,14 +1542,14 @@ begin
     P0 := Px + 1;
   end;
   FlushLn;
-  Result := Y;
+  Result := Y - Y0;              // la hauteur (0 pour une ligne vide)
 end;
-
 {--- rendu ------------------------------------------------------------------}
 
 procedure HelpRender(C: TCanvas; W, H: Integer);
 const MARG = 24;
-var PW, PH, X0, Y0, Y, I, BX, BW: Integer;
+var PW, PH, X0, Y0, I, BX, BW: Integer;
+   CTop, CBot, YL, YS, DS, ContH, MaxScrl, VH, VY: Integer;
    SommaireLbl, FermerLbl, EssayerLbl: string;
 
   procedure BtnBox(R: TRect; const Cap: string; Id: Integer; Hot: Boolean);
@@ -1133,24 +1572,22 @@ begin
   if not FOn then Exit;
   if (Length(Pages) = 0) or (FLangueBuild <> FLangue) then HelpBuild;
   HBtns := nil;
+  if Cur <> LastCur then begin Scrl := 0; LastCur := Cur end;   // ★ nouvelle page : haut
 
-  // libellés de navigation selon la langue
   if FLangue = LANG_EN then begin
-    SommaireLbl := 'contents';
-    FermerLbl   := 'close';
-    EssayerLbl  := 'try: ';
+    SommaireLbl := 'contents';  FermerLbl := 'close';  EssayerLbl := 'try: ';
   end else begin
-    SommaireLbl := 'sommaire';
-    FermerLbl   := 'fermer';
-    EssayerLbl  := 'essayer : ';
+    SommaireLbl := 'sommaire';  FermerLbl := 'fermer'; EssayerLbl := 'essayer : ';
   end;
 
   PW := Min(720, W - 36);  PH := Min(560, H - 36);
   X0 := (W - PW) div 2;  Y0 := (H - PH) div 2;
+  CTop := Y0 + 48;             // haut de la zone de contenu
+  CBot := Y0 + PH - 92;        // bas (au-dessus des boutons démo / nav, fixes)
 
   C.Font.Name := 'Segoe UI'; C.Font.Size := 9; C.Font.Style := [];
 
-  // ombre + panneau
+  // ombre + panneau + bandeau (inchangés)
   C.Brush.Style := bsSolid;  C.Pen.Style := psClear;
   C.Brush.Color := Col(6, 8, 6);
   C.FillRect(Rect(X0 + 5, Y0 + 6, X0 + PW + 5, Y0 + PH + 6));
@@ -1159,8 +1596,6 @@ begin
   C.Pen.Style := psSolid;  C.Pen.Color := Col(54, 60, 46);  C.Pen.Width := 1;
   C.Brush.Style := bsClear;
   C.Rectangle(X0, Y0, X0 + PW, Y0 + PH);
-
-  // bandeau
   C.Brush.Style := bsSolid;  C.Pen.Style := psClear;
   C.Brush.Color := Col(25, 30, 21);
   C.FillRect(Rect(X0 + 1, Y0 + 1, X0 + PW - 1, Y0 + 36));
@@ -1172,69 +1607,88 @@ begin
   C.Font.Color := Col(120, 126, 106);
   C.TextOut(X0 + PW - 90, Y0 + 12, Format('%d / %d', [Cur + 1, Length(Pages)]));
 
-  // contenu
-  Y := Y0 + 48;
+  // ★ le contenu DÉFILE : clip sur la zone, curseur logique YL, dessin à YL - Scrl
+  DS := SaveDC(C.Handle);
+  IntersectClipRect(C.Handle, X0 + 2, CTop - 4, X0 + PW - 2, Y0 + PH - 50);
+
+  YL := CTop ;
   C.Font.Name := 'Segoe UI';  C.Font.Size := 9;  C.Font.Style := [];
   for I := 0 to High(Pages[Cur].L) do begin
+    YS := YL - Scrl;
     with Pages[Cur].L[I] do begin
       case K of
         1: begin
-             Inc(Y, 5);
+             Inc(YL, 5);
              C.Font.Style := [fsBold];
-             Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(208, 167, 92));
+             YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(208, 167, 92));
+             YL := YL + YS + 2;
              C.Font.Style := [];
-             Inc(Y, 2);
            end;
         2: begin
              C.Font.Style := [fsItalic];
-             Y := DrawWrapped(C, '◆ ' + Txt, X0 + MARG, Y, PW - 2*MARG, Col(240, 180, 95));
+             YS := DrawWrapped(C, '◆ ' + Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(240, 180, 95));
+             YL := YL + YS + 2;
              C.Font.Style := [];
            end;
         6: begin
-             BtnBox(Rect(X0 + MARG, Y, X0 + PW - MARG, Y + 24), '▸ ' + Txt, Act, True);
-             Inc(Y, 28);
+             // lien : dessiné et cliquable seulement s'il est dans la zone
+             if (YS + 24 > CTop - 4) and (YS < Y0 + PH - 50) then
+               BtnBox(Rect(X0 + MARG, YS, X0 + PW - MARG, YS + 24), '▸ ' + Txt, Act, True);
+             Inc(YL, 28);
            end;
       else begin
              case K of
-               3: Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(157, 187, 107));
-               4: Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(206, 116, 79));
-               5: Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(139, 138, 116));
+               3: YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(157, 187, 107));
+               4: YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(206, 116, 79));
+               5: YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(139, 138, 116));
              else
-               Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(222, 216, 196));
+               YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(222, 216, 196));
              end;
-             Inc(Y, 2);
+             YL := YL + YS + 2;
            end;
       end;
     end;
-    if Y > Y0 + PH - 92 then begin
-      C.Font.Color := Col(120, 126, 106);
-      C.Brush.Style := bsClear;
-      C.TextOut(X0 + MARG, Y, '…');
-      Break;
-    end;
+  end;
+  RestoreDC(C.Handle, DS);
+
+  // ★ mesure du débordement (pour la molette + l'ascenseur) — actif dès ce frame+1
+  ContH := Max(1, YL - CTop);
+  MaxScrl := Max(0, ContH - (CBot - CTop));
+  if Scrl > MaxScrl then Scrl := MaxScrl;
+  CurMaxScrl := MaxScrl;
+
+  // ★ mini-ascenseur à droite
+  if MaxScrl > 0 then begin
+    C.Brush.Style := bsSolid; C.Pen.Style := psClear;
+    C.Brush.Color := Col(32, 37, 28);
+    C.FillRect(Rect(X0 + PW - 7, CTop, X0 + PW - 4, CBot));
+    VH := Max(28, MulDiv(CBot - CTop, CBot - CTop, ContH));
+    VY := CTop + MulDiv(CBot - CTop - VH, Scrl, MaxScrl);
+    C.Brush.Color := Col(96, 102, 86);
+    C.FillRect(Rect(X0 + PW - 7, VY, X0 + PW - 4, VY + VH));
   end;
 
-  // boutons démo
+  // boutons démo (fixes, inchangés)
   if (Length(Pages[Cur].D) > 0) and Assigned(HelpDemoProc) then begin
-    Y := Y0 + PH - 86;
+    YL := Y0 + PH - 86;
     BX := X0 + MARG;
     for I := 0 to High(Pages[Cur].D) do begin
       BW := C.TextWidth(EssayerLbl + Pages[Cur].D[I].Cap) + 20;
-      if BX + BW > X0 + PW - MARG then begin BX := X0 + MARG; Inc(Y, 28) end;
-      BtnBox(Rect(BX, Y, BX + BW, Y + 24),
+      if BX + BW > X0 + PW - MARG then begin BX := X0 + MARG; Inc(YL, 28) end;
+      BtnBox(Rect(BX, YL, BX + BW, YL + 24),
              EssayerLbl + Pages[Cur].D[I].Cap, 1000 + Pages[Cur].D[I].Act, True);
       BX := BX + BW + 8;
     end;
   end;
 
-  // navigation
-  Y := Y0 + PH - 46;
+  // navigation (inchangée)
+  YL := Y0 + PH - 46;
   C.Pen.Style := psSolid;  C.Pen.Color := Col(48, 54, 42);  C.Pen.Width := 1;
-  C.MoveTo(X0 + MARG, Y - 8);  C.LineTo(X0 + PW - MARG, Y - 8);
-  BtnBox(Rect(X0 + MARG, Y, X0 + MARG + 34, Y + 26), '◀', -1, True);
-  BtnBox(Rect(X0 + MARG + 40, Y, X0 + MARG + 74, Y + 26), '▶', -2, True);
-  BtnBox(Rect(X0 + PW - MARG - 156, Y, X0 + PW - MARG - 76, Y + 26), SommaireLbl, -3, True);
-  BtnBox(Rect(X0 + PW - MARG - 70, Y, X0 + PW - MARG, Y + 26), FermerLbl, -4, True);
+  C.MoveTo(X0 + MARG, YL - 8);  C.LineTo(X0 + PW - MARG, YL - 8);
+  BtnBox(Rect(X0 + MARG, YL, X0 + MARG + 34, YL + 26), '◀', -1, True);
+  BtnBox(Rect(X0 + MARG + 40, YL, X0 + MARG + 74, YL + 26), '▶', -2, True);
+  BtnBox(Rect(X0 + PW - MARG - 156, YL, X0 + PW - MARG - 76, YL + 26), SommaireLbl, -3, True);
+  BtnBox(Rect(X0 + PW - MARG - 70, YL, X0 + PW - MARG, YL + 26), FermerLbl, -4, True);
 end;
 
 {--- interactions ------------------------------------------------------------}
@@ -1264,8 +1718,13 @@ end;
 procedure HelpWheel(Delta: Integer);
 begin
   if not FOn then Exit;
-  if Delta < 0 then begin if Cur < High(Pages) then Inc(Cur) end
-  else begin if Cur > 0 then Dec(Cur) end;
+  if Delta < 0 then begin
+    if Scrl < CurMaxScrl then Scrl := Min(CurMaxScrl, Scrl + 56)
+    else if Cur < High(Pages) then Inc(Cur);      // bas atteint : page suivante
+  end else begin
+    if Scrl > 0 then Scrl := Max(0, Scrl - 56)
+    else if Cur > 0 then Dec(Cur);                // haut atteint : page précédente
+  end;
 end;
 
 procedure HelpKeyDown(Key: Word);
