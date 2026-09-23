@@ -109,6 +109,8 @@ begin
   case Kind of
     0: begin RSp[0]:=2.2; RSp[1]:=5.4; RSe[0]:=4; RSe[1]:=9; RSz[0]:=0.6; RSz[1]:=1.5 end;
     1: begin RSp[0]:=3.0; RSp[1]:=6.4; RSe[0]:=5; RSe[1]:=11; RSz[0]:=0.7; RSz[1]:=1.5 end;
+    4: begin RSp[0]:=2.3; RSp[1]:=4.6; RSe[0]:=6; RSe[1]:=11; RSz[0]:=1.1; RSz[1]:=1.8 end;  // ★ours
+    5: begin RSp[0]:=2.4; RSp[1]:=5.8; RSe[0]:=4; RSe[1]:=8;  RSz[0]:=0.35; RSz[1]:=0.8 end; // ★mouton
   else begin RSp[0]:=2.6; RSp[1]:=5.6; RSe[0]:=6; RSe[1]:=12; RSz[0]:=0.7; RSz[1]:=1.3 end;
   end;
   if Parent <> nil then begin
@@ -150,6 +152,16 @@ begin
          C.Energy := 65 + Random * 20; C.MaxE := 80 + 60 * C.Sz;
          C.MaxAge := 230 + Random * 110; Inc(UidP); C.Name := 'P-' + IntToStr(UidP);
          C.Tame := 0;
+       end;
+    4: begin
+         C.Energy := 90 + Random * 25; C.MaxE := 120 + 80 * C.Sz;
+         C.MaxAge := 200 + Random * 90; Inc(UidO); C.Name := 'O-' + IntToStr(UidO);
+         C.Tame := 0;                      // ★indomptable
+       end;
+    5: begin
+         C.Energy := 40 + Random * 15; C.MaxE := 45 + 40 * C.Sz;
+         C.MaxAge := 110 + Random * 60; Inc(UidM); C.Name := 'M-' + IntToStr(UidM);
+         C.Tame := 0.15 + Random * 0.25;   // ★docile de nature
        end;
   else begin
          C.Energy := 75 + Random * 20; C.MaxE := 95 + 65 * C.Sz;
@@ -211,8 +223,10 @@ begin
     end;
   end;
   Creatures.Add(C);
-  case Kind of 0: Inc(CountH); 1: Inc(CountP); 2: Inc(CountS) end;
-end;
+  case Kind of 0: Inc(CountH); 1: Inc(CountP); 2: Inc(CountS);
+               4: Inc(CountO); 5: Inc(CountM); end;
+  end;
+
 
 procedure Kill(C: TCreature; const Cause: string);
 var O: TCreature;
@@ -257,7 +271,7 @@ begin
     S2 := C.Se * C.Se;
     CollectNear(C.X, C.Y, C.Se);
     for O in NB do
-      if O.Alive and (O.Kind = 1) then begin
+        if O.Alive and ((O.Kind = 1) or (O.Kind = 4)) then begin
         D := D2(C.X, C.Y, O.X, O.Y);
         if (D < S2) and (D < TD) then begin TD := D; Threat := O end;
       end;
@@ -284,7 +298,7 @@ begin
   for O in NB do begin
     if (not O.Alive) or (O = C) then Continue;
     D := D2(C.X, C.Y, O.X, O.Y);
-    if (O.Kind = 1) and (D < S2) and (D < TD) then begin TD := D; Threat := O end
+        if ((O.Kind = 1) or (O.Kind = 4)) and (D < S2) and (D < TD) then begin TD := D; Threat := O end
     else if (O.Kind = 0) and (D < PD) then begin PD := D; Peer := O end;
   end;
   if Threat <> nil then begin
@@ -332,7 +346,7 @@ begin
   CollectNear(C.X, C.Y, C.Se);
   for O in NB do begin
     if not O.Alive then Continue;
-    if O.Kind = 0 then begin
+    if (O.Kind = 0) or (O.Kind = 5) then begin
       CI := CellIdx(O.X, O.Y);
       if (CI >= 0) and (TerrType[CI] = T_FOR) then VR := C.Se * 0.55 else VR := C.Se;
       D := D2(C.X, C.Y, O.X, O.Y);
@@ -364,6 +378,44 @@ begin
   end;
 end;
 
+
+{ ★Faune — l'ours : omnivore. Chasse le bétail (vaches/moutons, mêmes
+  domestiqués — d'où le conflit avec le berger), ne cible JAMAIS les
+  sapiens ni les chiens, et broute volontiers. Indomptable. }
+procedure ThinkOurs(C: TCreature);
+var O, Best: TCreature;
+   BD, D, S2: Single;
+   P: TPlant;
+begin
+  Best := nil; BD := MaxSingle;
+  S2 := C.Se * C.Se;
+  CollectNear(C.X, C.Y, C.Se);
+  for O in NB do begin
+    if (not O.Alive) or (O = C) then Continue;
+    if (O.Kind = 0) or (O.Kind = 5) then begin
+      D := D2(C.X, C.Y, O.X, O.Y);
+      if (D < S2) and (D < BD) then begin BD := D; Best := O end;
+    end;
+  end;
+  if Best <> nil then begin
+    C.State := L(72); C.TargetC := Best; C.TargetP := nil;
+    C.WAngle := ArcTan2(Best.Y - C.Y, Best.X - C.X);
+  end else if C.Energy < C.MaxE * 0.55 then begin    // omnivore : broute tôt
+    P := FindPlant(C);
+    C.TargetP := P; C.TargetC := nil;
+    if P <> nil then begin
+      C.State := L(140);
+      C.WAngle := ArcTan2(P.Y - C.Y, P.X - C.X);
+    end else begin
+      C.State := L(139);
+      C.WAngle := C.WAngle + (Random - 0.5) * 1.5;
+    end;
+  end else begin
+    C.TargetC := nil; C.TargetP := nil; C.State := L(139);
+    C.WAngle := C.WAngle + (Random - 0.5) * 1.5;
+  end;
+end;
+
 procedure StepCreature(C: TCreature; DT: Single);
 var Want, Des, Turn, SP, SM, NX, NY, D, Esc, Eff, Gain, Amt, Crowd, Damp: Single;
    T: TPlant; O: TCreature;
@@ -381,7 +433,9 @@ begin
   end;
   if C.ThinkT <= 0 then begin
     C.ThinkT := 0.22 + Random * 0.18;
-    if C.Kind = 0 then ThinkHerb(C) else ThinkPred(C);
+        if (C.Kind = 0) or (C.Kind = 5) then ThinkHerb(C)
+    else if C.Kind = 4 then ThinkOurs(C)
+    else ThinkPred(C);
   end;
   if (C.TargetP <> nil) and (PlantGrid[C.TargetP.Cell] <> C.TargetP) then C.TargetP := nil;
   if (C.TargetC <> nil) and (not C.TargetC.Alive) then C.TargetC := nil;
@@ -435,22 +489,28 @@ begin
   else
     C.Energy := C.Energy - (0.48 + 0.12 * Des + 0.50 * C.Sz) * DT;
 
-  if (C.Energy > IfThen(C.Kind = 0, 76, 90)) and (C.Age > 8) and (C.RepCd <= 0) then
-    if ((C.Kind = 0) and (CountH < MAXH)) or ((C.Kind = 1) and (CountP < MAXC)) then begin
+    if (C.Energy > IfThen(C.Kind = 4, 110, IfThen(C.Kind = 0, 76, 90))) and
+     (C.Age > 8) and (C.RepCd <= 0) then
+    if ((C.Kind = 0) and (CountH < MAXH)) or ((C.Kind = 1) and (CountP < MAXC)) or
+       ((C.Kind = 5) and (CountM < MAXM)) or ((C.Kind = 4) and (CountO < MAXO)) then begin
       Crowd := CrowdCount(C, IfThen(C.Kind = 0, 5, 7));
-      if C.Kind = 0 then Damp := 1 / (1 + Crowd * 0.22)
-                    else Damp := 1 / (1 + Crowd * 0.45);
-      if Random < Damp * DT * IfThen(C.Kind = 0, 0.85, 0.28) *
-         IfThen((C.Kind = 0) and C.Dom, 1.5, 1) then begin
+      if (C.Kind = 0) or (C.Kind = 5) then Damp := 1 / (1 + Crowd * 0.22)
+      else if C.Kind = 4 then Damp := 1 / (1 + Crowd * 0.60)
+      else Damp := 1 / (1 + Crowd * 0.45);
+      if Random < Damp * DT * IfThen((C.Kind = 0) and C.Dom, 1.5, 1) *
+         IfThen(C.Kind = 5, 1.4, IfThen(C.Kind = 4, 0.10,
+         IfThen(C.Kind = 0, 0.85, 0.28))) then begin
         SpawnCreature(C.Kind, C.X + Cos(C.Angle) * 1.3, C.Y + Sin(C.Angle) * 1.3,
                       C, nil, C.Gen + 1);
-        if C.Kind = 0 then begin
+        if (C.Kind = 0) or (C.Kind = 5) then begin
           Creatures.Last.Energy := 38; C.Energy := C.Energy - 46; C.RepCd := 7;
           if C.Dom then begin
             Creatures.Last.Tame := ClampF(C.Tame + Abs(RN * 0.05) + 0.015, 0.05, 0.97);
             Creatures.Last.Dom := True;
             Creatures.Last.HomeH := C.HomeH;
           end;
+        end else if C.Kind = 4 then begin
+          Creatures.Last.Energy := 70; C.Energy := C.Energy - 90; C.RepCd := 30;
         end else begin
           Creatures.Last.Energy := 45; C.Energy := C.Energy - 62; C.RepCd := 17;
         end;
@@ -561,9 +621,9 @@ begin
     else if (O.Kind = 1) and (D < Sqr(SeEff)) and (D < QD2) then begin
       QD2 := D; Pred := O;
     end
-    else if (O.Kind = 0) and (D < Sqr(C.Se)) and (D < HD2) then begin
+        else if ((O.Kind = 0) or (O.Kind = 5)) and (D < Sqr(C.Se)) and (D < HD2) then begin
       HD2 := D; Herb := O;
-    end;
+    end
   end;
   if Peer <> nil then begin
     Rel := NormA(ArcTan2(Peer.Y - C.Y, Peer.X - C.X) - C.Angle);
@@ -729,6 +789,21 @@ begin
   end;
 end;
 
+function EffetChef(C: TCreature): Single;
+var I: Integer;
+begin
+  Result := 1.0;
+  if (Cities = nil) or (Cities.Count = 0) then Exit;
+  for I := 0 to Cities.Count - 1 do
+    if (Cities[I].ChefCId <> 0) and
+       (Sqr(C.X - Cities[I].X) + Sqr(C.Y - Cities[I].Y) < Sqr(Cities[I].Rayon)) then begin
+      if Cities[I].ChefCId = C.CId then Result := 1.3   // le chef féconde aussi
+      else Result := 1.2;                               // ses sujets
+      Exit;
+    end;
+end;
+
+
 function TechMult(C: TCreature): Single;
 begin
   Result := 1.0;
@@ -738,6 +813,7 @@ begin
   if teMaths   in C.Tech then Result := Result * 1.25;
   if teUniversites in C.Tech then Result := Result * 1.2;
   if teMethode in C.Tech then Result := Result * 1.3;
+  Result := Result * EffetChef(C);   // ★Phase C : le chef féconde sa ville
 end;
 
 procedure TryInvent(C: TCreature);
@@ -935,7 +1011,7 @@ begin
   if tPast in C.Tech then begin
     CollectNear(C.X, C.Y, 11);
     for OM in NB do
-      if OM.Alive and (OM.Kind = 1) and (OM.TargetC <> nil) and
+           if OM.Alive and ((OM.Kind = 1) or (OM.Kind = 4)) and (OM.TargetC <> nil) and
          (OM.TargetC.Dom) and (C.GuardC = nil) then
         C.GuardC := OM;
     if (C.SHerb <> nil) and C.SHerb.Alive and (not C.SHerb.Dom) and
@@ -944,8 +1020,9 @@ begin
       if C.SHerb.Fleeing then
         C.SHerb.Trust := Max(0, C.SHerb.Trust - DT * 0.25)
       else if (HHut <> nil) and (DomCount(HHut) < 7) then begin
-        C.SHerb.Trust := C.SHerb.Trust + DT * (0.10 + 0.28 * C.SHerb.Tame)
-           * IfThen(teElevage in C.Tech, 1.5, 1.0);
+                C.SHerb.Trust := C.SHerb.Trust + DT * (0.10 + 0.28 * C.SHerb.Tame)
+           * IfThen(teElevage in C.Tech, 1.5, 1.0)
+           * IfThen(C.SHerb.Kind = 5, 2.0, 1.0);   // ★le mouton se laisse faire
         if C.SHerb.Trust >= 1 then begin
           C.SHerb.Dom := True; C.SHerb.HomeH := HHut; C.SHerb.Trust := 0;
           Toast(Format(L(109), [C.Name, C.SHerb.Name]));
@@ -954,7 +1031,8 @@ begin
       end;
     end;
     if (C.SHerb <> nil) and C.SHerb.Alive and C.SHerb.Dom and
-       (C.SHerb.MilkCd <= 0) and (C.SHerb.Age > 8) and
+       (C.SHerb.Kind = 0) and (C.SHerb.MilkCd <= 0) and
+       (C.SHerb.Age > 8) and
        (D2(C.X, C.Y, C.SHerb.X, C.SHerb.Y) < 3.6) then begin
       C.SHerb.MilkCd := 9;
       C.Energy := Min(C.MaxE, C.Energy + 13);

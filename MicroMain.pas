@@ -452,6 +452,23 @@ begin
       Invalidate;
     end;
 
+
+        if Key = Ord('C') then begin          // ★Phase C : triche — élire un chef
+      Key := 0;
+      var V2: TCity;
+      var BD, DD: Single;
+      if Cities.Count = 0 then
+        Toast('il faut une ville d''abord (Ctrl+Shift+U)')
+      else begin
+        V2 := Cities[0]; BD := 1e9;
+        for var K2 := 0 to Cities.Count - 1 do begin
+          DD := Sqr(Cities[K2].X - FCamX) + Sqr(Cities[K2].Y - FCamY);
+          if DD < BD then begin BD := DD; V2 := Cities[K2] end;
+        end;
+        if EloireChef(V2) then Invalidate;  // la ville la plus proche de la caméra
+      end;
+    end;
+
  if Key = Ord('R') then begin              // ★ triche : route forcée (ou achevée)
   Key := 0;
   var R: TRoad;

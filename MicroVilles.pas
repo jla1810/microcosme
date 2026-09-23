@@ -294,6 +294,113 @@ begin
   end;
 end;
 
+{─── Phase C : le chef émergent ────────────────────────────────────────────}
+{ L'élection récompense le SAVOIR : techniques ×1, inventions ×1.5,
+  culture ×8, sagesse des anciens ×3. Un chef par ville, règne à vie,
+  succession aux annales. Aucun pointeur stocké : un CId, résolu à la
+  demande (leçon KillPlantEx). }
+
+procedure DrawCouronne(C: TCanvas; PX, PY, T: Integer);
+var Pts: array[0..4] of TPoint;
+begin
+  if T < 3 then T := 3;
+  C.Pen.Style := psSolid; C.Pen.Width := 1;
+  C.Pen.Color := Col(120, 96, 40);
+  C.Brush.Style := bsSolid;
+  C.Brush.Color := Col(208, 167, 92);            // l'or de Microcosme
+  Pts[0] := Point(PX - T, PY);
+  Pts[1] := Point(PX - T, PY - 2 * T);
+  Pts[2] := Point(PX, PY - T);                   // la vallée centrale
+  Pts[3] := Point(PX + T, PY - 2 * T);
+  Pts[4] := Point(PX + T, PY);
+  C.Polygon(Pts);
+  C.Brush.Color := Col(186, 78, 60);             // le joyau
+  C.Ellipse(PX - T div 2, PY - T div 2 - 1, PX + T div 2, PY - T div 2 + 1);
+end;
+
+function ChercherChef(V: TCity): TCreature;
+var K: Integer;
+begin
+  Result := nil;
+  if (V = nil) or (V.ChefCId = 0) or (Creatures = nil) then Exit;
+  for K := 0 to Creatures.Count - 1 do
+    if Creatures[K].Alive and (Creatures[K].CId = V.ChefCId) then
+      Exit(Creatures[K]);
+end;
+
+function ScoreChef(C: TCreature): Single;
+var I, B: Integer;
+begin
+  Result := 0;
+  for I := Ord(Low(TTech)) to Ord(High(TTech)) do
+    if TTech(I) in C.Tech then Result := Result + 1;
+  for B := 0 to 30 do
+    if ((C.InnoK shr B) and 1) <> 0 then Result := Result + 1.5;
+  Result := Result + C.Cult * 8;
+  Result := Result + Min(C.Age, 70) / 70 * 3;    // la sagesse des anciens
+end;
+
+function EloireChef(V: TCity): Boolean;
+var K: Integer;
+   C, Best: TCreature;
+   S, BS: Single;
+   Ancien: Integer;
+   NomAncien: string;
+begin
+  Result := False;
+  if (V = nil) or (Creatures = nil) then Exit;
+  Best := nil; BS := -1;
+  for K := 0 to Creatures.Count - 1 do begin
+    C := Creatures[K];
+    if (not C.Alive) or (C.Kind <> 2) or (C.Age < CHILDHOOD) then Continue;
+    if Sqr(C.X - V.X) + Sqr(C.Y - V.Y) > Sqr(V.Rayon) then Continue;
+    S := ScoreChef(C);
+    if S > BS then begin BS := S; Best := C end;
+  end;
+  if Best = nil then Exit;          // personne d'éligible : réessaie demain
+  Ancien := V.ChefCId;              // 0 = première élection, sinon succession
+  NomAncien := V.ChefNom;
+  V.ChefCId := Best.CId;
+  V.ChefNom := Best.Name;
+  if Ancien = 0 then begin
+    Toast(Format(L(160), [Best.Name, V.Nom]));
+    ChronAdd(CK_PEOPLE, Format(L(160), [Best.Name, V.Nom]));
+  end else begin
+    Toast(Format(L(161), [Best.Name, NomAncien, V.Nom]));
+    ChronAdd(CK_PEOPLE, Format(L(161), [Best.Name, NomAncien, V.Nom]));
+  end;
+  AudioBell(Round(V.X), Round(V.Y));             // la cloche du sacre
+  Result := True;
+end;
+
+procedure VeilleChefs;
+var I: Integer;
+   V: TCity;
+begin
+  for I := 0 to Cities.Count - 1 do begin
+    V := Cities[I];
+    if (V.ChefCId <> 0) and (ChercherChef(V) <> nil) then
+      Continue;                                  // règne en cours
+    EloireChef(V);                               // élection ou succession
+  end;
+end;
+
+procedure DrawCouronnes(C: TCanvas; OX, OY, S, VX0, VY0, VX1, VY1: Double);
+var I, PX, PY, R: Integer;
+   CC: TCreature;
+begin
+  for I := 0 to Cities.Count - 1 do begin
+    CC := ChercherChef(Cities[I]);
+    if CC = nil then Continue;
+    if (CC.X < VX0 - 3) or (CC.X > VX1 + 3) or
+       (CC.Y < VY0 - 3) or (CC.Y > VY1 + 3) then Continue;
+    PX := Trunc(OX + CC.X * S);
+    PY := Trunc(OY + CC.Y * S);
+    R := Trunc(S * (0.55 + 0.55 * CC.Sz) * (0.55 + 0.45 * Min(1, CC.Age / 8)));
+    DrawCouronne(C, PX, PY - R - 2, Max(3, Trunc(S * 0.4)));
+  end;
+end;
+
 {─── routes ────────────────────────────────────────────────────────────────}
 
 { ★FIX4 — BFS terrestre 8-connexe : plus court chemin garanti s'il existe,
@@ -461,6 +568,7 @@ begin
       VeilleCitadin;    // ★Exode : l'annale du basculement (une seule fois)
       DefricherVilles;
       VeilleRoutes;
+      VeilleChefs;      // ★Phase C : élections et successions, 1×/jour
     end;
   end;
 end;

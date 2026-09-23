@@ -201,6 +201,8 @@ const
   CDAY: Single = 40;
   MAXP = 16800; MAXH = 600; MAXC = 160; MAXS = 64;
   MAXDOG = 12;
+  MAXO = 6;    // ★Faune : ours (rare, indomptable)
+  MAXM = 60;   // ★Faune : moutons (prolifiques)
   MAXFS = 680;
   MAXFD = 480;
   HUTCAP = 84;
@@ -262,7 +264,9 @@ var
   Marks: TList<TMark>;
   Creatures: TList<TCreature>;
   CountH, CountP, CountS, CountD: Integer;
+  CountO, CountM: Integer;
   UidH, UidP, UidS: Integer;
+  UidO, UidM: Integer;
   Buckets: array of TList<TCreature>;
   NB: TList<TCreature>;
   FSimTime, FDayT, FDayLight: Single;
