@@ -144,6 +144,7 @@ type
     Tame: Single;
     Trust: Single;
     Dom: Boolean;
+    Piloted: Boolean;   // ★S5 : l'IA rend le volant (incarnation, false par défaut)
     HomeH: THut;
     MilkCd: Single;
     CatchT: Single;
