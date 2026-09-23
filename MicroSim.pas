@@ -1062,7 +1062,14 @@ begin
       end;
   end;
 
-  if C.Fleeing then begin
+    // ★S5 : le corps piloté — l'IA rend le volant. L'âge, le cerveau (plus haut),
+  // la diffusion, les rencontres et la mort continuent ; seul le CORPS attend
+  // les touches. L'âme soutient la chair : plus de famine en balade.
+  if C.Piloted then begin
+    Des := 0;
+    C.Energy := Max(C.Energy, C.MaxE * 0.85);
+  end
+  else if C.Fleeing then begin
     C.State := L(52);
     if (FDayLight < 0.45) and HasInno(C, IN_TORCHE) then Des := C.Sp * 1.25
     else Des := C.Sp * 1.08;
