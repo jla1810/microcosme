@@ -1,9 +1,9 @@
-unit MicrocityWin;
+ï»¿unit MicrocityWin;
 
-{ Microcosme — la fiche d'une ville (clic sur une ville).
-  100 % code, aucune ressource. Fenêtre non modale : le monde vit dessous
-  et la fiche se rafraîchit toute seule. Si la ville vient à disparaître
-  de Cities, la fiche se ferme seule (défensif). }
+{ Microcosme â€” la fiche d'une ville (clic sur une ville).
+  100 % code, aucune ressource. FenÃªtre non modale : le monde vit dessous
+  et la fiche se rafraÃ®chit toute seule. Si la ville vient Ã  disparaÃ®tre
+  de Cities, la fiche se ferme seule (dÃ©fensif). }
 
 interface
 
@@ -12,7 +12,7 @@ uses
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls,
   MicroTypes;
 
-procedure OuvreFicheVille(V: TCity);                 // ouvre (ou met à jour)
+procedure OuvreFicheVille(V: TCity);                 // ouvre (ou met Ã  jour)
 function  VilleSousLeMonde(WX, WY: Double): TCity;   // ville au point MONDE, nil sinon
 
 implementation
@@ -24,8 +24,8 @@ uses
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
 
-{ Les numéros L() sont regroupés ICI : si un jour tu dois décaler
-  (chaînes déjà posées en 164-167), tu changes 11 nombres, rien d'autre. }
+{ Les numÃ©ros L() sont regroupÃ©s ICI : si un jour tu dois dÃ©caler
+  (chaÃ®nes dÃ©jÃ  posÃ©es en 164-167), tu changes 11 nombres, rien d'autre. }
 const
   LC_BOURG  = 164;
   LC_VILLE  = 165;
@@ -45,7 +45,7 @@ const
 type
   TFicheVille = class(TForm)
   public
-    V: TCity;                                   // la ville montrée (validée au tic)
+    V: TCity;                                   // la ville montrÃ©e (validÃ©e au tic)
     procedure Peint(Sender: TObject);
     procedure Tic(Sender: TObject);
     procedure Clic(Sender: TObject; Button: TMouseButton;
@@ -81,18 +81,21 @@ begin
     NbFoy := 0;
     for I := 0 to Huts.Count - 1 do
       if Huts[I].Ville = V then Inc(NbFoy);
+
+    // â˜… les habitants appartiennent Ã  la ville PAR LEUR FOYER, pas par
+    // leur position : un Sapien aux champs reste citadin, un promeneur
+    // de passage ne le devient pas (cohÃ©rent avec l'ExodeRural).
     NbHab := 0;
     for I := 0 to Creatures.Count - 1 do
     begin
       C := Creatures[I];
-      if C.Alive and (C.Kind = 2) and
-         (Sqr(C.X - V.X) + Sqr(C.Y - V.Y) <= Sqr(V.Rayon)) then Inc(NbHab);
+      if C.Alive and (C.Kind = 2) and (C.HomeH <> nil) and
+         (C.HomeH.Ville = V) then Inc(NbHab);
     end;
-    NbRout := 0;
     for I := 0 to Roads.Count - 1 do
       if (Roads[I].A = V) or (Roads[I].B = V) then Inc(NbRout);
 
-    // le parchemin
+    // le parchemin (plein)
     cv.Brush.Style := bsSolid; cv.Pen.Style := psClear;
     cv.Brush.Color := Col(226, 219, 197);
     cv.Rectangle(0, 0, ClientWidth, ClientHeight);
@@ -109,23 +112,28 @@ begin
     cv.Brush.Color := Col(186, 78, 60);
     cv.Ellipse(31, 24, 37, 30);
 
+    // â˜… APRÃˆS la couronne : plus aucune forme pleine, et le texte
+    // doit avoir un fond TRANSPARENT (TextOut peint le Brush courant
+    // derriÃ¨re chaque lettre â€” s'il reste bsSolid, pavÃ©s de couleur)
+    cv.Brush.Style := bsClear;
+
     // le titre
     cv.Font.Name := 'Georgia';
     cv.Font.Size := 14; cv.Font.Style := [fsBold];
     cv.Font.Color := Col(52, 46, 36);
     cv.TextOut(58, 14, V.Nom);
 
-    // les caractéristiques
+    // les caractÃ©ristiques
     Y := 64;
     cv.Font.Size := 11; cv.Font.Style := [];
     if V.Niveau >= 4 then S := L(LC_CITE)
     else if V.Niveau >= 3 then S := L(LC_VILLE)
     else S := L(LC_BOURG);
-    cv.TextOut(22, Y, Format(L(LC_RANG), [S]));                        Inc(Y, 27);
+    cv.TextOut(22, Y, Format(L(LC_RANG), [S]));                          Inc(Y, 27);
     cv.TextOut(22, Y, Format(L(LC_FONTE), [Max(0, DayCount - V.Jour)])); Inc(Y, 27);
-    cv.TextOut(22, Y, Format(L(LC_FOYERS), [NbFoy]));                  Inc(Y, 27);
-    cv.TextOut(22, Y, Format(L(LC_HAB), [NbHab]));                     Inc(Y, 27);
-    cv.TextOut(22, Y, Format(L(LC_ROUTES), [NbRout]));                 Inc(Y, 27);
+    cv.TextOut(22, Y, Format(L(LC_FOYERS), [NbFoy]));                    Inc(Y, 27);
+    cv.TextOut(22, Y, Format(L(LC_HAB), [NbHab]));                       Inc(Y, 27);
+    cv.TextOut(22, Y, Format(L(LC_ROUTES), [NbRout]));                   Inc(Y, 27);
     if V.ChefCId <> 0 then S := Format(L(LC_CHEF), [V.ChefNom])
     else S := Format(L(LC_CHEF), [L(LC_AUCUN)]);
     cv.Font.Color := Col(150, 110, 30);
@@ -134,17 +142,16 @@ begin
     // la croix de fermeture
     cv.Font.Color := Col(120, 40, 30);
     cv.Font.Size := 13; cv.Font.Style := [fsBold];
-    cv.TextOut(ClientWidth - 28, 8, '×');
+    cv.TextOut(ClientWidth - 28, 8, 'Ã—');
   except
-    // le monde a bougé sous nos pieds : on redessinera au prochain tic
+    // le monde a bougÃ© sous nos pieds : on redessinera au prochain tic
   end;
 end;
-
 procedure TFicheVille.Tic(Sender: TObject);
 begin
   if (V = nil) or (Cities.IndexOf(V) < 0) then
   begin
-    Close;                                    // la ville n'est plus : fiche fermée
+    Close;                                    // la ville n'est plus : fiche fermÃ©e
     Exit;
   end;
   Caption := Format(L(LC_TITRE), [V.Nom]);
@@ -160,14 +167,14 @@ end;
 
 procedure TFicheVille.Touche(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-  if Key = 27 then Close;                     // Échap
+  if Key = 27 then Close;                     // Ã‰chap
 end;
 
 procedure TFicheVille.Ferme(Sender: TObject; var Action: TCloseAction);
 begin
   Action := caFree;
   Fiche := nil;
-  TicF := nil;                                 // le Tic appartient à la fiche : il meurt avec
+  TicF := nil;                                 // le Tic appartient Ã  la fiche : il meurt avec
 end;
 
 procedure OuvreFicheVille(V: TCity);

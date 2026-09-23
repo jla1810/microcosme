@@ -1,4 +1,4 @@
-﻿unit MicroGraph3D;
+unit MicroGraph3D;
 
 { Microcosme — fenêtre 3D interactive :
   · mode TRAITS : chaque habitant est une étoile dans l'espace
@@ -244,22 +244,12 @@ end;
 procedure TG3DForm.GDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-    if Button = mbRight then begin
+  if Button = mbRight then begin
     GMode := (GMode + 1) mod 3;
-        case GMode of
-      0: Traits;
-      1: Pops;
-    else
-      try
-        Yeux;
-      except
-        on E: Exception do begin
-          Toast('CRASH yeux : ' + E.Message);   // le filet nommé : le VRAI message
-          GMode := 0;                           // on quitte le mode fautif : plus de cascade
-          Caption := 'Microcosme — 3D · traits';
-          GFollowCId := 0;
-        end;
-      end;
+    case GMode of
+      0: Caption := 'Microcosme — 3D · traits';
+      1: Caption := 'Microcosme — 3D · populations';
+    else Caption := 'Microcosme — 3D · yeux de sapiens';
     end;
     if GTim <> nil then begin
       if GMode = 2 then GTim.Interval := 40
@@ -269,11 +259,10 @@ begin
     Exit;
   end;
   if (GMode = 2) and (Button = mbLeft) then begin
-    SapienSuivant(True);                 // clic : le sapiens suivant
+    SapienSuivant(True);                 // clic gauche : le sapiens suivant
     Invalidate;
     Exit;
   end;
-  GDrag := True; GLX := X; GLY := Y;
   GDrag := True; GLX := X; GLY := Y;
 end;
 
@@ -488,20 +477,21 @@ begin
     C.Brush.Color := Col(11, 14, 11);
     C.FillRect(Rect(0, 0, W, H));
     Box;
-    case GMode of
+       case GMode of
       0: Traits;
       1: Pops;
-    else
-      try
-        Yeux;                              // ★ mode 2 : les yeux d'un sapiens
-      except
-        on E: Exception do begin
-          Toast('CRASH yeux : ' + E.Message);   // le filet nommé : le VRAI message
-          GMode := 0;                           // plus de cascade
-          Caption := 'Microcosme — 3D · traits';
-          GFollowCId := 0;
-        end;
-      end;
+    else Yeux;
     end;
-    C.Font.Name := 'Segoe UI'; C.Font.Size :=
+    C.Font.Name := 'Segoe UI'; C.Font.Size := 8; C.Font.Style := [];
+    C.Brush.Style := bsClear;
+    C.Font.Color := Col(100, 105, 88);
+    if GMode = 2 then
+    C.TextOut(16, H - 24, 'clic : sapiens suivant · clic droit : changer de mode')
+    else
+      C.TextOut(16, H - 24, 'glisser : tourner · molette : zoom · clic droit : changer de mode');
+  finally
+    FSimCS.Leave;
+  end;
+end;
+
 end.
