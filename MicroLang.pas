@@ -22,7 +22,7 @@ var
 implementation
 
 const
-  FR: array[0..163] of string = (
+  FR: array[0..174] of string = (
     'Observer le monde',            // 0
     'l''île s''éveille…',           // 1
     'nouveau monde',                // 2
@@ -186,7 +186,18 @@ const
         '%s est élu chef de %s',              // 160 — 2 args (%s %s)
     '%s succède à %s à la tête de %s',     // 161 — 3 args (%s %s %s)
      'moutons',                            // 162 — 0 arg
-    'ours'                                // 163 — 0 arg
+    'ours' ,                               // 163 — 0 arg
+    'bourg' ,                             //164
+    'ville',                              //165
+    'cité',                               //166
+    'Fiche de %s' ,
+    'Rang : %s',
+    'Fondée il y a %d jours',
+    'Foyers : %d' ,
+    'Habitants : %d' ,
+    'Routes : %d'  ,
+    'Chef : %s',
+    'Aucun'
   );
 
   EN: array[0..163] of string = (
@@ -353,8 +364,10 @@ const
     '%s is elected chief of %s',          // 160
     '%s succeeds %s as chief of %s',       // 161
     'sheep',                              // 162
-    'bears'                               // 163
-  );
+    'bears'                              // 163
+     );
+
+
 
 function L(id: Integer): string;
 begin

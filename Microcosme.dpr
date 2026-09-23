@@ -20,7 +20,8 @@ uses
   MicroEre in 'MicroEre.pas',
   MicroLang in 'MicroLang.pas',
   MicroSim in 'MicroSim.pas',
-  MicroVilles in 'MicroVilles.pas';
+  MicroVilles in 'MicroVilles.pas',
+  MicrocityWin in 'MicrocityWin.pas';
 
 {$R *.res}
 

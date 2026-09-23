@@ -16,7 +16,7 @@ uses
   Winapi.Windows, Winapi.Messages,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls,
   MicroTypes, MicroBrain, MicroSim, MicroRender, MicroIO, MicroConfig,
-  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo, MicroVilles;
+  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo, MicroVilles,MicroCityWin;
 
 const
   BID_HELP = 207;
@@ -274,7 +274,7 @@ procedure TMainForm.FormMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   I: Integer;
-  WP: TPointF;
+  WP: TPointF; Vc : Tcity;
 begin
   if HelpOn then
   begin
@@ -419,8 +419,14 @@ begin
   FSimCS.Enter;
   try
     case FTool of
-      TOOL_INSPECT:
-        Pick(WP.X, WP.Y);
+       TOOL_INSPECT:
+        begin
+          Vc := VilleSousLeMonde(WP.X, WP.Y);
+          if Vc <> nil then
+            OuvreFicheVille(Vc)          // ★ clic ville → la fiche
+          else
+            Pick(WP.X, WP.Y);            // sinon : comportement d'origine (créature)
+        end;
       TOOL_SEED:
         AddPlant(WP.X + (Random - 0.5) * 2, WP.Y + (Random - 0.5) * 2,
           0.25 + Random * 0.35);
@@ -776,6 +782,28 @@ begin
       Toast('test voix envoyé (abgd)');
       Invalidate;
     end;
+
+    if Key = Ord('C') then
+    begin // ★Phase C triche : sacre forcé de la ville la plus proche de la caméra
+      Key := 0;
+      var
+        k: Integer;
+      FSimCS.Enter;
+      try
+        k := VilleLaPlusProche(FCamX, FCamY);
+        if (k >= 0) and (k < Cities.Count) then
+        Begin
+          EloireChef(Cities[k]); // élection OU succession si déjà chefée
+          OuvreFicheVille(Cities[K]);   // ★ test fiche ville
+        end
+        else
+          Toast('triche C : aucune ville');
+      finally
+        FSimCS.Leave;
+      end;
+      Invalidate;
+    end;
+
     if Key = Ord('W') then
     begin
       Key := 0;
