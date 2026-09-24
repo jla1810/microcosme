@@ -1,5 +1,8 @@
 🌍 Microcosme
 
+CE PROJET EST EN COURS DE DÉVELOPPEMENT ET ENCORE EN COURS D ECRITURE  - DES BUGS PLANTAGES ET TUTTI QUANTI .... EN COURS DE CORRECTION
+
+
 Une simulation de monde vivant en Delphi — 100 % code, zéro ressource externe.
 
 Aucun fichier image. Aucun fichier son. Aucune bibliothèque. Une île, du bruitfractal, un peu de hasard — et des créatures qui se débrouillent pour le reste.
