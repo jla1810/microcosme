@@ -88,25 +88,18 @@ L'Observatoire	La fiche d'une ville
 (à choisir — voir fichier LICENSE)
 
 Microcosme est une boîte de vie contemplative : on n'y gagne rien, on n'y perdrien. On sème, on regarde — et l'histoire s'écrit toute seule.
-2. README_EN.md (nouveau fichier)
 
-Français 🇫🇷
-🌍 Microcosme
-
-A living-world simulation in Delphi — 100 % code, zero external resources.
-
-No image files. No sound files. No libraries. An island, fractal noise, alittle chance — and creatures who figure out the rest by themselves.
 --------------------------------------------------------------------------------------------------------------
 Le réseau neuronal de Microcosme
 
     Ce n'est pas un modèle entraîné — c'est une espèce vivante.
 
-Chaque sapiens de Microcosme porte son propre réseau neuronal : 845 poidsflottants, hérités, mutés, sélectionnés par la seule survie. Pas derétropropagation, pas de récompense, pas d'objectif — l'héritage, le mentoratet la sélection façonnent tout.
+Chaque sapiens de Microcosme porte son propre réseau neuronal : 845 poids flottants, hérités, mutés, sélectionnés par la seule survie. Pas de rétropropagation, pas de récompense, pas d'objectif — l'héritage, le mentorat et la sélection façonnent tout.
 
-L'Observatoire (F7) : le réseau, en direct — chaque lien allumé par lesignal du moment.
+L'Observatoire (F7) : le réseau, en direct — chaque lien allumé par le signal du moment.
 1. Un cerveau par créature
 
-Il n'y a pas UN réseau dans Microcosme — il y en a autant que de sapiens.La faune, elle, évolue sur ses traits seuls (vitesse, vue, taille), sansréseau. Chaque sapiens porte :
+Il n'y a pas UN réseau dans Microcosme — il y en a autant que de sapiens.La faune, elle, évolue sur ses traits seuls (vitesse, vue, taille), sans réseau. Chaque sapiens porte :
 
     son génome mental (Dna) : les 845 poids reçus à la naissance ;
     son réseau vivant (Net) : les mêmes poids, dérivés par la culture(§7) — jamais au-delà de ce que l'ADN permet ;
