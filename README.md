@@ -1,6 +1,3 @@
-1. README.md (remplacer en entier)
-
-🇬🇧 English
 🌍 Microcosme
 
 Une simulation de monde vivant en Delphi — 100 % code, zéro ressource externe.
@@ -96,89 +93,7 @@ Français 🇫🇷
 A living-world simulation in Delphi — 100 % code, zero external resources.
 
 No image files. No sound files. No libraries. An island, fractal noise, alittle chance — and creatures who figure out the rest by themselves.
-
-Delphi 12 · Windows · VCL
-✨ What emerges on its own
-
-Evolution. Natural selection acts on speed, sight, size. Predators press,the prey lineage sharpens. Every lineage carries its own color — and its ownmutation rate, inherited and itself mutable: "innovative" and "conservative"families coexist, and survival arbitrates.
-
-Minds. Every sapien carries its own neural network — 34 senses, tendecisions, ~850 synaptic weights, three paths in one network: reflection,reflex, echoes. No backpropagation: inheritance, mentorship and selectionshape everything.→ The neural network of Microcosme (in French —English version coming)
-
-Culture. Each child picks a mentor; its mind glides toward theirs, butnever beyond 30 % of the genetic distance. DNA is guided, never overwritten.Techniques travel mouth to mouth — money, school and the printing press speedthem up — and knowledge can be lost.
-
-Language. Four calls (α β γ δ) whose meaning is fixed by no one. Thenotebook watches the coincidences and guesses: alarm call? food? The voicemutates twice as fast as the body: language must be free to drift.
-
-Inventions. A skewer is born of a hungry night by the fire, a drum of amemory of danger by the water. 25 inventions, each named by the emergentlexicon.
-
-Cities. A dense cluster of huts becomes a named town: a square, walls withfour gates, a monument. The forest recedes around them; roads slowly grow fromtown to town — and re-route when a town drifts. Then the countryside empties:the rural exode pours households into the towns, era after era — "the peoplebecomes citadin", the notebook writes one day.
-
-The chief. When a town stands, it elects a chief: the one who knows —techniques, inventions, culture, the wisdom of elders. Reign for life; attheir death a bell tolls and the notebook writes who succeeds. Under a chief,subjects learn faster — the chief faster still.
-
-Sound. Everything is synthesized live (waveOut + one thread): formantvoices carrying the calls, drums, crickets, swell, wind, the lyre fanfare ateach era's gate — and the bell of the coronation.
-🏛️ The eras
-Era	What it brings
-Neolithic	fire → writing; round huts, the first camp
-Bronze Age	plough, sail, science; stone houses
-Iron Age	philosophy, medicine; knowledge that no longer dies
-Antiquity	the City; paved squares, marble columns, roads
-Middle Ages	universities, mills; walls and keeps
-Renaissance	the printing press; painted facades
-
-Eras 7 (Industrial) and 8 (Modern) are already written into the program —they are coming.
-
-Passing an era is never automatic. When every technology of the age is found,when the people is numerous and inventive enough, a golden button appears inthe notebook — and waits for your hand.
-👁️ See through their eyes
-
-A hand-written 3D window — a raycaster, like the first games, in pure Pascal:grained ground, distance fog, stone walls, thatch, fire flickering at night.A notebook button opens it; three modes (right click):
-
-    the stars — every inhabitant is a point in speed × sight × size space:evolution at a glance;
-    the populations — the four curves of history in relief;
-    a sapien's eyes — you see what HE sees, from his head: the forest, theochre road winding ahead, the walls rising out of the mist.
-
-And in this first-person world, SPACE incarnates the followed sapien:arrows or ZQSD to walk, SPACE again hands the body back to its mind. Tradesread at a glance — the shepherd's staff, the hunter's spear, the fisher'srod — and the chief wears the diadem and the banner.
-🏙️ The Observatory
-
-    one click on a town (lens tool) opens its record: rank, founding,households, inhabitants, roads, and its chief's name;
-    F7: the specimen's brain rendered giant, every link lit by its currentsignal — click to step from mind to mind;
-    the notebook: the people's annals, the curves, the guessed lexicon.
-
-⌨️ Controls
-Key	Action
-F1	the built-in manual (22 illustrated pages, FR/EN)
-F2	world pace
-F3	specimen sheet
-F4	sound
-F5	borderless fullscreen world
-F7	the Observatory — the selected mind, live
-F8	français / english
-Space	pause
-
-Mouse: left click = the chosen tool (lens, seed, herbivore, predator, sapien);right-drag = move the camera; wheel = zoom.
-
-Cheats (Ctrl+Shift, for the curious): E equip an era · B world state ·P pass an era · U found a town · R force a road · C crown a chief ·V voice test · W audio diagnostics · M mute voice.
-🧠 The minds
-
-    Not a trained model — a living species.
-
-Every sapien is born with its weights and mostly dies with them. Nothing isever corrected: those who find food, dodge wolves and avoid drowning livelonger and breed more — their weights spread. The lesson is learned acrossgenerations, not within one life.
-
-→ The neural network of Microcosme — the full chapter(in French — English version coming)
-🔨 Build
-
-    Delphi 12 (Community Edition works) with VCL;
-    open the project, Build — everything is in this repository;
-    run. Observe the world.
-
-📸 Gallery
-	
-The town at dusk	A sapien's eyes
-The Observatory	A town record
-📜 License
-
-(to choose — see LICENSE file)
-
-Microcosme is a contemplative box of life: you win nothing, you lose nothing.You sow, you release, you watch — and history writes itself.
-3. docs/NEURAL_NETWORK.md (remplacer en entier)
+--------------------------------------------------------------------------------------------------------------
 Le réseau neuronal de Microcosme
 
     Ce n'est pas un modèle entraîné — c'est une espèce vivante.
@@ -195,7 +110,9 @@ Il n'y a pas UN réseau dans Microcosme — il y en a autant que de sapiens.La f
     sa mémoire (Mem) : jusqu'à six souvenirs de danger et de nourriture ;
     ses échos (PrevOo) : ses neuf décisions précédentes, réinjectées enentrées.
 
-Le réseau pense toutes les 0,1 seconde de monde : il sent (SenseSapien),il décide (ThinkNet), le corps exécute. Indissociable : le réseau agit entemps réel, et le monde répond — ses décisions décident de sa survie.
+Le réseau pense toutes les 0,1 seconde de monde : il sent (SenseSapien),il décide (ThinkNet), le corps exécute. Indissociable : le réseau agit en temps réel, et le monde répond — ses décisions décident de sa survie.
+
+
 2. L'architecture : trois chemins dans un même génome
 
 Les 845 poids sont stockés à plat dans un tableau :
@@ -231,16 +148,16 @@ Entrées	Sens
 
 Les directions sont relatives au corps : « devant à ma gauche », pas« au nord-ouest de l'île ».
 
-La vue n'est pas un don uniforme. Sa portée (Se, 6 à 12 cases à lanaissance, mutée) est multipliée :
+La vue n'est pas un don uniforme. Sa portée (Se, 6 à 12 cases à la naissance, mutée) est multipliée :
 
     × 1,15 avec l'Optique ;
     × 1,3 la nuit avec les lunettes (invention) ;
-    × 1,8 dès qu'un chien rôde à moins de six cases — la domesticationfondatrice est aussi une extension des sens.
+    × 1,8 dès qu'un chien rôde à moins de six cases — la domestication fondatrice est aussi une extension des sens.
 
 L'ouïe porte à 14 cases, × 2 avec le tambour.
 4. Les dix décisions
 
-Chaque sortie est lue contre son propre seuil — tourner et avancers'appliquent en continu, les autres sont des portes :
+Chaque sortie est lue contre son propre seuil — tourner et avancer s'appliquent en continu, les autres sont des portes :
 Sortie	Décision	Lecture
 0	tourner	proportionnel, jusqu'à ±4,5 rad/s
 1	avancer	poussée de 18 % à 108 % de la vitesse propre
@@ -256,8 +173,8 @@ Quand un prédateur entre à moins de 3,6 cases, le corps ne demande pas sonavis
 
 À la naissance (SpawnCreature) :
 
-    le corps : chaque trait (vitesse, vue, taille, parure, teinte) vientd'un des deux parents au hasard, puis dérive d'un facteur exponentiel doux(× e^±0,15 environ), borné par les bornes de l'espèce ;
-    le cerveau : copie intégrale du réseau d'UN parent, puis mutation(MutateNet) — environ 13 % des poids dérivent légèrement, ~2 % sautentcarrément ailleurs ; et les poids de la voix (les sorties 5-8) mutentdeux fois plus — par dessein : le langage doit pouvoir varier plus viteque le corps ;
+    le corps : chaque trait (vitesse, vue, taille, parure, teinte) vient d'un des deux parents au hasard, puis dérive d'un facteur exponentiel doux(× e^±0,15 environ), borné par les bornes de l'espèce ;
+    le cerveau : copie intégrale du réseau d'UN parent, puis mutation(MutateNet) — environ 13 % des poids dérivent légèrement, ~2 % sautent carrément ailleurs ; et les poids de la voix (les sorties 5-8) mutentdeux fois plus — par dessein : le langage doit pouvoir varier plus vite que le corps ;
     le taux de mutation lui-même est un gène : hérité (× e^±0,10), borné[0,5 ; 2,0] — des lignées « innovantes » et « conservatrices » coexistent,et la sélection arbitre ;
     les inventions (bits) : le OU des bits des deux parents ;
     la culture : ~90 % du meilleur parent (une décote d'au plus 12 %) —le savoir se transmet partiellement, jamais intégralement ;
@@ -265,7 +182,7 @@ Quand un prédateur entre à moins de 3,6 cases, le corps ne demande pas sonavis
 
 7. Le mentorat : la culture qui guide l'ADN
 
-L'enfant choisit le voisin le plus « cultivé » (culture supérieure à lasienne, dans 14 cases) — et le re-choisit toutes les 0,4 s. Son réseauglisse vers celui du mentor, mais jamais au-delà de 30 % de la distancegénétique. Le code réel, tel qu'il tourne :
+L'enfant choisit le voisin le plus « cultivé » (culture supérieure à lasienne, dans 14 cases) — et le re-choisit toutes les 0,4 s. Son réseau glisse vers celui du mentor, mais jamais au-delà de 30 % de la distance génétique. Le code réel, tel qu'il tourne :
 
 // — transmission culturelle + apprentissage autonome —if (C.Mentor <> nil) and (C.Cult < 0.95) then begin  ...  C.Cult := Min(0.95, C.Cult + Gain);  // le réseau dérive vers le mentor SANS effacer l'ADN :  // au plus 30 % de la distance génétique peut être comblée  for I := 0 to NW - 1 do begin    Tgt := C.Dna[I] + (C.Mentor.Net[I] - C.Dna[I]) * 0.30;    C.Net[I] := C.Net[I] + (Tgt - C.Net[I]) * (0.15 * DT);  end;  ...end;
 
@@ -286,34 +203,34 @@ Toutes les 0,1 s, chaque sapiens regarde ses voisins (dans 8 cases) : avecune pr
 …les techniques manquantes sont copiées. Les bits d'invention passent avec4 % de chance par voisin. Une invention née chez un sapiens peut ainsiconquérir le peuple — ou mourir avec lui.
 9. La mémoire : personnelle et collective
 
-Personnelle — jusqu'à six souvenirs, qui vieillissent en ~70 secondes demonde (environ un jour et trois quarts) :
+Personnelle — jusqu'à six souvenirs, qui vieillissent en ~70 secondes de monde (environ un jour et trois quarts) :
 
-    le danger : écrit dès qu'un prédateur est repéré sans souvenircorrespondant ;
+    le danger : écrit dès qu'un prédateur est repéré sans souvenir correspondant ;
     la nourriture : écrite en mangeant.
 
-Leur force = proximité (1 − d/40) × fraîcheur (1 − âge/vie), pondérée par lafaim pour la nourriture. Elles alimentent les entrées 18-23 : le passé procheguide le pas présent.
+Leur force = proximité (1 − d/40) × fraîcheur (1 − âge/vie), pondérée par la faim pour la nourriture. Elles alimentent les entrées 18-23 : le passé proche guide le pas présent.
 
-Collective — avec les Archives (ou près du foyer d'origine), chaquenouveau-né reçoit d'emblée tout ce que le peuple sait, et tous les bitsd'invention : la mort ne tue plus le savoir. C'est la promesse de l'ère dufer — tenue par le code.
+Collective — avec les Archives (ou près du foyer d'origine), chaque u-né reçoit d'emblée tout ce que le peuple sait, et tous les bitsd'invention : la mort ne tue plus le savoir. C'est la promesse de l'ère du fer — tenue par le code.
 10. Le langage émergent
 
-Quatre cris — α, β, γ, δ — portés à 14 cases (× 2 avec le tambour). Quiparle est entendu (entrées 12-15), avec la direction du cri le plus fort(entrées 16-17).
+Quatre cris — α, β, γ, δ — portés à 14 cases (× 2 avec le tambour). Qui parle est entendu (entrées 12-15), avec la direction du cri le plus fort(entrées 16-17).
 
-Personne ne fixe leur sens. Le carnet observe les coïncidences — un cri,puis un prédateur ? une trouvaille de nourriture ? — et devine unlexique. La voix de chaque sapiens est synthétisée en direct ; avecl'invention du tambour, le cri devient percussion.
+Personne ne fixe leur sens. Le carnet observe les coïncidences — un cri,puis un prédateur ? une trouvaille de nourriture ? — et devine unlexique. La voix de chaque sapiens est synthétisée en direct ; avec l'invention du tambour, le cri devient percussion.
 
 Et puisque les poids de la voix mutent deux fois plus vite que le reste(§6), le langage se transforme plus vite que les corps qui le portent.
 11. Comment l'observer
 
-    F7 — l'Observatoire : le réseau du spécimen en géant, chaque lienallumé par son signal du moment ; un clic passe d'esprit en esprit ;
+    F7 — l'Observatoire : le réseau du spécimen en géant, chaque lien allumé par son signal du moment ; un clic passe d'esprit en esprit ;
     F3 — la fiche : vitesse, vue, taille, génération, culture, inventions ;
-    les courbes du carnet : après 30-40 générations, elles racontent — lavitesse et la vue montent si les prédateurs pressent, la culture scie(une invention perdue, réapprise au camp), les mots apparaissent etdisparaissent ;
-    en 3D : la couleur d'un sapiens est sa lignée ; le bâton du berger, lalance du chasseur, la canne du pêcheur et le diadème du chef se lisentd'un coup d'œil.
+    les courbes du carnet : après 30-40 générations, elles racontent — la vitesse et la vue montent si les prédateurs pressent, la culture scie(une invention perdue, réapprise au camp), les mots apparaissent et disparaissent ;
+    en 3D : la couleur d'un sapiens est sa lignée ; le bâton du berger, la lance du chasseur, la canne du pêcheur et le diadème du chef se lisent d'un coup d'œil.
 
 12. La place du projet
 
-Microcosme appartient à la famille de la neuroévolution — voir NEAT(Stanley & Miikkulainen) et la célèbre expérience MarI/O. Ce qui ledistingue :
+Microcosme appartient à la famille de la neuro-évolution — voir NEAT(Stanley & Miikkulainen) et la célèbre expérience MarI/O. Ce qui le distingue :
 
     les réseaux vivent dans un monde persistant (saisons, prédateurs,famines, la mémoire d'un peuple), pas dans une tâche éphémère ;
-    l'étage culturel (mentorat borné par la distance génétique) fait pontentre Lamarck et Darwin ;
-    un langage émergent dont la voix mute plus vite que le corps, et dontle sens n'est fixé par personne — le carnet ne fait que le deviner.
+    l'étage culturel (mentorat borné par la distance génétique) fait pont entre Lamarck et Darwin ;
+    un langage émergent dont la voix mute plus vite que le corps, et dont le sens n'est fixé par personne — le carnet ne fait que le deviner.
 
-Les curseurs de configuration (mutation, diffusion, mémoire) en font unpetit laboratoire d'évolution : on sème, on relâche, on regarde — etl'histoire s'écrit toute seule.
+Les curseurs de configuration (mutation, diffusion, mémoire) en font un petit laboratoire d'évolution : on sème, on relâche, on regarde — et l'histoire s'écrit toute seule.
