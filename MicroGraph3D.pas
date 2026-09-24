@@ -218,29 +218,36 @@ begin
   GFollowCId := 0; // plus aucun sapiens vivant
 end;
 
+
+                  { ★S7 — le bruit procédural : déterministe (même entrée = même grain),
+  renvoie toujours dans [0,1). Le SEUL outil de toutes les textures. }
+function Bruit(A, B: Single): Single;
+begin
+  Result := Frac(Sin(A * 127.1 + B * 311.7) * 43758.5453);
+end;
+
 procedure Yeux;
 const
-  RES_W = 240;
-  RES_H = 150;
-  FOV = 1.05;
+  RES_W = 720;   RES_H = 450;
+  FOV   = 1.55;
   EYE_H = 1.55;
-  FOG = 26.0;
+  FOG   = 26.0;
 type
   TVpro = record
     VX, VY, RA: Single;
   end;
 var
   S: TCreature;
-  X, Y, tx, ty, CI, Hor, I, NVc, K3: Integer;
-  DirA, DirX, DirY, PlX, PlY, PlaneLen, Foc, T, WX0, WY0, StX, StY, wx, wy, Day,
-    DM, FogM, FogA, zr, zg, zb, hr, hg, hb, f, sr, sg, sb, RX, RY: Single;
+  x, y, tx, ty, CI, Hor, I, NVc, K3: Integer;
+  DirA, DirX, DirY, PlX, PlY, PlaneLen, Foc, T,
+  WX0, WY0, StX, StY, wx, wy, Day, DM, FogM, FogA,
+  zr, zg, zb, hr, hg, hb, f, sr, sg, sb, RX, RY, VB: Single;
   Row: PRGBRow;
+  HandA: Single;  HandW: Integer;
   Vpro: array of TVpro;
-  HandA: Single;  HandW: Integer;             // ★S6 les mains incarnées
 
-  // ★S2/S3 — les billboards : ce qui se dresse au-dessus du sol. Nichée
-  // APRÈS le var (règle Delphi : elle ne voit que ce qui est déclaré avant).
-    procedure Billboards;
+  // ★S2/S3/S6/S7 — les billboards : arbres, huttes, bêtes, remparts, tour.
+  procedure Billboards;
   const
     NSEG = 24;                             // segments de rempart (1 porte sur 6)
   type
@@ -249,10 +256,11 @@ var
       Clr: TColor;
       Ty: Integer;                      // 0 arbre · 1 hutte · 2 créature · 3 mur · 4 tour
       Kd: Integer;                      // le Kind de la créature (-1 sinon)
-      Cid: Integer;                     // ★S6 le CId (phase d'animation), -1 sinon
+      Cid: Integer;                     // le CId (phase d'animation), -1 sinon
       Feu: Boolean;                     // le feu de la hutte
       LW: Single;                       // la largeur du mur/tour, en cases
       Met: Integer;                     // ★S6b l'outil : 1 bâton · 2 lance · 3 canne
+      Sem: Integer;                     // ★S7 la semelle de texture (stable par objet)
     end;
   var
     N, K, I, J, PX, PY, X0, X1, Y0, Y1, Demi, YT, YT2, Demi2, K4: Integer;
@@ -262,7 +270,9 @@ var
     V3: TCity;
     RX, RY, ZD, SD, HMonde, Wd, FM, DM2,
     R1, G1, B1, Rf, Gf, Bf, Dy, CYm, CR2, RMur, LSeg, AA,
-    ph, Amp, LGT, skinR, skinG, skinB: Single;
+    ph, Amp, LGT, skinR, skinG, skinB,
+    VF, NB, RGr, DXF, DYF, D2F, OmS, VB: Single;
+    BY3, BX4, QH: Integer;
     Bbs: array of TBb;
     Tmp: TBb;
 
@@ -284,7 +294,7 @@ var
           PutPix(PX5, PY5, r5, g5, b5);
     end;
 
-        procedure Disque(CX5, CY5, RA5, r5, g5, b5: Single);
+    procedure Disque(CX5, CY5, RA5, r5, g5, b5: Single);
     var PX5, PY5: Integer; RR5: Single;
     begin
       if RA5 < 0.5 then Exit;
@@ -295,7 +305,7 @@ var
             PutPix(PX5, PY5, r5, g5, b5);
     end;
 
-    // ★S6 l'ombre portée : on ASSOMBrit les pixels déjà posés (le sol),
+    // ★S6 l'ombre portée : on assombrit les pixels déjà posés (le sol),
     // donc elle épouse le terrain et vit avec le jour et la brume.
     procedure Ombre(CX5, CY5, RW5, RH5, FM5: Single);
     var PX5, PY5: Integer; K5: Single; Rw: PRGBRow;
@@ -327,20 +337,21 @@ var
     end;
 
   begin
+    OmS := 0.80 + 0.20 * Min(1.0, FDayLight * 2.2);  // ★S7 le soleil tourne
     N := 0;
     SetLength(Bbs, Plants.Count + Huts.Count + Creatures.Count +
                     Cities.Count * (NSEG + 1));
-    for J := 0 to High(Bbs) do Bbs[J].Met := 0;   // ★S6b : pas d'outil par défaut
+    for J := 0 to High(Bbs) do Bbs[J].Met := 0;   // pas d'outil par défaut
 
     for I := 0 to Plants.Count - 1 do begin          // les arbres
       P := Plants[I];
       if (P = nil) or P.Morte then Continue;
       RX := P.X - S.X;  RY := P.Y - S.Y;
       if (Abs(RX) > FOG) or (Abs(RY) > FOG) then Continue;
-      ZD := RX * DirX + RY * DirY;                   // devant moi ?
+      ZD := RX * DirX + RY * DirY;
       if (ZD <> ZD) or (ZD < 0.4) or (ZD > FOG) then Continue;
-      SD := RY * DirX - RX * DirY;                   // sur le côté ?
-      HMonde := 1.8 + Frac(P.X * 0.37 + P.Y * 0.61) * 1.4;   // fixe par arbre
+      SD := RY * DirX - RX * DirY;
+      HMonde := 1.8 + Frac(P.X * 0.37 + P.Y * 0.61) * 1.4;
       Bbs[N].Z := ZD;
       Bbs[N].SX := RES_W * 0.5 + (SD / ZD) * Foc;
       Bbs[N].Pied := Hor + (EYE_H * Foc / ZD);
@@ -348,6 +359,7 @@ var
       Bbs[N].Clr := Col(70, 104, 50);
       Bbs[N].Ty := 0;  Bbs[N].Kd := -1;  Bbs[N].Cid := -1;  Bbs[N].Feu := False;
       Bbs[N].LW := 0;
+      Bbs[N].Sem := Trunc(P.X * 7.0 + P.Y * 13.0);
       Inc(N);
     end;
 
@@ -366,6 +378,7 @@ var
       Bbs[N].Clr := Col(146, 98, 72);
       Bbs[N].Ty := 1;  Bbs[N].Kd := -1;  Bbs[N].Cid := -1;  Bbs[N].Feu := Hh.Fire;
       Bbs[N].LW := 0;
+      Bbs[N].Sem := Trunc(Hh.X * 9.0 + Hh.Y * 5.0);
       Inc(N);
     end;
 
@@ -382,29 +395,30 @@ var
       Bbs[N].Pied := Hor + (EYE_H * Foc / ZD);
       Bbs[N].Haut := (0.8 + O.Sz * 0.7) * Foc / ZD;
       case O.Kind of
-        0: Bbs[N].Clr := Col(228, 220, 190);         // la vache
-        1: Bbs[N].Clr := Col(201, 106, 69);          // le loup
-        3: Bbs[N].Clr := Col(206, 168, 104);         // le chien
-        4: Bbs[N].Clr := Col(118, 82, 54);           // l'ours
-        5: Bbs[N].Clr := Col(238, 232, 222);         // le mouton
-      else Bbs[N].Clr := O.HueCol;                   // le sapiens : sa lignée
+        0: Bbs[N].Clr := Col(228, 220, 190);
+        1: Bbs[N].Clr := Col(201, 106, 69);
+        3: Bbs[N].Clr := Col(206, 168, 104);
+        4: Bbs[N].Clr := Col(118, 82, 54);
+        5: Bbs[N].Clr := Col(238, 232, 222);
+      else Bbs[N].Clr := O.HueCol;
       end;
-            Bbs[N].Ty := 2;  Bbs[N].Kd := O.Kind;  Bbs[N].Cid := O.CId;
+      Bbs[N].Ty := 2;  Bbs[N].Kd := O.Kind;  Bbs[N].Cid := O.CId;
       Bbs[N].Feu := False;
       Bbs[N].LW := 0;
-      Bbs[N].Met := 0;                             // ★S6b l'outil du métier
-      if tPast in O.Tech then Bbs[N].Met := 1;     // le berger porte le bâton
-      if O.State = L(72) then Bbs[N].Met := 2;     // le chasseur, sa lance
-      if O.State = L(143) then Bbs[N].Met := 3;    // le pêcheur, sa canne
+      Bbs[N].Sem := O.CId;
+      Bbs[N].Met := 0;
+      if tPast in O.Tech then Bbs[N].Met := 1;       // le berger porte le bâton
+      if O.State = L(72) then Bbs[N].Met := 2;       // le chasseur, sa lance
+      if O.State = L(143) then Bbs[N].Met := 3;      // le pêcheur, sa canne
       Inc(N);
     end;
 
     for I := 0 to Cities.Count - 1 do begin          // remparts + monument
       V3 := Cities[I];
-      if V3.Niveau < 3 then Continue;                // les murs : ville ou cité
+      if V3.Niveau < 3 then Continue;
       RX := V3.X - S.X;  RY := V3.Y - S.Y;
       if (Abs(RX) > FOG + 12) or (Abs(RY) > FOG + 12) then Continue;
-      if V3.Niveau >= 4 then begin                   // le monument : la tour
+      if V3.Niveau >= 4 then begin                   // la tour
         ZD := RX * DirX + RY * DirY;
         if (ZD = ZD) and (ZD > 0.5) and (ZD <= FOG) then begin
           SD := RY * DirX - RX * DirY;
@@ -415,15 +429,16 @@ var
           Bbs[N].LW := 1.6;
           Bbs[N].Clr := Col(140, 136, 128);
           Bbs[N].Ty := 4;  Bbs[N].Kd := -1;  Bbs[N].Cid := -1;  Bbs[N].Feu := False;
+          Bbs[N].Sem := Trunc(V3.X * 3.0 + V3.Y * 7.0) + 11;
           Inc(N);
         end;
       end;
-      RMur := 4.6 + V3.Niveau * 0.6;                 // le rayon des remparts
-      LSeg := 6.2831855 / NSEG;                      // le pas d'angle
+      RMur := 4.6 + V3.Niveau * 0.6;
+      LSeg := 6.2831855 / NSEG;
       for K4 := 0 to NSEG - 1 do begin
-        if (K4 mod 6) = 0 then Continue;             // les 4 portes (cardinaux)
+        if (K4 mod 6) = 0 then Continue;             // les 4 portes
         AA := K4 * LSeg;
-        RX := V3.X + Cos(AA) * RMur - S.X;           // le centre du segment
+        RX := V3.X + Cos(AA) * RMur - S.X;
         RY := V3.Y + Sin(AA) * RMur - S.Y;
         if (Abs(RX) > FOG) or (Abs(RY) > FOG) then Continue;
         ZD := RX * DirX + RY * DirY;
@@ -433,9 +448,11 @@ var
         Bbs[N].SX := RES_W * 0.5 + (SD / ZD) * Foc;
         Bbs[N].Pied := Hor + (EYE_H * Foc / ZD);
         Bbs[N].Haut := 2.2 * Foc / ZD;
-        Bbs[N].LW := LSeg * RMur;                    // la largeur du segment
+        Bbs[N].LW := LSeg * RMur;
         Bbs[N].Clr := Col(138, 132, 122);
         Bbs[N].Ty := 3;  Bbs[N].Kd := -1;  Bbs[N].Cid := -1;  Bbs[N].Feu := False;
+        Bbs[N].Sem := Trunc((V3.X + Cos(AA) * RMur) * 7.0 +
+                            (V3.Y + Sin(AA) * RMur) * 13.0);
         Inc(N);
       end;
     end;
@@ -449,67 +466,114 @@ var
     end;
 
     for K := 0 to N - 1 do begin
-      FM := Bbs[K].Z / FOG;  FM := FM * FM;          // LE brouillard du sol
+      FM := Bbs[K].Z / FOG;  FM := FM * FM;
       DM2 := Day * (1 - FM);
-      R1 := Bbs[K].Clr and $FF;                      // TColor = $00BBGGRR
+      R1 := Bbs[K].Clr and $FF;
       G1 := (Bbs[K].Clr shr 8) and $FF;
       B1 := (Bbs[K].Clr shr 16) and $FF;
       Rf := R1 * DM2 + hr * FM;
       Gf := G1 * DM2 + hg * FM;
       Bf := B1 * DM2 + hb * FM;
-      skinR := 224 * DM2 + hr * FM;                  // la couleur de peau, brumée
+      skinR := 224 * DM2 + hr * FM;
       skinG := 182 * DM2 + hg * FM;
       skinB := 150 * DM2 + hb * FM;
       case Bbs[K].Ty of
 
-        0: begin                                     // l'arbre : tronc + deux boules
+        0: begin                                     // ★S7 l'arbre en houppier
              Ombre(Bbs[K].SX, Bbs[K].Pied, Bbs[K].Haut * 0.40, Bbs[K].Haut * 0.11, FM);
-             Rect5(Trunc(Bbs[K].SX - Bbs[K].Haut * 0.08),
-                   Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.5),
-                   Trunc(Bbs[K].SX + Bbs[K].Haut * 0.08), Trunc(Bbs[K].Pied),
+             X0 := Trunc(Bbs[K].SX - Bbs[K].Haut * 0.08);
+             X1 := Trunc(Bbs[K].SX + Bbs[K].Haut * 0.08);
+             Y0 := Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.5);
+             Y1 := Trunc(Bbs[K].Pied);
+             Rect5(X0, Y0, Trunc(Bbs[K].SX), Y1,
                    92 * DM2 + hr * FM, 66 * DM2 + hg * FM, 46 * DM2 + hb * FM);
-             Disque(Bbs[K].SX, Bbs[K].Pied - Bbs[K].Haut * 0.60,
-                    Bbs[K].Haut * 0.34, Rf, Gf, Bf);
-             Disque(Bbs[K].SX, Bbs[K].Pied - Bbs[K].Haut * 0.88,
-                    Bbs[K].Haut * 0.24, Rf, Min(255, Gf + 20 * DM2), Bf);
+             Rect5(Trunc(Bbs[K].SX), Y0, X1, Y1,
+                   92 * DM2 * OmS + hr * FM, 66 * DM2 * OmS + hg * FM,
+                   46 * DM2 * OmS + hb * FM);
+             CYm := Bbs[K].Pied - Bbs[K].Haut * 0.60;
+             RGr := Bbs[K].Haut * 0.34;
+             for PY := Max(0, Trunc(CYm - RGr - 2)) to Min(RES_H - 1, Trunc(CYm + RGr)) do
+               for PX := Max(0, Trunc(Bbs[K].SX - RGr - 2)) to
+                        Min(RES_W - 1, Trunc(Bbs[K].SX + RGr + 2)) do begin
+                 DXF := PX - Bbs[K].SX;  DYF := PY - CYm;
+                 D2F := DXF * DXF + DYF * DYF;
+                 if D2F > Sqr(RGr) then Continue;
+                 NB := Bruit(PX * 0.55 + Bbs[K].Sem * 0.07, PY * 0.55);
+                 if D2F > Sqr(RGr * (0.78 + 0.25 * NB)) then Continue;
+                 VB := 0.68 + 0.6 * NB;
+                 if DYF > RGr * 0.25 then VB := VB * 0.84;
+                 PutPix(PX, PY, Rf * VB, Gf * VB, Bf * VB);
+               end;
+             CYm := Bbs[K].Pied - Bbs[K].Haut * 0.88;
+             RGr := Bbs[K].Haut * 0.24;
+             for PY := Max(0, Trunc(CYm - RGr - 2)) to Min(RES_H - 1, Trunc(CYm + RGr)) do
+               for PX := Max(0, Trunc(Bbs[K].SX - RGr - 2)) to
+                        Min(RES_W - 1, Trunc(Bbs[K].SX + RGr + 2)) do begin
+                 DXF := PX - Bbs[K].SX;  DYF := PY - CYm;
+                 D2F := DXF * DXF + DYF * DYF;
+                 if D2F > Sqr(RGr) then Continue;
+                 NB := Bruit(PX * 0.55 + Bbs[K].Sem * 0.07, PY * 0.55);
+                 if D2F > Sqr(RGr * (0.78 + 0.25 * NB)) then Continue;
+                 VB := 0.74 + 0.55 * NB;
+                 if DYF > RGr * 0.25 then VB := VB * 0.86;
+                 PutPix(PX, PY, Rf * VB, Min(255, Gf * VB + 18 * DM2), Bf * VB);
+               end;
            end;
 
-        1: begin                                     // la hutte : murs + toit
+        1: begin                                     // ★S7 la hutte en chaume
              Ombre(Bbs[K].SX, Bbs[K].Pied, Bbs[K].Haut * 0.55, Bbs[K].Haut * 0.13, FM);
-             Rect5(Trunc(Bbs[K].SX - Bbs[K].Haut * 0.45),
-                   Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.55),
-                   Trunc(Bbs[K].SX + Bbs[K].Haut * 0.45), Trunc(Bbs[K].Pied),
-                   Rf, Gf, Bf);
-             for PY := Trunc(Bbs[K].Pied - Bbs[K].Haut) to
-                      Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.55) - 1 do begin
+             X0 := Trunc(Bbs[K].SX - Bbs[K].Haut * 0.45);
+             X1 := Trunc(Bbs[K].SX + Bbs[K].Haut * 0.45);
+             Y0 := Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.55);
+             Y1 := Trunc(Bbs[K].Pied);
+             for PY := Max(0, Y0) to Min(RES_H - 1, Y1) do       // les planches
+               for PX := Max(0, X0) to Min(RES_W - 1, X1) do begin
+                 VB := 0.86 + 0.28 * Bruit(PX * 2.9 + Bbs[K].Sem * 0.05, PY * 0.35);
+                 if ((PX - X0) mod 3) = 0 then VB := VB * 0.78;
+                 if PX > Bbs[K].SX then VB := VB * OmS;
+                 PutPix(PX, PY, Rf * VB, Gf * VB, Bf * VB);
+               end;
+             Y0 := Trunc(Bbs[K].Pied - Bbs[K].Haut);             // le chaume
+             Y1 := Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.55) - 1;
+             for PY := Max(0, Y0) to Min(RES_H - 1, Y1) do begin
                Dy := (Bbs[K].Pied - Bbs[K].Haut * 0.55 - PY) /
                      Max(0.001, Bbs[K].Haut * 0.45);
                Demi := Trunc(Bbs[K].Haut * 0.55 * (1 - Dy));
-               Rect5(Trunc(Bbs[K].SX) - Demi, PY, Trunc(Bbs[K].SX) + Demi, PY,
-                     140 * DM2 + hr * FM, 82 * DM2 + hg * FM, 62 * DM2 + hb * FM);
+               for PX := Max(0, Trunc(Bbs[K].SX) - Demi) to
+                        Min(RES_W - 1, Trunc(Bbs[K].SX) + Demi) do begin
+                 VB := 0.82 + 0.30 * Bruit(PX * 2.3 + Bbs[K].Sem * 0.09, PY * 1.1);
+                 if ((PY + Bbs[K].Sem) and 1) = 0 then VB := VB * 0.87;
+                 PutPix(PX, PY, 140 * VB * DM2 + hr * FM, 82 * VB * DM2 + hg * FM,
+                        62 * VB * DM2 + hb * FM);
+               end;
              end;
-             if Bbs[K].Feu then begin                // le feu : il perçe la brume
+             if Bbs[K].Feu then begin               // ★S7 le feu qui vit
                Y0 := Trunc(Bbs[K].Pied - Bbs[K].Haut) - 2;
+               VF := 0.72 + 0.28 * Sin(GTime * 9.0 + Bbs[K].Sem * 0.31);
                Rect5(Trunc(Bbs[K].SX) - 1, Y0, Trunc(Bbs[K].SX) + 1, Y0 + 2,
-                     255, 170, 60);
+                     255 * VF, 170 * VF, 60 * VF);
+               if Frac(GTime * 3.0 + Bbs[K].Sem * 0.13) < 0.6 then begin
+                 PX := Trunc(Bbs[K].SX) + Trunc(Bruit(GTime * 2.5, Bbs[K].Sem) * 7) - 3;
+                 PY := Y0 - 1 - Trunc(Bruit(Bbs[K].Sem, GTime * 3.5) * 4);
+                 PutPix(PX, PY, 255, 205, 100);     // l'étincelle
+               end;
              end;
            end;
 
         2: begin                                     // ★S6 la créature articulée
-             case Bbs[K].Kd of                       // la largeur, pour tous
+             case Bbs[K].Kd of
                0, 5: Wd := Bbs[K].Haut * 0.50;
                1, 3, 4: Wd := Bbs[K].Haut * 0.30;
              else Wd := Bbs[K].Haut * 0.22;
              end;
-             Amp := 1.0;                             // les sauvages marchent toujours
-             if Bbs[K].Cid = S.CId then              // le suivi : immobile = au repos
+             Amp := 1.0;
+             if Bbs[K].Cid = S.CId then
                if GLastInit and
                   (Abs(S.X - GLastSX) + Abs(S.Y - GLastSY) < 0.02) then
                  Amp := 0.0;
              ph := Sin(GTime * 9.0 + Bbs[K].Cid * 1.7) * Amp;
 
              if Bbs[K].Kd = 2 then begin
-               // —— le sapiens : jambes, tunique, bras, tête, chevelure ——
                Ombre(Bbs[K].SX, Bbs[K].Pied, Bbs[K].Haut * 0.15,
                      Bbs[K].Haut * 0.05, FM);
                Demi := Max(1, Trunc(Bbs[K].Haut * 0.05));
@@ -536,7 +600,7 @@ var
                      Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.36), skinR, skinG, skinB);
                Disque(Bbs[K].SX, Bbs[K].Pied - Bbs[K].Haut * 0.80,
                       Bbs[K].Haut * 0.12, skinR, skinG, skinB);
-               CYm := Bbs[K].Pied - Bbs[K].Haut * 0.80;     // la chevelure
+               CYm := Bbs[K].Pied - Bbs[K].Haut * 0.80;
                CR2 := Sqr(Bbs[K].Haut * 0.12);
                for PY := Trunc(CYm - Bbs[K].Haut * 0.12) to
                         Trunc(CYm - Bbs[K].Haut * 0.04) do
@@ -545,12 +609,55 @@ var
                    if Sqr(PX - Bbs[K].SX) + Sqr(PY - CYm) <= CR2 then
                      PutPix(PX, PY, 72 * DM2 + hr * FM, 52 * DM2 + hg * FM,
                             38 * DM2 + hb * FM);
+               // —— ★S6b les outils + l'étendard du chef ——
+               Demi := Max(1, Trunc(Bbs[K].Haut * 0.035));
+               if Bbs[K].Met = 1 then begin
+                 X0 := Trunc(Bbs[K].SX - Bbs[K].Haut * 0.26);
+                 Rect5(X0 - Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.06),
+                       X0 + Demi, Trunc(Bbs[K].Pied),
+                       120 * DM2 + hr * FM, 88 * DM2 + hg * FM, 54 * DM2 + hb * FM);
+                 Rect5(X0, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.06),
+                       X0 + Trunc(Bbs[K].Haut * 0.09),
+                       Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.06) + Demi * 2,
+                       120 * DM2 + hr * FM, 88 * DM2 + hg * FM, 54 * DM2 + hb * FM);
+               end;
+               if Bbs[K].Met = 2 then begin
+                 X0 := Trunc(Bbs[K].SX + Bbs[K].Haut * 0.24);
+                 Rect5(X0 - Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.28),
+                       X0 + Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.08),
+                       130 * DM2 + hr * FM, 100 * DM2 + hg * FM, 66 * DM2 + hb * FM);
+                 Rect5(X0 - Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.28),
+                       X0 + Demi * 2, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.20),
+                       200 * DM2 + hr * FM, 200 * DM2 + hg * FM, 206 * DM2 + hb * FM);
+               end;
+               if Bbs[K].Met = 3 then begin
+                 X0 := Trunc(Bbs[K].SX + Bbs[K].Haut * 0.26);
+                 Rect5(X0 - Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.10),
+                       X0 + Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.14),
+                       130 * DM2 + hr * FM, 100 * DM2 + hg * FM, 66 * DM2 + hb * FM);
+                 Disque(X0 + Demi * 2, Bbs[K].Pied - Bbs[K].Haut * 0.42,
+                        Bbs[K].Haut * 0.055,
+                        205 * DM2 + hr * FM, 66 * DM2 + hg * FM, 52 * DM2 + hb * FM);
+               end;
+               if EstChef3(Bbs[K].Cid) then begin
+                 Disque(Bbs[K].SX, Bbs[K].Pied - Bbs[K].Haut * 0.90,
+                        Bbs[K].Haut * 0.115,
+                        208 * DM2 + hr * FM, 167 * DM2 + hg * FM, 92 * DM2 + hb * FM);
+                 X0 := Trunc(Bbs[K].SX + Bbs[K].Haut * 0.27);
+                 Rect5(X0 - Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.50),
+                       X0 + Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.14),
+                       110 * DM2 + hr * FM, 78 * DM2 + hg * FM, 48 * DM2 + hb * FM);
+                 Y0 := Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.50);
+                 X1 := X0 + Trunc(Bbs[K].Haut *
+                        (0.10 + 0.05 * Sin(GTime * 3.0 + Bbs[K].Cid * 0.7))) + Demi;
+                 Rect5(X0, Y0, X1, Y0 + Trunc(Bbs[K].Haut * 0.10),
+                       208 * DM2 + hr * FM, 167 * DM2 + hg * FM, 92 * DM2 + hb * FM);
+               end;
              end else begin
-               // —— les quadrupèdes : quatre pattes, corps, tête ——
                Ombre(Bbs[K].SX, Bbs[K].Pied, Wd * 1.3, Wd * 0.42, FM);
                Demi := Max(1, Trunc(Bbs[K].Haut * 0.05));
                if Bbs[K].Kd = 4 then
-                 Demi := Max(1, Trunc(Bbs[K].Haut * 0.08));  // l'ours, massif
+                 Demi := Max(1, Trunc(Bbs[K].Haut * 0.08));
                LGT := Trunc(Bbs[K].Haut * 0.26);
                Rect5(Trunc(Bbs[K].SX - Wd * 0.62) - Demi,
                      Trunc(Bbs[K].Pied - LGT - Bbs[K].Haut * 0.03 * ph),
@@ -584,7 +691,7 @@ var
                        Rf, Gf, Bf);
                  Disque(Bbs[K].SX + Wd * 0.85, Bbs[K].Pied - Bbs[K].Haut * 0.48,
                         Bbs[K].Haut * 0.13, Rf * 0.92, Gf * 0.92, Bf * 0.92);
-                 if Bbs[K].Kd = 0 then begin        // la vache : les cornes claires
+                 if Bbs[K].Kd = 0 then begin        // la vache : les cornes
                    Disque(Bbs[K].SX + Wd * 0.85 - Bbs[K].Haut * 0.11,
                           Bbs[K].Pied - Bbs[K].Haut * 0.58, Bbs[K].Haut * 0.045,
                           228 * DM2 + hr * FM, 222 * DM2 + hg * FM, 208 * DM2 + hb * FM);
@@ -593,7 +700,6 @@ var
                           228 * DM2 + hr * FM, 222 * DM2 + hg * FM, 208 * DM2 + hb * FM);
                  end;
                  if (Bbs[K].Kd = 1) or (Bbs[K].Kd = 3) then begin
-                   // le loup et le chien : oreilles + queue
                    Rect5(Trunc(Bbs[K].SX + Wd * 0.80),
                          Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.66),
                          Trunc(Bbs[K].SX + Wd * 0.80) + Demi,
@@ -620,33 +726,54 @@ var
              end;
            end;
 
-        3: begin                                     // le mur de rempart
+        3: begin                                     // ★S7 la pierre appareillée
              Demi := Trunc(Bbs[K].LW * Foc / Bbs[K].Z * 0.5) + 1;
              if Demi < 1 then Demi := 1;
              X0 := Trunc(Bbs[K].SX) - Demi;
              X1 := Trunc(Bbs[K].SX) + Demi;
              Y0 := Trunc(Bbs[K].Pied - Bbs[K].Haut);
              Y1 := Trunc(Bbs[K].Pied);
-             for PY := Max(0, Y0) to Min(RES_H - 1, Y1) do
-               for PX := Max(0, X0) to Min(RES_W - 1, X1) do
-                 PutPix(PX, PY, Rf, Gf, Bf);
-             if Y0 >= 0 then                         // le chaperon, plus clair
-               for PX := Max(0, X0) to Min(RES_W - 1, X1) do
-                 PutPix(PX, Y0, Rf * 0.7 + (176 * DM2 + hr * FM) * 0.3,
-                        Gf * 0.7 + (170 * DM2 + hg * FM) * 0.3,
-                        Bf * 0.7 + (158 * DM2 + hb * FM) * 0.3);
+             for PY := Max(0, Y0) to Min(RES_H - 1, Y1) do begin
+               BY3 := (PY - Y0) div 3;
+               QH := (BY3 and 1) * 2;
+               for PX := Max(0, X0) to Min(RES_W - 1, X1) do begin
+                 BX4 := (PX - X0 + QH) div 4;
+                 VB := 0.78 + 0.44 * Bruit(BX4 * 7.3 + Bbs[K].Sem * 0.11, BY3 * 4.9);
+                 if ((PY - Y0) mod 3) = 2 then VB := VB * 0.58;
+                 if ((PX - X0 + QH) mod 4) = 0 then VB := VB * 0.72;
+                 if PX > Bbs[K].SX then VB := VB * OmS;
+                 PutPix(PX, PY, Rf * VB, Gf * VB, Bf * VB);
+               end;
+             end;
+             if Y0 >= 0 then                         // le chaperon, pierre claire
+               for PX := Max(0, X0) to Min(RES_W - 1, X1) do begin
+                 VB := 0.85 + 0.3 * Bruit(PX * 2.9 + Bbs[K].Sem * 0.07, 7.7);
+                 if PX > Bbs[K].SX then VB := VB * OmS;
+                 PutPix(PX, Y0, Rf * 0.7 * VB + (176 * DM2 + hr * FM) * 0.3,
+                        Gf * 0.7 * VB + (170 * DM2 + hg * FM) * 0.3,
+                        Bf * 0.7 * VB + (158 * DM2 + hb * FM) * 0.3);
+               end;
            end;
 
-        4: begin                                     // la tour du monument
+        4: begin                                     // ★S7 la tour en grosses pierres
              Demi := Trunc(Bbs[K].LW * Foc / Bbs[K].Z * 0.5) + 1;
              if Demi < 1 then Demi := 1;
              X0 := Trunc(Bbs[K].SX) - Demi;
              X1 := Trunc(Bbs[K].SX) + Demi;
              Y0 := Trunc(Bbs[K].Pied - Bbs[K].Haut);
              Y1 := Trunc(Bbs[K].Pied);
-             for PY := Max(0, Y0) to Min(RES_H - 1, Y1) do
-               for PX := Max(0, X0) to Min(RES_W - 1, X1) do
-                 PutPix(PX, PY, Rf, Gf, Bf);
+             for PY := Max(0, Y0) to Min(RES_H - 1, Y1) do begin
+               BY3 := (PY - Y0) div 5;
+               QH := (BY3 and 1) * 3;
+               for PX := Max(0, X0) to Min(RES_W - 1, X1) do begin
+                 BX4 := (PX - X0 + QH) div 6;
+                 VB := 0.80 + 0.40 * Bruit(BX4 * 5.7 + Bbs[K].Sem * 0.11, BY3 * 3.9);
+                 if ((PY - Y0) mod 5) = 4 then VB := VB * 0.60;
+                 if ((PX - X0 + QH) mod 6) = 0 then VB := VB * 0.74;
+                 if PX > Bbs[K].SX then VB := VB * OmS;
+                 PutPix(PX, PY, Rf * VB, Gf * VB, Bf * VB);
+               end;
+             end;
              YT := Trunc(Bbs[K].Pied - Bbs[K].Haut);       // la flèche, en pointe
              YT2 := Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.7);
              for PY := Max(0, YT) to Min(RES_H - 1, YT2) do begin
@@ -661,49 +788,43 @@ var
       end;  // case Ty
     end;    // for K
   end;
+
 begin
-  if GBuf = nil then
-  begin
+  if GBuf = nil then begin
     GBuf := TBitmap.Create;
     GBuf.PixelFormat := pf24bit;
     GBuf.Width := RES_W;
     GBuf.Height := RES_H;
   end;
   S := SapienSuivant(False);
-  if S = nil then
-  begin
+  if S = nil then begin
     G3.Canvas.Brush.Style := bsClear;
     G3.Canvas.Font.Name := 'Segoe UI';
     G3.Canvas.Font.Size := 10;
     G3.Canvas.Font.Color := Col(139, 138, 116);
-    G3.Canvas.TextOut(24, 24,
-      'aucun sapiens vivant — clic droit pour changer de mode');
+    G3.Canvas.TextOut(24, 24, 'aucun sapiens vivant — clic droit pour changer de mode');
     Exit;
   end;
-  if IsNan(S.X) or IsNan(S.Y) or IsNan(S.Angle) then
-  begin
-    SapienSuivant(True); // données corrompues : au suivant
+  if IsNan(S.X) or IsNan(S.Y) or IsNan(S.Angle) then begin
+    SapienSuivant(True);
     Exit;
   end;
 
-  // ★S3 : les villes proches — l'assiette urbaine teintera le sol
   NVc := 0;
   SetLength(Vpro, Cities.Count);
-  for I := 0 to Cities.Count - 1 do
-  begin
-    RX := Cities[I].X - S.X;
-    RY := Cities[I].Y - S.Y;
-    if (Abs(RX) > FOG + 8) or (Abs(RY) > FOG + 8) then
-      Continue;
+  for I := 0 to Cities.Count - 1 do begin
+    RX := Cities[I].X - S.X;  RY := Cities[I].Y - S.Y;
+    if (Abs(RX) > FOG + 8) or (Abs(RY) > FOG + 8) then Continue;
     Vpro[NVc].VX := Cities[I].X;
     Vpro[NVc].VY := Cities[I].Y;
     Vpro[NVc].RA := Sqr(2.6 + Cities[I].Niveau * 0.8);
     Inc(NVc);
   end;
   SetLength(Vpro, NVc);
+
+  GTime := GTime + 0.04;
+  if GTime > 6283 then GTime := 0;
   Day := 0.28 + 0.72 * FDayLight;
-  GTime := GTime + 0.04;                 // ★S6 l'horloge d'animation (~1 tour/s)
-  if GTime > 6283 then GTime := 0;       // la remise à zéro (précision de Sin)
   PlaneLen := Tan(FOV / 2);
   Foc := (RES_W * 0.5) / PlaneLen;
   DirA := S.Angle;
@@ -713,36 +834,30 @@ begin
   PlY := DirX * PlaneLen;
   Hor := RES_H div 2;
 
-  // le ciel, du zénith à l'horizon
-  zr := 8 + (70 - 8) * Day;
+  zr := 8  + (70  - 8)  * Day;
   zg := 10 + (100 - 10) * Day;
   zb := 16 + (140 - 16) * Day;
   hr := 22 + (176 - 22) * Day;
   hg := 24 + (174 - 24) * Day;
   hb := 26 + (148 - 26) * Day;
-  for Y := 0 to Hor - 1 do
-  begin
-    Row := GBuf.ScanLine[Y];
-    f := Y / Max(1, Hor - 1);
+  for y := 0 to Hor - 1 do begin
+    Row := GBuf.ScanLine[y];
+    f := y / Max(1, Hor - 1);
     sr := zr + (hr - zr) * f;
     sg := zg + (hg - zg) * f;
     sb := zb + (hb - zb) * f;
-    for X := 0 to RES_W - 1 do
-    begin
-      Row[X].B := Trunc(sb);
-      Row[X].G := Trunc(sg);
-      Row[X].R := Trunc(sr);
+    for x := 0 to RES_W - 1 do begin
+      Row[x].B := Trunc(sb);
+      Row[x].G := Trunc(sg);
+      Row[x].R := Trunc(sr);
     end;
   end;
 
-  // le sol : un rayon par colonne, la couleur du terrain + le brouillard
-  for Y := Hor to RES_H - 1 do
-  begin
-    Row := GBuf.ScanLine[Y];
-    T := EYE_H * Foc / (Y - Hor + 0.5);
+  for y := Hor to RES_H - 1 do begin
+    Row := GBuf.ScanLine[y];
+    T := EYE_H * Foc / (y - Hor + 0.5);
     FogM := T / FOG;
-    if FogM > 1 then
-      FogM := 1;
+    if FogM > 1 then FogM := 1;
     FogM := FogM * FogM;
     FogA := 1 - FogM;
     DM := Day * FogA;
@@ -750,92 +865,52 @@ begin
     WY0 := S.Y + T * (DirY - PlY);
     StX := 2 * T * PlX / RES_W;
     StY := 2 * T * PlY / RES_W;
-    wx := WX0;
-    wy := WY0;
-    for X := 0 to RES_W - 1 do
-    begin
-      tx := Trunc(wx);
-      ty := Trunc(wy);
-      if (tx >= 0) and (tx < GW) and (ty >= 0) and (ty < GH) then
-      begin
+    wx := WX0;  wy := WY0;
+    for x := 0 to RES_W - 1 do begin
+      tx := Trunc(wx);  ty := Trunc(wy);
+      if (tx >= 0) and (tx < GW) and (ty >= 0) and (ty < GH) then begin
         CI := ty * GW + tx;
-        if TerrType[CI] < T_SAND then
-        begin
-          sr := 40;
-          sg := 66;
-          sb := 86;
-        end
-        else if TerrType[CI] = T_SAND then
-        begin
-          sr := 176;
-          sg := 160;
-          sb := 118;
-        end
-        else
-        begin
+        if TerrType[CI] < T_SAND then begin
+          VB := 0.82 + Bruit(wx * 1.9 + GTime * 0.30, wy * 1.9 - GTime * 0.21) * 0.36;
+          sr := 40 * VB; sg := 66 * VB; sb := 86 * VB;
+          if VB > 1.08 then begin sg := sg + 40; sb := sb + 55 end;
+        end else if TerrType[CI] = T_SAND then begin
+          VB := 0.86 + Bruit(wx * 2.3, wy * 2.3) * 0.26;
+          sr := 176 * VB; sg := 160 * VB; sb := 118 * VB;
+        end else begin
+          VB := 0.84 + Bruit(wx * 2.7, wy * 2.7) * 0.30;
           case (tx * 7 + ty * 13) and 3 of
-            0:
-              begin
-                sr := 100;
-                sg := 128;
-                sb := 70
-              end;
-            1:
-              begin
-                sr := 94;
-                sg := 122;
-                sb := 66
-              end;
-            2:
-              begin
-                sr := 104;
-                sg := 134;
-                sb := 74
-              end;
-          else
-            begin
-              sr := 90;
-              sg := 118;
-              sb := 64
-            end;
+            0: begin sr := 100; sg := 128; sb := 70 end;
+            1: begin sr := 94;  sg := 122; sb := 66 end;
+            2: begin sr := 104; sg := 134; sb := 74 end;
+          else begin sr := 90;  sg := 118; sb := 64 end;
           end;
+          sr := sr * VB; sg := sg * VB; sb := sb * VB;
         end;
-      end
-      else
-      begin
-        sr := 90;
-        sg := 118;
-        sb := 64;
+      end else begin
+        sr := 90; sg := 118; sb := 64;
       end;
-      // ★S3 : la route écrase le terrain…
-      if SurRoute(wx, wy) then
-      begin
-        sr := 152;
-        sg := 126;
-        sb := 86;
+      if SurRoute(wx, wy) then begin
+        VB := 0.90 + Bruit(wx * 4.7, wy * 4.7) * 0.20;
+        sr := 152 * VB; sg := 126 * VB; sb := 86 * VB;
       end;
-      // …et la terre battue de la ville écrase tout
       for K3 := 0 to High(Vpro) do
-        if Sqr(wx - Vpro[K3].VX) + Sqr(wy - Vpro[K3].VY) < Vpro[K3].RA then
-        begin
-          sr := 168;
-          sg := 158;
-          sb := 138;
+        if Sqr(wx - Vpro[K3].VX) + Sqr(wy - Vpro[K3].VY) < Vpro[K3].RA then begin
+          VB := 0.90 + Bruit(wx * 3.3, wy * 3.3) * 0.20;
+          sr := 168 * VB; sg := 158 * VB; sb := 138 * VB;
           Break;
         end;
-      Row[X].B := Trunc(sb * DM + hb * FogM);
-      Row[X].G := Trunc(sg * DM + hg * FogM);
-      Row[X].R := Trunc(sr * DM + hr * FogM);
+      Row[x].B := Trunc(sb * DM + hb * FogM);
+      Row[x].G := Trunc(sg * DM + hg * FogM);
+      Row[x].R := Trunc(sr * DM + hr * FogM);
       wx := wx + StX;
       wy := wy + StY;
     end;
   end;
 
   Billboards;
-  // ★S2/S3 : ce qui se dresse — arbres, huttes, bêtes, remparts, tour
-  GLastSX := S.X;  GLastSY := S.Y;  GLastInit := True;   // ★S6 : pour l'animation
+  GLastSX := S.X;  GLastSY := S.Y;  GLastInit := True;
 
-  // l'agrandissement plein écran + le bandeau
   G3.Canvas.StretchDraw(Rect(0, 0, G3.ClientWidth, G3.ClientHeight), GBuf);
   G3.Canvas.Brush.Style := bsClear;
   G3.Canvas.Font.Name := 'Segoe UI';
@@ -844,8 +919,8 @@ begin
   G3.Canvas.TextOut(12, 10, S.Name);
   G3.Canvas.Font.Color := Col(160, 156, 134);
   G3.Canvas.TextOut(12, 26, 'clic : autre sapiens');
-      if S.Piloted then begin                // ★S6 : tes mains en vue subjective
-    HandA := Sin(GWalkT) * G3.ClientHeight * 0.018;      // le balancement du pas
+  if S.Piloted then begin
+    HandA := Sin(GWalkT) * G3.ClientHeight * 0.018;
     HandW := Max(6, Trunc(G3.ClientWidth * 0.045));
     G3.Canvas.Brush.Style := bsSolid;
     G3.Canvas.Pen.Style := psClear;
@@ -857,14 +932,10 @@ begin
     G3.Canvas.Rectangle(Trunc(G3.ClientWidth * 0.72) - HandW,
                         Trunc(G3.ClientHeight * 0.86 - HandA),
                         Trunc(G3.ClientWidth * 0.72) + HandW, G3.ClientHeight + 4);
-  end;
-  if S.Piloted then
-    G3.Canvas.TextOut(12, 42,
-      '★ incarné — flèches/ZQSD : marcher · ESPACE : rendre le corps')
-  else
+    G3.Canvas.TextOut(12, 42, '★ incarné — flèches/ZQSD : marcher · ESPACE : rendre le corps');
+  end else
     G3.Canvas.TextOut(12, 42, 'ESPACE : incarner ce sapiens');
 end;
-
 procedure TG3DForm.GDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
