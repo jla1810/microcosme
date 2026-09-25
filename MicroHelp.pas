@@ -57,6 +57,10 @@ var
   CurP: Integer = 0;
   HBtns: array of THBtn;
   FLangueBuild: Integer = -1;    // langue avec laquelle les pages ont été bâties
+  crl: Integer = 0;             // ★ défilement de la page courante (pixels)
+  LastCur: Integer = -1;         // ★ détection de changement de page (reset du scroll)
+  CurMaxScrl: Integer = 0;       // ★ débordement mesuré au dernier rendu (pour la molette)
+  Scrl : Integer =0;
 
 {--- constructeurs de pages --------------------------------------------------}
 
@@ -97,7 +101,7 @@ end;
   LE CONTENU — HelpBuildFR et HelpBuildEN : MÊME ORDRE, MÊME NOMBRE DE PAGES.
 ============================================================================}
 
-procedure HelpBuildFR;
+ procedure HelpBuildFR;
 begin
   SetLength(Pages, 0);
 
@@ -110,9 +114,10 @@ begin
   LT('Les raccourcis clavier', 6, 13);
   LT('La vie', 1);
   LT('Le monde : relief, saisons, océan', 6, 4);
-  LT('Les bêtes : herbivores, prédateurs, poissons', 6, 5);
+  LT('Les bêtes : vaches, moutons, loups, ours', 6, 5);
   LT('Les sapiens : corps et esprit', 6, 6);
   LT('La culture et son héritage', 6, 7);
+  LT('Villes, campagnes et routes', 6, 21);
   LT('Les ères de l''humanité', 6, 19);
   LT('Les technologies des ères 2 et 3', 6, 20);
   LT('Les technologies, une à une', 6, 14);
@@ -144,6 +149,8 @@ begin
   LT('  et son esprit glisse vers le sien. Le savoir est un héritage vivant ;');
   LT('· le langage : les sapiens émettent des cris (α β γ δ) dont le sens');
   LT('  n''est fixé par personne. Le lexique du carnet devine : alarme ? nourriture ?');
+  LT('· les villes : dix huttes deviennent un bourg nommé, le bourg gagne ses');
+  LT('  remparts, la cité son monument — et la campagne se vide peu à peu ;');
   LT('· les inventions : une brochette, un tambour, un filet naissent des');
   LT('  circonstances — un feu, une nuit, une rivière — pas d''un plan.');
   LT('');
@@ -187,13 +194,15 @@ begin
   LT('ou créer un grenier naturel et observer l''effet sur la natalité.');
   DB('semer 12 plantes ici', 1);
   LT('');
-  LT('her — relâcher un herbivore', 1);
-  LT('Préférez les abords de forêt : ils s''y cachent des loups.');
+  LT('vache — relâcher une vache', 1);
+  LT('Préférez les abords de forêt : elles s''y cachent des loups et des ours.');
   LT('');
-  LT('pré — relâcher un prédateur', 1);
+  LT('loup — relâcher un loup', 1);
   LT('Le grand régulateur. Sans lui : surpâturage puis famine générale.');
-  LT('Avec trop de lui : plus d''herbivores, et les sapiens à leur tour chassés.', 4);
+  LT('Avec trop de lui : plus de bétail, et les sapiens à leur tour chassés.', 4);
   LT('Les sapiens près d''un feu ou d''un chien le repoussent.', 3);
+  LT('Les moutons et les ours ne se relâchent pas : ils viennent au monde');
+  LT('d''eux-mêmes — moutons en troupeaux, ours très rares.', 5);
   LT('');
   LT('sap — éveiller un sapiens', 1);
   LT('Il naît adulte, sans savoir, rejoint le camp et cherche un mentor.');
@@ -223,19 +232,38 @@ begin
   LT('ne sont accessibles qu''aux marins munis du filet.');
 
   // ============================================================ 5. LES BÊTES
-  P('Les bêtes');
-  LT('Herbivores', 1);
-  LT('Ils broutent, fuient à la vue d''un loup, se figent dans la forêt si');
-  LT('celle-ci est assez loin du danger (état « caché »).');
-  LT('Domestiqués (anneau doré) : ils paissent autour de leur hutte,');
-  LT('les sapiens les traient (le petit pictogramme blanc = lait disponible).');
-  LT('Ils redeviennent sauvages si on les abandonne trop loin du camp.');
+  P('Les bêtes : vaches, moutons, loups, ours');
+  LT('Les vaches', 1);
+  LT('Elles broutent, fuient à la vue d''un loup OU d''un ours, se figent dans');
+  LT('la forêt si celle-ci est assez loin du danger (état « caché »).');
+  LT('Domestiquées (anneau doré) : elles paissent autour de leur hutte,');
+  LT('et les sapiens les traient — seules les vaches donnent du lait');
+  LT('(le petit pictogramme blanc = lait disponible).');
+  LT('Elles redeviennent sauvages si on les abandonne trop loin du camp.');
   LT('');
-  LT('Prédateurs', 1);
-  LT('Ils traquent la proie la plus proche VISIBLE ; la forêt réduit la vue.');
-  LT('Ils chassent les sapiens aussi — sauf près d''un feu, d''un chien,');
-  LT('ou si la fumée (invention) brouille leur flair.');
+  LT('Les moutons', 1);
+  LT('Petits, à la toison claire, ils vivent en troupeaux. Plus dociles que');
+  LT('les vaches — la confiance vient deux fois plus vite — et prolifiques :');
+  LT('un troupeau bien nourri grossit vite. Mais maigres : pas de lait,');
+  LT('peu de viande. La proie de prédilection des loups.', 2);
+  LT('');
+  LT('Les loups', 1);
+  LT('Ils traquent la proie la plus proche VISIBLE — vaches, moutons, et les');
+  LT('sapiens aussi — sauf près d''un feu, d''un chien, ou si la fumée');
+  LT('(invention) brouille leur flair. La forêt réduit leur vue.');
   LT('Yeux rouges quand la chasse est lancée.', 2);
+  LT('Un jeune loup peut être apprivoisé près du feu : il devient chien.', 3);
+  LT('');
+  LT('Les ours', 1);
+  LT('Bruns, massifs, rares — on en compte une poignée sur toute l''île.');
+  LT('Omnivores : ils broutent volontiers, mais un troupeau à portée est');
+  LT('irrésistible — vaches comme moutons, domestiqués compris.', 4);
+  LT('Ils ne touchent JAMAIS les sapiens ni les chiens.');
+  LT('Indomptables : aucun anneau doré pour eux, jamais.', 4);
+  LT('');
+  LT('Le berger', 1);
+  LT('Un sapiens qui connaît le pastoralisme défend son bétail : le loup ou');
+  LT('l''ours qui s''attaque à une bête domestiquée est abattu — et mangé.', 3);
   LT('');
   LT('Poissons', 1);
   LT('Les clairs vivent sur les hauts-fonds ; les sombres, plus gros, au large.');
@@ -243,7 +271,7 @@ begin
   LT('un vrai stock. Trop pêcher le vide pour des saisons.', 4);
   LT('');
   LT('Le chien', 1);
-  LT('Un jeune loup peut être apprivoisé près d''un feu (technologie feu requise).');
+  LT('Un jeune loup apprivoisé près d''un feu (technologie feu requise).');
   LT('Il suit son maître, le nourrit de son flair (vue ×1.8), repousse les loups.');
   LT('Le trait doré du chien au sapiens = le lien de maître.');
 
@@ -338,7 +366,8 @@ begin
   LT('inventeur : « tambour β de Grok ». Elles se transmettent comme les');
   LT('technologies — et se perdent aussi.', 4);
   LT('Elles sont listées dans le carnet, avec l''auteur et le jour.', 2);
-  LT('Les ères apportent d''autres inventions de plus — voir la page ères.', 6, 20);
+  LT('Les ères apportent d''autres inventions de plus — voir la page des');
+  LT('technologies des ères.', 6, 20);
 
   // ============================================================ 10. SONS
   P('Les sons du monde');
@@ -367,7 +396,7 @@ begin
   LT('');
   LT('· date, heure, saison, année — et la barre dorée du jour ;');
   LT('· badge d''ère : où en est le peuple, avec sa progression ;');
-  LT('· populations : flore, herbivores, prédateurs, sapiens, poissons ;');
+  LT('· populations : flore, vaches, loups, sapiens, poissons, moutons, ours ;');
   LT('· spirale de Fisher : la plume moyenne (l''esthétique du peuple) ;');
   LT('· culture : le savoir moyen ;');
   LT('· marins : navigateurs et pirogues en mer ;');
@@ -386,15 +415,15 @@ begin
   LT('Voici ce pour quoi Microcosme est vraiment fait :');
   LT('');
   LT('Expérience 1 — la sélection en direct', 1);
-  LT('Relâchez 6 prédateurs. Regardez la courbe « vitesse » des herbivores :');
-  LT('en quelques générations, les survivants sont plus rapides.', 3);
+  LT('Relâchez 6 loups. Regardez la courbe « vitesse » des vaches :');
+  LT('en quelques générations, les survivantes sont plus rapides.', 3);
   LT('');
   LT('Expérience 2 — la culture sans école', 1);
   LT('Isolez 2 sapiens à l''est, 6 à l''ouest. Qui découvre le feu le premier ?');
   LT('Le groupe le plus dense — la densité fait les savants.', 3);
   LT('');
   LT('Expérience 3 — l''effondrement', 1);
-  LT('Supprimez tout prédateur et nourrissez à foison. La population');
+  LT('Supprimez tout loup et nourrissez à foison. La population');
   LT('explose, la forêt recule, puis l''hiver arrive…', 4);
   LT('');
   LT('Expérience 4 — la chaîne du feu', 1);
@@ -404,6 +433,14 @@ begin
   LT('Expérience 5 — le mot perdu', 1);
   LT('Quand un mot atteint « cri d''alarme ? », éliminez (famine) tous les');
   LT('locuteurs. Le mot survit-il ailleurs ? Réapparaît-il plus tard ?', 3);
+  LT('');
+  LT('Expérience 6 — la naissance d''une ville', 1);
+  LT('Laissez le peuple bâtir. Quand dix huttes s''assemblent, un bourg');
+  LT('prend un nom. Regardez-le gagner ses remparts, puis son monument.', 3);
+  LT('');
+  LT('Expérience 7 — l''exode', 1);
+  LT('Passez à l''ère du bronze et comptez les huttes isolées : familles');
+  LT('après familles, la campagne se vide dans les villes.', 3);
   LT('');
   LT('comparez plusieurs mondes : c''est là que le jeu devient science.', 2);
 
@@ -459,8 +496,9 @@ begin
   LT('La nuit ou en famine, on puise dedans. L''appentis double le stockage.');
   LT('');
   LT('pastoralisme', 1);
-  LT('Apprivoiser les herbivores sauvages (jauge de confiance invisible),');
-  LT('les parquer près d''une hutte, les traire. Le chien vient avec le feu.');
+  LT('Apprivoiser les vaches et moutons sauvages (jauge de confiance invisible),');
+  LT('les parquer près d''une hutte, traire les vaches. Les moutons se laissent');
+  LT('faire deux fois plus vite ; le chien vient avec le feu.');
   LT('');
   LT('pêche', 1);
   LT('Au bord de l''eau, le sapiens attrape les poissons côtiers.');
@@ -500,9 +538,17 @@ begin
   LT('Vérifiez l''heure : la nuit, personne ne récolte — et l''hiver divise');
   LT('la flore par 4. Les réserves et le feu existent pour ça. Patience.', 3);
   LT('');
-  LT('Pourquoi les prédateurs disparaissent ?', 1);
-  LT('S''il n''y a plus d''herbivores à portée, ils meurent. Le système se');
-  LT('régule : relâchez-en peu, et laissez les herbivores revenir.', 2);
+  LT('Pourquoi les loups disparaissent ?', 1);
+  LT('S''il n''y a plus de proies à portée, ils meurent. Le système se');
+  LT('régule : relâchez-en peu, et laissez le bétail revenir.', 2);
+  LT('');
+  LT('Un ours dévore mon troupeau !', 1);
+  LT('C''est sa nature : il ne touche jamais les sapiens, mais le bétail');
+  LT('l''attire. Un berger l''abattra — ou éloignez les parcs des forêts.', 3);
+  LT('');
+  LT('Tant de huttes isolées, et rien ne bouge ?', 1);
+  LT('Dès l''ère du bronze, l''exode les emmène vers les villes — les trop');
+  LT('lointaines restent des hameaux de frontière. Voir la page villes.', 6, 21);
   LT('');
   LT('Le feu n''arrive jamais !', 1);
   LT('Il faut des sapiens adultes, cultivés (savoir > 20 %), et de la chance.');
@@ -601,7 +647,7 @@ begin
   LT('');
   LT('Résultat observable', 1);
   LT('Après 30-40 générations, regarde le carnet : les courbes de vitesse et');
-  LT('de vue montent si les prédateurs pressent, la culture grimpe en');
+  LT('de vue montent si les loups pressent, la culture grimpe en');
   LT('dents de scie (une invention perdue, réapprise au camp), les mots');
   LT('apparaissent et disparaissent. L''histoire s''écrit toute seule.', 2);
 
@@ -615,7 +661,7 @@ begin
   LT('· ère 3 — Âge du fer : l''outillage parfait, l''eau conduite, la');
   LT('  philosophie — un savoir qui ne meurt plus ;');
   LT('· ère 4 — Antiquité : la cité, la géométrie, les lois, la colonne');
-  LT('  de marbre sur la place du feu ;');
+  LT('  de marbre sur la place du feu — et les premières routes ;');
   LT('· ère 5 — Moyen Âge : moulins, universités, corporations, le donjon ;');
   LT('· ère 6 — Renaissance : l''imprimerie multiplie les mots, les façades');
   LT('  se peignent, la méthode observe et recommence.');
@@ -639,7 +685,9 @@ begin
   LT('  Mathématiques, Universités et Méthode l''amplifient encore ;');
   LT('· le peuple peut croître : le plafond des sapiens monte à chaque ère ;');
   LT('· le village se transforme : huttes rondes → maisons de pierre →');
-  LT('  façades peintes ; la maison au feu porte le monument de son âge.');
+  LT('  façades peintes ; la maison au feu porte le monument de son âge ;');
+  LT('· la campagne se vide : l''exode vers les villes s''emballe ère après');
+  LT('  ère, et dès l''Antiquité les villes se relient de routes.');
   LT('Chaque passage est consigné dans les annales.', 2);
 
   // ============================================================ 20. TECHS DES ÈRES
@@ -704,9 +752,47 @@ begin
   LT('  qui circulent, crocs qui glissent ;');
   LT('· lunette, violon, carte marine (Renaissance) — voir dans le noir,');
   LT('  la musique qui apaise, l''exploration guidée.', 2);
-end;
 
-procedure HelpBuildEN;
+  // ============================================================ 21. VILLES (nouveau)
+  P('Villes, campagnes et routes');
+  LT('La naissance d''un bourg', 1);
+  LT('Quand dix huttes isolées s''assemblent à peu de distance, elles');
+  LT('deviennent un bourg : il reçoit un nom — syllabes de nulle part,');
+  LT('une langue à lui — et les huttes se replacent en spirale autour');
+  LT('du feu de la ville.');
+  LT('');
+  LT('Les niveaux', 1);
+  LT('· 10 foyers : le bourg ;');
+  LT('· 18 foyers : la ville — les remparts montent, percés de quatre portes ;');
+  LT('· 28 foyers : la cité — et son monument face au feu.');
+  LT('Le nom s''affiche au zoom ; à la Renaissance, les façades se peignent.', 2);
+  LT('');
+  LT('L''espace du sauvage', 1);
+  LT('On ne bâtit pas entre 8 et 50 cases d''une ville : ce cordon, c''est');
+  LT('la chasse, la forêt, le gibier. Mais près des murailles (moins de');
+  LT('20 cases), dès le bronze, la maison qui naît est CITADINE — c''est');
+  LT('la banlieue, et la ville grossit par sa périphérie.', 3);
+  LT('');
+  LT('La clairière', 1);
+  LT('La ville défriche : ni arbre ni buisson dans son enceinte.');
+  LT('L''empreinte écologique des cités se lit à la carte.', 2);
+  LT('');
+  LT('L''exode', 1);
+  LT('Dès l''ère 2 — et de plus en plus à chaque ère — les familles isolées');
+  LT('quittent les bois pour la ville la plus proche (dans un rayon');
+  LT('raisonnable ; les trop lointaines restent des hameaux).');
+  LT('Le jour où plus d''un foyer sur deux est urbain, les annales écrivent :');
+  LT('« le peuple devient citadin ».', 2);
+  LT('');
+  LT('Les routes', 1);
+  LT('À l''Antiquité, les villes proches (moins de 200 cases) se relient.');
+  LT('Les routes poussent d''elles-mêmes, trois cases par jour, contournant');
+  LT('l''eau. Sur la route, on marche moitié plus vite — et les idées y');
+  LT('circulent mieux.', 3);
+  LT('Un anneau de routes reliant plusieurs villes : le signe d''un monde', 2);
+  LT('qui se tient.', 2);
+end;
+  procedure HelpBuildEN;
 begin
   SetLength(Pages, 0);
 
@@ -719,9 +805,10 @@ begin
   LT('Keyboard shortcuts', 6, 13);
   LT('Life', 1);
   LT('The world: relief, seasons, ocean', 6, 4);
-  LT('The beasts: herbivores, predators, fish', 6, 5);
+  LT('The beasts: cows, sheep, wolves, bears', 6, 5);
   LT('The sapiens: body and mind', 6, 6);
   LT('Culture and its inheritance', 6, 7);
+  LT('Cities, countryside and roads', 6, 21);
   LT('The eras of humankind', 6, 19);
   LT('Era 2 and 3 technologies', 6, 20);
   LT('Technologies, one by one', 6, 14);
@@ -753,6 +840,8 @@ begin
   LT('  and its mind glides toward theirs. Knowledge is a living heritage;');
   LT('· language: sapiens emit calls (α β γ δ) whose meaning');
   LT('  is fixed by no one. The notebook''s lexicon guesses: alarm? food?');
+  LT('· cities: ten huts become a named town, the town raises walls,');
+  LT('  the city its monument — and the countryside slowly empties;');
   LT('· inventions: a skewer, a drum, a net are born of circumstances —');
   LT('  a fire, a night, a river — not of a plan.');
   LT('');
@@ -797,13 +886,15 @@ begin
   LT('or build a natural granary and watch the birth rate.');
   DB('sow 12 plants here', 1);
   LT('');
-  LT('herb — release a herbivore', 1);
-  LT('Prefer forest edges: they hide from wolves there.');
+  LT('cow — release a cow', 1);
+  LT('Prefer forest edges: they hide from wolves and bears there.');
   LT('');
-  LT('pred — release a predator', 1);
+  LT('wolf — release a wolf', 1);
   LT('The great regulator. Without it: overgrazing then general famine.');
-  LT('With too many: no more herbivores — and sapiens hunted in turn.', 4);
+  LT('With too many: no more livestock — and sapiens hunted in turn.', 4);
   LT('Sapiens near a fire or a dog repel it.', 3);
+  LT('Sheep and bears cannot be released: they come into the world');
+  LT('by themselves — sheep in flocks, bears very rare.', 5);
   LT('');
   LT('sap — wake a sapien', 1);
   LT('It is born adult, knowing nothing, joins the camp, seeks a mentor.');
@@ -833,19 +924,37 @@ begin
   LT('are reachable only by sailors with the net.');
 
   // ============================================================ 5. LES BÊTES
-  P('The beasts');
-  LT('Herbivores', 1);
-  LT('They graze, flee at the sight of a wolf, freeze in the forest if');
-  LT('it is far enough from danger ("hidden" state).');
+  P('The beasts: cows, sheep, wolves, bears');
+  LT('Cows', 1);
+  LT('They graze, flee at the sight of a wolf OR a bear, freeze in the');
+  LT('forest if it is far enough from danger ("hidden" state).');
   LT('Domesticated (golden ring): they graze around their hut,');
-  LT('sapiens milk them (the small white mark = milk available).');
+  LT('and sapiens milk them — only cows give milk');
+  LT('(the small white mark = milk available).');
   LT('They turn feral again if abandoned too far from camp.');
   LT('');
-  LT('Predators', 1);
-  LT('They stalk the nearest VISIBLE prey; the forest shortens sight.');
-  LT('They hunt sapiens too — except near a fire, a dog,');
-  LT('or if smoke (an invention) blurs their scent.');
+  LT('Sheep', 1);
+  LT('Small, light-fleeced, they live in flocks. Tamer than cows — trust');
+  LT('comes twice as fast — and prolific: a well-fed flock grows fast.');
+  LT('But lean: no milk, little meat. The wolves'' favourite prey.', 2);
+  LT('');
+  LT('Wolves', 1);
+  LT('They stalk the nearest VISIBLE prey — cows, sheep, and sapiens');
+  LT('too — except near a fire, a dog, or if smoke (an invention) blurs');
+  LT('their scent. The forest shortens their sight.');
   LT('Red eyes when the hunt is on.', 2);
+  LT('A young wolf can be tamed near a fire: it becomes a dog.', 3);
+  LT('');
+  LT('Bears', 1);
+  LT('Brown, massive, rare — a handful live on the whole island.');
+  LT('Omnivores: they gladly graze, but a herd in reach is');
+  LT('irresistible — cows and sheep alike, domesticated included.', 4);
+  LT('They NEVER touch sapiens or dogs.');
+  LT('Untameable: no golden ring for them, ever.', 4);
+  LT('');
+  LT('The herdsman', 1);
+  LT('A sapien who knows pastoralism defends his livestock: the wolf or');
+  LT('bear attacking a domesticated beast is slain — and eaten.', 3);
   LT('');
   LT('Fish', 1);
   LT('Light ones live on the shallows; dark, bigger ones, offshore.');
@@ -853,7 +962,7 @@ begin
   LT('a true stock. Overfish it and it empties for seasons.', 4);
   LT('');
   LT('The dog', 1);
-  LT('A young wolf can be tamed near a fire (fire technology required).');
+  LT('A young wolf tamed near a fire (fire technology required).');
   LT('It follows its master, feeds him with its nose (sight ×1.8), repels wolves.');
   LT('The golden line from dog to sapien = the master''s bond.');
 
@@ -948,7 +1057,7 @@ begin
   LT('inventor''s name: "drum β of Grok". They spread like technologies —');
   LT('and are lost as well.', 4);
   LT('They are listed in the notebook, with author and day.', 2);
-  LT('The eras bring more inventions — see the eras page.', 6, 20);
+  LT('The eras bring more inventions — see the era technologies page.', 6, 20);
 
   // ============================================================ 10. SONS
   P('The sounds of the world');
@@ -977,7 +1086,7 @@ begin
   LT('');
   LT('· date, time, season, year — and the golden bar of the day;');
   LT('· era badge: where the people stands, with its progress;');
-  LT('· populations: flora, herbivores, predators, sapiens, fish;');
+  LT('· populations: flora, cows, wolves, sapiens, fish, sheep, bears;');
   LT('· Fisher spiral: the average feather (the people''s aesthetics);');
   LT('· culture: average knowledge;');
   LT('· sailors: navigators and canoes at sea;');
@@ -996,7 +1105,7 @@ begin
   LT('This is what Microcosme is truly made for:');
   LT('');
   LT('Experiment 1 — selection live', 1);
-  LT('Release 6 predators. Watch the herbivores'' "speed" curve:');
+  LT('Release 6 wolves. Watch the cows'' "speed" curve:');
   LT('within a few generations, survivors are faster.', 3);
   LT('');
   LT('Experiment 2 — culture without school', 1);
@@ -1004,7 +1113,7 @@ begin
   LT('The denser group — density makes scholars.', 3);
   LT('');
   LT('Experiment 3 — the collapse', 1);
-  LT('Remove every predator and feed abundantly. The population');
+  LT('Remove every wolf and feed abundantly. The population');
   LT('explodes, the forest recedes, then winter comes…', 4);
   LT('');
   LT('Experiment 4 — the fire chain', 1);
@@ -1014,6 +1123,14 @@ begin
   LT('Experiment 5 — the lost word', 1);
   LT('When a word reaches "alarm call?", remove (starvation) every');
   LT('speaker. Does the word survive elsewhere? Does it come back later?', 3);
+  LT('');
+  LT('Experiment 6 — the birth of a town', 1);
+  LT('Let the people build. When ten huts gather, a town takes');
+  LT('a name. Watch it win its walls, then its monument.', 3);
+  LT('');
+  LT('Experiment 7 — the exodus', 1);
+  LT('Go to the Bronze Age and count the scattered huts: family');
+  LT('after family, the countryside empties into the cities.', 3);
   LT('');
   LT('compare several worlds: that is where the game becomes science.', 2);
 
@@ -1056,29 +1173,30 @@ begin
   // ============================================================ 14. TECHNOLOGIES
   P('Technologies, one by one');
   LT('fire', 1);
-  LT('The first. Without it, almost nothing else happens. Repels');
-  LT('predators, warms the night, enables skewer, torch, smoke, trap…');
-  LT('Discovery chance per cultivated sapien ("settings" dial).');
+  LT('The first one. Without it, almost nothing else happens. It repels');
+  LT('predators, warms the night, allows skewer, torch, smoke, trap…');
+  LT('Chance of discovery by a cultivated sapien ("settings" dial).');
   LT('');
   LT('agriculture', 1);
-  LT('After fire. While harvesting, the sapien replants: fields appear');
+  LT('After fire. While harvesting, the sapien replants: fields grow');
   LT('around the camp (green dotted circle of cultivated huts).');
   LT('');
   LT('stores', 1);
-  LT('Harvest surplus goes to the hut (golden ring = stock level).');
+  LT('Harvest surplus goes into the hut (golden ring = stock level).');
   LT('At night or in famine, one draws from it. The lean-to doubles storage.');
   LT('');
-  LT('herding', 1);
-  LT('Tame wild herbivores (invisible trust gauge), pen them near a hut,');
-  LT('milk them. The dog comes with fire.');
+  LT('pastoralism', 1);
+  LT('Tame wild cows and sheep (an invisible trust gauge), pen them near');
+  LT('a hut, milk the cows. Sheep let themselves be taken twice as fast;');
+  LT('the dog comes with fire.');
   LT('');
   LT('fishing', 1);
-  LT('At the water''s edge, the sapien catches coastal fish.');
+  LT('By the water, the sapien catches coastal fish.');
   LT('The net (invention) speeds it a lot and opens deep fish.');
   LT('');
   LT('navigation', 1);
-  LT('The canoe: the ocean is no longer a wall. Sailors go to the islets —');
-  LT('and sometimes never come back.', 4);
+  LT('The canoe: the ocean is no longer a wall. Sailors go toward');
+  LT('the islets — and sometimes never come back.', 4);
   LT('');
   LT('writing', 1);
   LT('The last one. Tablets (small white crosses near huts) appear —');
@@ -1086,54 +1204,62 @@ begin
 
   // ============================================================ 15. LIRE LE CERVEAU
   P('Reading a sapien''s brain');
-  LT('Select a sapien ("view" tool), click the big "Brain" diagram');
+  LT('Select a sapien ("view" tool), click the big "Brain" chart');
   LT('in the notebook — or press F7: the Observatory.');
   LT('');
   LT('What you see', 1);
   LT('· columns from left to right: 34 inputs, 9 neurons, 9 neurons,');
   LT('  10 outputs;');
   LT('· a green link = excitation, red = inhibition; the livelier it is,');
-  LT('  the harder the signal flows RIGHT NOW;');
-  LT('· dashes = the direct path (reflexes skipping the layers);');
+  LT('  the stronger the signal flows RIGHT NOW;');
+  LT('· the dashed lines = the direct path (reflexes bypassing the layers);');
   LT('· labels light up when the signal is active:');
-  LT('  "préd.x" when a wolf is seen, "r.β" for the echo of the call heard…');
+  LT('  "pred.x" when a wolf is seen, "r.β" for the echo of a call heard…');
   LT('');
   LT('What to look for', 1);
-  LT('· reflexes: predator → flight (préd.* → turn/speed);');
+  LT('· reflexes: predator → flight (pred.* → turn/speed);');
   LT('· the language loop: α..δ heard → α..δ spoken;');
-  LT('· memory: m.dan.* lit = it "thinks" of a known danger.');
+  LT('· memory: m.dan.* lit = it is "thinking" of a known danger.');
   LT('Compare an old sapien and a child: density speaks.', 3);
 
   // ============================================================ 16. FAQ
   P('Frequently asked questions');
   LT('Why do my sapiens starve while there are plants?', 1);
-  LT('Check the time: at night, no one harvests — and winter divides');
+  LT('Check the time: at night, nobody harvests — and winter divides');
   LT('flora by 4. Stores and fire exist for that. Patience.', 3);
   LT('');
-  LT('Why do predators disappear?', 1);
-  LT('If no herbivores are in reach, they die. The system self-regulates:');
-  LT('release few, and let herbivores come back.', 2);
+  LT('Why do the wolves disappear?', 1);
+  LT('If there is no prey in reach, they die. The system regulates');
+  LT('itself: release few, and let the livestock come back.', 2);
+  LT('');
+  LT('A bear is devouring my flock!', 1);
+  LT('It is its nature: it never touches sapiens, but livestock draws it.');
+  LT('A herdsman will slay it — or move the pens away from forests.', 3);
+  LT('');
+  LT('So many scattered huts, and nothing moves?', 1);
+  LT('From the Bronze Age on, the exodus takes them to the cities — the');
+  LT('too-distant ones remain frontier hamlets. See the cities page.', 6, 21);
   LT('');
   LT('Fire never comes!', 1);
   LT('It takes adult, cultivated sapiens (knowledge > 20 %), and luck.');
   LT('Speed up time. Or open "settings" (F2) and raise the fire dial.', 2);
   LT('');
-  LT('A sapien is alone in the middle of nowhere', 1);
+  LT('A sapien is all alone in the middle of nowhere', 1);
   LT('It returns to camp by instinct ("explore" + camp attraction).');
   LT('If blocked by water without navigation, it will circle. Sorry.', 5);
   LT('');
-  LT('Do words change between worlds?', 1);
-  LT('Yes: the lexicon is generated at each mind''s birth. Two worlds,');
-  LT('two languages. Like us.', 3);
+  LT('Do words change from one world to another?', 1);
+  LT('Yes: the lexicon is generated at the birth of every mind. Two');
+  LT('worlds, two tongues. Like us.', 3);
   LT('');
-  LT('How to save a history?', 1);
+  LT('How to save a story?', 1);
   LT('Save / Load in the notebook: the world, the minds, the lexicon,');
   LT('the annals — everything will resume where you left it.');
 
-  // ============================================================ 17. ANATOMIE
+  // ============================================================ 17. ANATOMIE DU RÉSEAU
   P('Anatomy of the neural network');
-  LT('Each sapien carries its own brain: about 600 floating numbers');
-  LT('in fact — its mental DNA. Here it is, layer by layer.');
+  LT('Each sapiens carries its own brain: about 600 floating numbers in');
+  LT('truth — its mental DNA. Here it is, layer by layer.');
   LT('');
   LT('Overview: 34 → 9 → 9 → 10', 1);
   LT('· 34 inputs: what the body feels of the world, at each "thought";');
@@ -1141,7 +1267,7 @@ begin
   LT('· 10 outputs: the possible actions.');
   LT('');
   LT('The 34 inputs, in order', 1);
-  LT('0 bias · 1 energy (0=hungry, 1=full) · 2 daylight', 5);
+  LT('0 bias · 1 energy (0=starving, 1=full) · 2 daylight', 5);
   LT('3-5 food: direction X, Y, closeness', 5);
   LT('6-8 nearest peer: X, Y, closeness', 5);
   LT('9-11 nearest predator: X, Y, closeness', 5);
@@ -1149,10 +1275,10 @@ begin
   LT('16-17 direction the loudest call comes from', 5);
   LT('18-20 nearest danger memory: X, Y, strength', 5);
   LT('21-23 food memory: X, Y, strength (weighted by hunger!)', 5);
-  LT('24-32 the NINE echoes: what the network decided last thought', 5);
+  LT('24-32 the NINE echoes: what the network decided the previous thought', 5);
   LT('33 constant bias = 1', 5);
   LT('Directions are relative to the body''s heading:');
-  LT('"to my left front", not "north-west of the island".', 2);
+  LT('"ahead of me, to the left", not "north-west of the island".', 2);
   LT('');
   LT('The 10 outputs', 1);
   LT('0 turn (left/right) · 1 advance (body speed)', 5);
@@ -1161,106 +1287,108 @@ begin
   LT('The most active output wins and becomes the current action.');
   LT('');
   LT('How it computes', 1);
-  LT('Each hidden neuron sums its weighted inputs, then');
-  LT('squashes the result between -1 and +1 (hyperbolic tangent).');
-  LT('The next layers do the same. That''s all — and it is enough:');
+  LT('Each hidden neuron takes a weighted sum of its inputs, then');
+  LT('crushes the result between -1 and +1 (hyperbolic tangent).');
+  LT('The next layers do the same. That is all — and it suffices:');
   LT('each connection carries a weight (its strength) that makes ALL the character.');
   LT('');
   LT('The three paths', 1);
-  LT('· slow path: inputs → 9 → 9 → outputs (reflection);');
-  LT('· direct path (dashed on screen): inputs → outputs (reflexes);');
+  LT('· slow path: inputs → 9 → 9 → outputs (the reflection);');
+  LT('· direct path (dashed on screen): inputs → outputs (the reflexes);');
   LT('· recurrences: yesterday''s outputs feed today''s inputs.');
-  LT('Recurrence is what gives sustained behaviors:');
-  LT('a sapien that flees KEEPS fleeing, a caller keeps calling.', 3);
+  LT('Recurrence is what gives sustained behaviours:');
+  LT('a fleeing sapien KEEPS fleeing, a caller keeps calling.', 3);
   LT('');
-  LT('Where to watch it run', 1);
-  LT('Select a sapien, open "brain": every link lights according to');
-  LT('its CURRENT strength. Weights do not change live — see the next');
-  LT('page for what shapes them.', 2);
+  LT('Where to see it run', 1);
+  LT('Select a sapien, open "brain": each link lights up by its CURRENT');
+  LT('strength. Weights do not change live — see the next page for what');
+  LT('shapes them.', 2);
 
   // ============================================================ 18. APPRENTISSAGE
   P('How it learns');
-  LT('No one teaches the network anything. Three forces shape it:');
+  LT('Nobody teaches the network anything. Three forces shape it:');
   LT('');
   LT('1. Inheritance', 1);
-  LT('At birth, the child copies a parent''s network — usually');
-  LT('the mother''s — THEN mutation runs:');
-  LT('· ~13 % of weights move a little (+/- 0.3 on average);');
-  LT('· ~2 % jump elsewhere outright (wild mutation);');
-  LT('· the VOICE (α β γ δ weights) mutates twice as much: by design,');
-  LT('  language must vary faster than the body — it evolves fastest.');
+  LT('At birth, the child copies a parent''s network — most often the');
+  LT('mother''s — THEN the mutation passes:');
+  LT('· ~13 % of the weights move a little (+/- 0.3 on average);');
+  LT('· ~2 % jump boldly elsewhere (wild mutation);');
+  LT('· the VOICE (α β γ δ weights) mutates twice as much: it is meant so,');
+  LT('  language must vary faster than the body — it evolves the fastest.');
   LT('· each lineage has its own mutation rate, inherited and itself mutable:');
   LT('  "innovative" and "conservative" families coexist.');
   LT('');
   LT('2. Mentorship (culture)', 1);
-  LT('The child picks the wisest neighbor as mentor. Its network');
-  LT('slowly glides toward the mentor''s — BUT only across 30 % of the');
-  LT('genetic distance at most:');
+  LT('The child picks the wisest of neighbors as mentor. Its network glides');
+  LT('slowly toward the mentor''s — BUT only over 30 % of the genetic');
+  LT('distance at most:');
   LT('DNA is never overwritten, it is GUIDED. A child of mediocre parents');
-  LT('may become great; it will never become its mentor entirely.');
+  LT('may grow great; it will never become its mentor entire.');
   LT('');
   LT('3. Selection (the judge)', 1);
-  LT('Those who find food, dodge wolves, avoid drowning…');
+  LT('Those who know how to find food, avoid wolves, not drown…');
   LT('live longer and breed more. Their weights spread.');
-  LT('It is natural selection, with no other judge than survival.');
+  LT('It is natural selection, with no other judgement than survival.');
   LT('');
   LT('What does NOT exist (yet is often believed seen)', 1);
-  LT('· no error feedback: the network never "knows" it was wrong;');
-  LT('· no cross-generation memory but genes and culture;');
-  LT('· no goal: no one aims for "better". Emergence does the rest.', 3);
+  LT('· no error feedback: the network does not "know" when it is wrong;');
+  LT('· no memory across generations other than genes and culture;');
+  LT('· no goal: nobody aims at "better". Emergence does the rest.', 3);
   LT('');
   LT('Observable result', 1);
-  LT('After 30-40 generations, look at the notebook: speed and sight');
-  LT('curves rise if predators press, culture saws up and down');
-  LT('(an invention lost, relearned at camp), words appear and vanish.');
+  LT('After 30-40 generations, look at the notebook: the speed and sight');
+  LT('curves rise if wolves press hard, culture climbs in sawteeth (an');
+  LT('invention lost, relearned at camp), words appear and vanish.');
   LT('History writes itself.', 2);
 
   // ============================================================ 19. ÈRES
   P('The eras of humankind');
-  LT('Six ages, from the first fire to painted facades', 1);
-  LT('· era 1 — Neolithic: fire, agriculture, stores, herding,');
+  LT('Six ages, from first fire to painted façades', 1);
+  LT('· era 1 — Neolithic: fire, agriculture, stores, pastoralism,');
   LT('  fishing, navigation, writing. The world of beginnings;');
   LT('· era 2 — Bronze Age: the earth is ploughed, metal bites,');
-  LT('  the sail rises, ideas trade hand to hand;');
+  LT('  the sail rises, ideas pass from hand to hand;');
   LT('· era 3 — Iron Age: perfected tools, conducted water,');
   LT('  philosophy — knowledge that no longer dies;');
-  LT('· era 4 — Antiquity: the city, geometry, laws, the marble');
-  LT('  column on the fire''s square;');
+  LT('· era 4 — Antiquity: the city, geometry, laws, the marble column');
+  LT('  on the fire''s square — and the first roads;');
   LT('· era 5 — Middle Ages: mills, universities, guilds, the keep;');
-  LT('· era 6 — Renaissance: the printing press multiplies words,');
-  LT('  facades get painted, the method observes and starts again.');
+  LT('· era 6 — Renaissance: printing multiplies words, façades');
+  LT('  get painted, the method observes and starts again.');
   LT('');
   LT('Nothing is lost on the way', 1);
-  LT('The technologies and inventions of the previous era stay active.');
-  LT('Fire is never abandoned. One builds upon it.', 3);
+  LT('Technologies and inventions of the previous era stay active.');
+  LT('One never abandons fire. One builds upon it.', 3);
   LT('');
-  LT('How to pass', 1);
-  LT('Passage is never automatic: when every technology of the era is');
-  LT('discovered, when the people counts enough adults');
+  LT('How one passes', 1);
+  LT('The passage is never automatic: when all the era''s technologies');
+  LT('are discovered, when the people counts enough adults');
   LT('and enough inventions, a golden button "enter the next era"');
-  LT('appears at the top of the notebook''s commands — and waits for your hand.');
+  LT('appears atop the notebook''s commands — and waits for your hand.');
   LT('The notebook shows your progress under the era badge:', 5);
   LT('technologies 5/7 · people 12 · inventions 4/10.', 5);
   LT('Do not cross in mid-famine nor on the eve of winter.', 4);
   LT('');
   LT('What changes', 1);
-  LT('· discoveries speed up: each day of failed research feeds the next');
-  LT('  (the library effect) — then Science,');
-  LT('  Mathematics, Universities and Method amplify it further;');
-  LT('· the people may grow: the sapien cap rises with each era;');
+  LT('· discoveries speed up: every day of failed research feeds the next');
+  LT('  (the library effect) — then Science, Mathematics, Universities');
+  LT('  and Method amplify it further;');
+  LT('· the people may grow: the sapiens ceiling rises at each era;');
   LT('· the village transforms: round huts → stone houses →');
-  LT('  painted facades; the fire house wears its age''s monument.');
+  LT('  painted façades; the house with fire bears its age''s monument;');
+  LT('· the countryside empties: the exodus to cities swells era after');
+  LT('  era, and from Antiquity on, cities link themselves with roads.');
   LT('Each passage is recorded in the annals.', 2);
 
   // ============================================================ 20. TECHS DES ÈRES
-  P('Technologies of the later eras');
+  P('Era technologies');
   LT('Bronze Age', 1);
-  LT('· plough — harvest yields half more;');
+  LT('· plough — harvest yields half again as much;');
   LT('· wheel — everyone walks a third faster;');
   LT('· irrigation — the land carries a third more vegetation;');
-  LT('· metallurgy — the hunt yields much more per strike;');
+  LT('· metallurgy — hunting yields much more at each strike;');
   LT('· sail — at sea, the canoe goes as fast as one walks on land;');
-  LT('· currency — diffusion between neighbors soars;');
+  LT('· coin — diffusion between neighbors races;');
   LT('· archives — the people''s memory reads everywhere on the island;');
   LT('· science — each discovery makes the next more likely.');
   LT('');
@@ -1268,14 +1396,14 @@ begin
   LT('· iron — metal perfects the hunt further;');
   LT('· aqueduct — the land feeds even more;');
   LT('· engineering — hut stores gain half;');
-  LT('· philosophy — knowledge never gets LOST again;');
+  LT('· philosophy — knowledge NEVER gets lost again;');
   LT('· medicine — old age recedes by a fifth;');
   LT('· mathematics — discoveries speed up again;');
   LT('· astronomy — winters lose a third of their bite;');
-  LT('· school — mentorship transmits half more knowledge.');
+  LT('· school — mentorship transmits half again as much.');
   LT('');
   LT('Antiquity', 1);
-  LT('· city — twice as many huts may gather;');
+  LT('· city-state — twice as many huts may gather;');
   LT('· geometry — building costs less effort;');
   LT('· legislation — diffusion gains a quarter;');
   LT('· rhetoric — mentorship transmits a fifth more;');
@@ -1285,36 +1413,75 @@ begin
   LT('· cartography — exploration no longer wanders.');
   LT('');
   LT('Middle Ages', 1);
-  LT('· mills and crop rotation — the land carries a third more;');
-  LT('· shoeing — sure steps, a tenth quicker;');
+  LT('· mills and rotation — the land carries a third more;');
+  LT('· shoeing — sure steps, a tenth livelier;');
   LT('· universities — discoveries gain a fifth;');
-  LT('· guilds — inventions come half faster;');
-  LT('· selective breeding — taming goes half faster;');
-  LT('· Arabic medicine — old age recedes another tenth;');
-  LT('· deep-sea navigation — the sea, another tenth still.');
+  LT('· guilds — inventions come half again as fast;');
+  LT('· selective breeding — taming goes half again as fast;');
+  LT('· arabic medicine — old age recedes another tenth;');
+  LT('· deep-sea navigation — the sea, a tenth more still.');
   LT('');
   LT('Renaissance', 1);
-  LT('· printing press — diffusion soars (×1.6);');
+  LT('· printing — diffusion races (×1.6);');
   LT('· optics — sight carries a fifth farther;');
   LT('· anatomy — the body holds a twentieth more energy;');
   LT('· caravels — the sea is mastered (×2.2);');
-  LT('· gunpowder — the hunt gains another third;');
-  LT('· banking — ideas travel even more;');
+  LT('· powder — hunting gains another third;');
+  LT('· banking — ideas circulate even more;');
   LT('· method — discoveries gain a third;');
   LT('· humanities — mentorship gains a quarter.');
   LT('');
-  LT('Inventions of the new ages', 1);
-  LT('· candle, cart, oven (Bronze) — lighter night, stores filled');
-  LT('  half faster, meals more nourishing;');
-  LT('· clock, compass, theater (Iron) — finer walk, wandering halved,');
-  LT('  diffusion inflamed by the audience;');
-  LT('· amphora, billhook, ditch (Antiquity) — vaster granaries,');
-  LT('  finer harvest, wolves kept at bay;');
-  LT('· crossbow, parchment, armor (Middle Ages) — hunting afar, ideas');
+  LT('The new ages'' inventions', 1);
+  LT('· candle, cart, oven (Bronze) — the night lightened, stores');
+  LT('  filled half again as fast, the meal more nourishing;');
+  LT('· clock, compass, theatre (Iron) — walking refined, wandering');
+  LT('  halved, diffusion inflamed by the audience;');
+  LT('· amphora, billhook, pit (Antiquity) — vaster granaries, finer');
+  LT('  harvest, wolves kept at distance;');
+  LT('· crossbow, parchment, armour (Middle Ages) — hunting afar, ideas');
   LT('  circulating, fangs sliding off;');
-  LT('· spyglass, violin, sea chart (Renaissance) — seeing in the dark,');
-  LT('  music that soothes, guided exploration.', 2);
+  LT('· spyglass, violin, portolan chart (Renaissance) — seeing in the');
+  LT('  dark, soothing music, guided exploration.', 2);
+
+  // ============================================================ 21. VILLES (nouveau)
+  P('Cities, countryside and roads');
+  LT('The birth of a town', 1);
+  LT('When ten scattered huts gather close enough, they become a town:');
+  LT('it receives a name — syllables from nowhere, a tongue of its own —');
+  LT('and the huts rearrange in a spiral around the town''s fire.');
+  LT('');
+  LT('The levels', 1);
+  LT('· 10 hearths: the town;');
+  LT('· 18 hearths: the city — walls rise, pierced with four gates;');
+  LT('· 28 hearths: the metropolis — and its monument facing the fire.');
+  LT('The name shows at zoom; in the Renaissance, façades get painted.', 2);
+  LT('');
+  LT('The wild''s space', 1);
+  LT('One does not build between 8 and 50 cells of a city: that cord is');
+  LT('hunting, forest, game. But near the walls (under 20 cells), from');
+  LT('the Bronze Age on, the house born there is a TOWNSMAN''S — that is');
+  LT('the suburb, and the city grows by its fringe.', 3);
+  LT('');
+  LT('The clearing', 1);
+  LT('The city clears: neither tree nor bush within its bounds.');
+  LT('The cities'' ecological footprint reads on the map.', 2);
+  LT('');
+  LT('The exodus', 1);
+  LT('From era 2 on — and more and more each era — scattered families');
+  LT('leave the woods for the nearest city (within a reasonable radius;');
+  LT('the too-far remain hamlets).');
+  LT('The day more than one hearth in two is urban, the annals write:');
+  LT('"the people turn urban".', 2);
+  LT('');
+  LT('The roads', 1);
+  LT('In Antiquity, nearby cities (under 200 cells) link together.');
+  LT('Roads grow by themselves, three cells a day, skirting the water.');
+  LT('On the road, one walks half again as fast — and ideas circulate');
+  LT('better there.', 3);
+  LT('A ring of roads linking several cities: the sign of a world', 2);
+  LT('that holds together.', 2);
 end;
+
 
 procedure HelpBuild;
 begin
@@ -1323,6 +1490,7 @@ begin
   FLangueBuild := FLangue;
   Cur := 0;
 end;
+
 
 {--- service ----------------------------------------------------------------}
 
@@ -1346,9 +1514,10 @@ begin
   Result := FOn;
 end;
 
+{ ★ retourne la HAUTEUR dessinée (au lieu du Y suivant) — sert au scroll }
 function DrawWrapped(C: TCanvas; const S: string; X, Y, MaxW: Integer;
   Clr: TColor): Integer;
-var P0, Px: Integer; Wd, Ln: string;
+var P0, Px, Y0: Integer; Wd, Ln: string;
 
   procedure FlushLn;
   begin
@@ -1362,7 +1531,7 @@ var P0, Px: Integer; Wd, Ln: string;
 
 begin
   C.Brush.Style := bsClear;
-  Ln := '';  P0 := 1;
+  Ln := '';  P0 := 1;  Y0 := Y;
   while P0 <= Length(S) do begin
     Px := P0;
     while (Px <= Length(S)) and (S[Px] <> ' ') do Inc(Px);
@@ -1373,14 +1542,14 @@ begin
     P0 := Px + 1;
   end;
   FlushLn;
-  Result := Y;
+  Result := Y - Y0;              // la hauteur (0 pour une ligne vide)
 end;
-
 {--- rendu ------------------------------------------------------------------}
 
 procedure HelpRender(C: TCanvas; W, H: Integer);
 const MARG = 24;
-var PW, PH, X0, Y0, Y, I, BX, BW: Integer;
+var PW, PH, X0, Y0, I, BX, BW: Integer;
+   CTop, CBot, YL, YS, DS, ContH, MaxScrl, VH, VY: Integer;
    SommaireLbl, FermerLbl, EssayerLbl: string;
 
   procedure BtnBox(R: TRect; const Cap: string; Id: Integer; Hot: Boolean);
@@ -1403,24 +1572,22 @@ begin
   if not FOn then Exit;
   if (Length(Pages) = 0) or (FLangueBuild <> FLangue) then HelpBuild;
   HBtns := nil;
+  if Cur <> LastCur then begin Scrl := 0; LastCur := Cur end;   // ★ nouvelle page : haut
 
-  // libellés de navigation selon la langue
   if FLangue = LANG_EN then begin
-    SommaireLbl := 'contents';
-    FermerLbl   := 'close';
-    EssayerLbl  := 'try: ';
+    SommaireLbl := 'contents';  FermerLbl := 'close';  EssayerLbl := 'try: ';
   end else begin
-    SommaireLbl := 'sommaire';
-    FermerLbl   := 'fermer';
-    EssayerLbl  := 'essayer : ';
+    SommaireLbl := 'sommaire';  FermerLbl := 'fermer'; EssayerLbl := 'essayer : ';
   end;
 
   PW := Min(720, W - 36);  PH := Min(560, H - 36);
   X0 := (W - PW) div 2;  Y0 := (H - PH) div 2;
+  CTop := Y0 + 48;             // haut de la zone de contenu
+  CBot := Y0 + PH - 92;        // bas (au-dessus des boutons démo / nav, fixes)
 
   C.Font.Name := 'Segoe UI'; C.Font.Size := 9; C.Font.Style := [];
 
-  // ombre + panneau
+  // ombre + panneau + bandeau (inchangés)
   C.Brush.Style := bsSolid;  C.Pen.Style := psClear;
   C.Brush.Color := Col(6, 8, 6);
   C.FillRect(Rect(X0 + 5, Y0 + 6, X0 + PW + 5, Y0 + PH + 6));
@@ -1429,8 +1596,6 @@ begin
   C.Pen.Style := psSolid;  C.Pen.Color := Col(54, 60, 46);  C.Pen.Width := 1;
   C.Brush.Style := bsClear;
   C.Rectangle(X0, Y0, X0 + PW, Y0 + PH);
-
-  // bandeau
   C.Brush.Style := bsSolid;  C.Pen.Style := psClear;
   C.Brush.Color := Col(25, 30, 21);
   C.FillRect(Rect(X0 + 1, Y0 + 1, X0 + PW - 1, Y0 + 36));
@@ -1442,69 +1607,88 @@ begin
   C.Font.Color := Col(120, 126, 106);
   C.TextOut(X0 + PW - 90, Y0 + 12, Format('%d / %d', [Cur + 1, Length(Pages)]));
 
-  // contenu
-  Y := Y0 + 48;
+  // ★ le contenu DÉFILE : clip sur la zone, curseur logique YL, dessin à YL - Scrl
+  DS := SaveDC(C.Handle);
+  IntersectClipRect(C.Handle, X0 + 2, CTop - 4, X0 + PW - 2, Y0 + PH - 50);
+
+  YL := CTop ;
   C.Font.Name := 'Segoe UI';  C.Font.Size := 9;  C.Font.Style := [];
   for I := 0 to High(Pages[Cur].L) do begin
+    YS := YL - Scrl;
     with Pages[Cur].L[I] do begin
       case K of
         1: begin
-             Inc(Y, 5);
+             Inc(YL, 5);
              C.Font.Style := [fsBold];
-             Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(208, 167, 92));
+             YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(208, 167, 92));
+             YL := YL + YS + 2;
              C.Font.Style := [];
-             Inc(Y, 2);
            end;
         2: begin
              C.Font.Style := [fsItalic];
-             Y := DrawWrapped(C, '◆ ' + Txt, X0 + MARG, Y, PW - 2*MARG, Col(240, 180, 95));
+             YS := DrawWrapped(C, '◆ ' + Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(240, 180, 95));
+             YL := YL + YS + 2;
              C.Font.Style := [];
            end;
         6: begin
-             BtnBox(Rect(X0 + MARG, Y, X0 + PW - MARG, Y + 24), '▸ ' + Txt, Act, True);
-             Inc(Y, 28);
+             // lien : dessiné et cliquable seulement s'il est dans la zone
+             if (YS + 24 > CTop - 4) and (YS < Y0 + PH - 50) then
+               BtnBox(Rect(X0 + MARG, YS, X0 + PW - MARG, YS + 24), '▸ ' + Txt, Act, True);
+             Inc(YL, 28);
            end;
       else begin
              case K of
-               3: Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(157, 187, 107));
-               4: Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(206, 116, 79));
-               5: Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(139, 138, 116));
+               3: YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(157, 187, 107));
+               4: YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(206, 116, 79));
+               5: YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(139, 138, 116));
              else
-               Y := DrawWrapped(C, Txt, X0 + MARG, Y, PW - 2*MARG, Col(222, 216, 196));
+               YS := DrawWrapped(C, Txt, X0 + MARG, YL - Scrl, PW - 2*MARG, Col(222, 216, 196));
              end;
-             Inc(Y, 2);
+             YL := YL + YS + 2;
            end;
       end;
     end;
-    if Y > Y0 + PH - 92 then begin
-      C.Font.Color := Col(120, 126, 106);
-      C.Brush.Style := bsClear;
-      C.TextOut(X0 + MARG, Y, '…');
-      Break;
-    end;
+  end;
+  RestoreDC(C.Handle, DS);
+
+  // ★ mesure du débordement (pour la molette + l'ascenseur) — actif dès ce frame+1
+  ContH := Max(1, YL - CTop);
+  MaxScrl := Max(0, ContH - (CBot - CTop));
+  if Scrl > MaxScrl then Scrl := MaxScrl;
+  CurMaxScrl := MaxScrl;
+
+  // ★ mini-ascenseur à droite
+  if MaxScrl > 0 then begin
+    C.Brush.Style := bsSolid; C.Pen.Style := psClear;
+    C.Brush.Color := Col(32, 37, 28);
+    C.FillRect(Rect(X0 + PW - 7, CTop, X0 + PW - 4, CBot));
+    VH := Max(28, MulDiv(CBot - CTop, CBot - CTop, ContH));
+    VY := CTop + MulDiv(CBot - CTop - VH, Scrl, MaxScrl);
+    C.Brush.Color := Col(96, 102, 86);
+    C.FillRect(Rect(X0 + PW - 7, VY, X0 + PW - 4, VY + VH));
   end;
 
-  // boutons démo
+  // boutons démo (fixes, inchangés)
   if (Length(Pages[Cur].D) > 0) and Assigned(HelpDemoProc) then begin
-    Y := Y0 + PH - 86;
+    YL := Y0 + PH - 86;
     BX := X0 + MARG;
     for I := 0 to High(Pages[Cur].D) do begin
       BW := C.TextWidth(EssayerLbl + Pages[Cur].D[I].Cap) + 20;
-      if BX + BW > X0 + PW - MARG then begin BX := X0 + MARG; Inc(Y, 28) end;
-      BtnBox(Rect(BX, Y, BX + BW, Y + 24),
+      if BX + BW > X0 + PW - MARG then begin BX := X0 + MARG; Inc(YL, 28) end;
+      BtnBox(Rect(BX, YL, BX + BW, YL + 24),
              EssayerLbl + Pages[Cur].D[I].Cap, 1000 + Pages[Cur].D[I].Act, True);
       BX := BX + BW + 8;
     end;
   end;
 
-  // navigation
-  Y := Y0 + PH - 46;
+  // navigation (inchangée)
+  YL := Y0 + PH - 46;
   C.Pen.Style := psSolid;  C.Pen.Color := Col(48, 54, 42);  C.Pen.Width := 1;
-  C.MoveTo(X0 + MARG, Y - 8);  C.LineTo(X0 + PW - MARG, Y - 8);
-  BtnBox(Rect(X0 + MARG, Y, X0 + MARG + 34, Y + 26), '◀', -1, True);
-  BtnBox(Rect(X0 + MARG + 40, Y, X0 + MARG + 74, Y + 26), '▶', -2, True);
-  BtnBox(Rect(X0 + PW - MARG - 156, Y, X0 + PW - MARG - 76, Y + 26), SommaireLbl, -3, True);
-  BtnBox(Rect(X0 + PW - MARG - 70, Y, X0 + PW - MARG, Y + 26), FermerLbl, -4, True);
+  C.MoveTo(X0 + MARG, YL - 8);  C.LineTo(X0 + PW - MARG, YL - 8);
+  BtnBox(Rect(X0 + MARG, YL, X0 + MARG + 34, YL + 26), '◀', -1, True);
+  BtnBox(Rect(X0 + MARG + 40, YL, X0 + MARG + 74, YL + 26), '▶', -2, True);
+  BtnBox(Rect(X0 + PW - MARG - 156, YL, X0 + PW - MARG - 76, YL + 26), SommaireLbl, -3, True);
+  BtnBox(Rect(X0 + PW - MARG - 70, YL, X0 + PW - MARG, YL + 26), FermerLbl, -4, True);
 end;
 
 {--- interactions ------------------------------------------------------------}
@@ -1534,8 +1718,13 @@ end;
 procedure HelpWheel(Delta: Integer);
 begin
   if not FOn then Exit;
-  if Delta < 0 then begin if Cur < High(Pages) then Inc(Cur) end
-  else begin if Cur > 0 then Dec(Cur) end;
+  if Delta < 0 then begin
+    if Scrl < CurMaxScrl then Scrl := Min(CurMaxScrl, Scrl + 56)
+    else if Cur < High(Pages) then Inc(Cur);      // bas atteint : page suivante
+  end else begin
+    if Scrl > 0 then Scrl := Max(0, Scrl - 56)
+    else if Cur > 0 then Dec(Cur);                // haut atteint : page précédente
+  end;
 end;
 
 procedure HelpKeyDown(Key: Word);

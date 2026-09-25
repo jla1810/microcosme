@@ -13,7 +13,7 @@ interface
 
 uses
   System.SysUtils, System.Classes, System.Math, System.Generics.Collections,
-  Winapi.Windows,
+  Winapi.Windows, System.SyncObjs,
   MicroTypes, MicroBrain, MicroSim, MicroRender, MicroIno, MicroChrono,
   MicroEre, MicroLang;
 

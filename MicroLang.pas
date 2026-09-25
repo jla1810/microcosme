@@ -22,7 +22,7 @@ var
 implementation
 
 const
-  FR: array[0..155] of string = (
+  FR: array[0..174] of string = (
     'Observer le monde',            // 0
     'l''île s''éveille…',           // 1
     'nouveau monde',                // 2
@@ -44,8 +44,8 @@ const
     'entrée :',                     // 18
     'fiche',                        // 19
     'flore',                        // 20
-    'herbivores',                   // 21
-    'prédateurs',                   // 22
+    'vaches',                   // 21
+    'loups',                   // 22
     'sapiens',                      // 23
     'poissons',                     // 24
     'spirale de Fisher — plume %d%%',                // 25
@@ -178,12 +178,30 @@ const
     '%s devient une ville — %d foyers vivent derrière ses remparts',  // 152
     '%s est désormais une ville (%d foyers)',     // 153
     '%s est proclamée cité — %d foyers sous son monument',  // 154
-    'la cité de %s rayonne — %d foyers'          // 155
-
+    'la cité de %s rayonne — %d foyers',          // 155
+    ' ',                                        //156
+    ' ',                                        //157
+    '%d familles rejoignent les villes',   // 158 — 1 arg (%d)
+    'le peuple devient citadin' ,           // 159 — 0 arg
+        '%s est élu chef de %s',              // 160 — 2 args (%s %s)
+    '%s succède à %s à la tête de %s',     // 161 — 3 args (%s %s %s)
+     'moutons',                            // 162 — 0 arg
+    'ours' ,                               // 163 — 0 arg
+    'bourg' ,                             //164
+    'ville',                              //165
+    'cité',                               //166
+    'Fiche de %s' ,
+    'Rang : %s',
+    'Fondée il y a %d jours',
+    'Foyers : %d' ,
+    'Habitants : %d' ,
+    'Routes : %d'  ,
+    'Chef : %s',
+    'Aucun'
   );
 
-  EN: array[0..155] of string = (
-    'Observe the world',            // 0
+  EN: array[0..163] of string = (
+    'Observe the world',            // 0       00000
     'the island awakens…',          // 1
     'new world',                    // 2
     'world saved',                  // 3
@@ -204,8 +222,8 @@ const
     'entry:',                       // 18
     'sheet',                        // 19
     'flora',                        // 20
-    'herbivores',                   // 21
-    'predators',                    // 22
+    'cows',                   // 21
+    'wolfes',                    // 22
     'sapiens',                      // 23
     'fish',                         // 24
     'Fisher spiral — feather %d%%', // 25
@@ -338,9 +356,18 @@ const
     '%s becomes a city — %d hearths live behind its walls',  // 152
     '%s is now a city (%d hearths)',                  // 153
     '%s is proclaimed a city-state — %d hearths under its monument',  // 154
-    'the city-state of %s shines — %d hearths'       // 155
+    'the city-state of %s shines — %d hearths',       // 155
+     ' ',                                        //156
+    ' ',                                        //157
+    '%d families move to the cities',      // 158 — 1 arg (%d)
+    'the people turn urban',               // 159 — 0 arg
+    '%s is elected chief of %s',          // 160
+    '%s succeeds %s as chief of %s',       // 161
+    'sheep',                              // 162
+    'bears'                              // 163
+     );
 
-  );
+
 
 function L(id: Integer): string;
 begin
