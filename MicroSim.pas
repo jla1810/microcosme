@@ -680,19 +680,22 @@ begin
 end;
 
 procedure TryBuild(C: TCreature);
+const
+  HAMEAU_DIST = 12.0;   // ★Hameau : la portée du déjà-bâti (greffer si ≤)
 var H: THut;
-   K: Integer;
+   K, J: Integer;
    R2: Single;
+   HM: THut;
+   NA, NR, NX, NY: Single;
+   OK: Boolean;
 begin
   if (Huts.Count >= IfThen(teCite in C.Tech, HUTCAP * 2, HUTCAP)) or
      (C.Energy < IfThen(teGeometrie in C.Tech, 42, 62)) or (C.BuildCd > 0) then Exit;
   if not Walkable(C.X, C.Y) then Exit;
   if TerrType[CellIdx(C.X, C.Y)] > T_FOR then Exit;
-  if PeopleHas(teCite) then begin
+  if PeopleHas(teCite) then
     if NearestHutDist(C.X, C.Y) < 2.0 then Exit;
-  end else
-    if NearestHutDist(C.X, C.Y) < 7 then Exit;
-    for K := 0 to Cities.Count - 1 do begin
+  for K := 0 to Cities.Count - 1 do begin          // (inchangé) la banlieue des villes
     R2 := Sqr(C.X - Cities[K].X) + Sqr(C.Y - Cities[K].Y);
     if (R2 < Sqr(50.0)) and (R2 > Sqr(8.0)) then begin
       // ★Exode — la banlieue : dès l'ère 2 on bâtit près des murailles,
@@ -709,6 +712,34 @@ begin
       Exit;
     end;
   end;
+  // ★Hameau — le déjà-bâti attire : greffer à la hutte la plus proche.
+  // Le sapiens qui bâtit près d'un hameau L'AGRANDIT (la grappe protège) ;
+  // loin de tout, il fonde un NOUVEL îlot. Fini le hasard qui regroupe.
+  HM := NearestHut(C.X, C.Y, HAMEAU_DIST);
+  if HM <> nil then begin
+    OK := False;                                     // la mini-spirale de greffe :
+    for J := 0 to 9 do begin                         // trouver la place AVANT de payer
+      NA := J * 2.399963 + Random * 0.7;
+      NR := 2.2 + 0.25 * Sqrt(J) + Random * 0.5;
+      NX := HM.X + Cos(NA) * NR;
+      NY := HM.Y + Sin(NA) * NR;
+      if Walkable(NX, NY) and (TerrType[CellIdx(NX, NY)] <= T_FOR) and
+         (NearestHutDist(NX, NY) >= 2.0) then begin
+        OK := True;
+        Break;
+      end;
+    end;
+    if not OK then Exit;              // le hameau est plein : on bâtira ailleurs
+    C.Energy := C.Energy - 26;
+    C.BuildCd := 9;
+    H := THut.Create;
+    H.X := NX; H.Y := NY;
+    H.Fire := False; H.Cult := False; H.Stock := 0;
+    H.Ville := nil;
+    Huts.Add(H);
+    Exit;
+  end;
+  // le pionnier : loin de tout hameau (> HAMEAU_DIST), il fonde un îlot neuf
   C.Energy := C.Energy - 26;
   C.BuildCd := 9;
   H := THut.Create;
@@ -716,7 +747,6 @@ begin
   H.Ville := nil;
   Huts.Add(H);
 end;
-
 function TechDispo(C: TCreature; Idx: Integer): Boolean;
 var i, d: Integer;
 begin

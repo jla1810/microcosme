@@ -236,20 +236,6 @@ begin
         SpawnCreature(1, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
     end;
     X := GW / 2;
-    Y := GH / 2;
-    for I := 1 to 25 do
-      if Walkable(X, Y) and (TerrType[CellIdx(X, Y)] >= T_GRASS) then
-        Break
-      else
-      begin
-        X := Random(GW);
-        Y := Random(GH)
-      end;
-    for I := 1 to 6 do
-      SpawnCreature(2, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
-    FHomeX := X;
-    FHomeY := Y;
-    FHomeSet := True;
     ResetChron;
     ChronAdd(CK_PEOPLE, L(105));
     FZoom := 1;
