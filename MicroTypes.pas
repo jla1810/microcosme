@@ -199,14 +199,13 @@ const
   GH = 250;
   NC = GW * GH;
   TAU = 2 * PI;
-  CDAY: Single = 40;
   MAXP = 16800; MAXH = 600; MAXC = 160; MAXS = 64;
-  MAXDOG = 12;
-  MAXO = 6;    // ★Faune : ours (rare, indomptable)
-  MAXM = 60;   // ★Faune : moutons (prolifiques)
+
+
+
   MAXFS = 680;
   MAXFD = 480;
-  HUTCAP = 84;
+
   NIN = 34; NHID = 9; NHID2 = 9; NOUT = 10;
   IDX_H1B = NIN * NHID;
   IDX_H2 = IDX_H1B + NHID;
@@ -231,7 +230,7 @@ const
   CGS = 8;
   CGWC = (GW + CGS - 1) div CGS;
   CGHC = (GH + CGS - 1) div CGS;
-  CHILDHOOD = 10;
+
   BRH = 220;
   T_DEEP = 0; T_SHAL = 1; T_SAND = 2; T_GRASS = 3; T_FOR = 4; T_ROCK = 5; T_SNOW = 6;
   TOOL_INSPECT = 0; TOOL_SEED = 1; TOOL_HERB = 2; TOOL_PRED = 3; TOOL_SAP = 4;
@@ -240,6 +239,34 @@ const
   BID_SAVE = 20; BID_LOAD = 21;
   BID_ERE  = 22;
   SVERSION = 15;
+
+  var
+  { ★v16 — réglages du monde : étaient des constantes, la fenêtre F2
+    (MicroConfig) les ajuste en direct. Valeurs = les anciennes. }
+  CDAY: Single = 40;
+  CHILDHOOD: Single = 10;
+  HUTCAP: Integer = 84;
+  MAXDOG: Integer = 12;
+  MAXO: Integer = 6;
+  MAXM: Integer = 60;
+  VILLE_SEUIL: Integer = 10;
+  VILLE_NIVEAU3: Integer = 18;
+  VILLE_NIVEAU4: Integer = 28;
+  VILLE_RAYON: Single = 14.0;
+  HAMEAU_DIST: Single = 12.0;
+  MIGR_DIST: Single = 60.0;
+  EXODE_2: Single = 0.04;
+  EXODE_3: Single = 0.08;
+  EXODE_4: Single = 0.14;
+  EXODE_5: Single = 0.20;
+  EXODE_6: Single = 0.28;
+  ROAD_DIST: Single = 200.0;
+  ROAD_CROISSANCE: Integer = 3;
+  ROUTE_MAX: Integer = 12;
+  CHEF_TECH: Single = 1.0;
+  CHEF_INNO: Single = 1.5;
+  CHEF_CULT: Single = 8.0;
+  CHEF_SAGE: Single = 3.0;
 
 const
   SYL: array[0..21] of string = ('ka','ro','mi','ta','lu','se','no','va','pi',

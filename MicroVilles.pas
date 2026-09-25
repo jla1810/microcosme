@@ -51,15 +51,6 @@ uses
   MicroChrono,  // ChronAdd, CK_PEOPLE
   MicroAudio;   // ★Phase C : la cloche du sacre
 
-const
-  VILLE_SEUIL   = 10;    // huttes pour fonder (naît bourg, niveau 2)
-  VILLE_NIVEAU3 = 18;    // ville
-  VILLE_NIVEAU4 = 28;    // cité
-  VILLE_RAYON   = 14.0;
-  ROAD_DIST       = 200.0;  // distance max ville-ville pour fonder une route
-  ROAD_CROISSANCE = 3;     // cellules construites par jour
-  MIGR_DIST       = 60.0;  // ★Exode : au-delà, les pionniers restent aux frontières
-
 var
   VilleT: Single = 0;
   gCitadinDit: Boolean = False;   // ★Exode : annale « peuple citadin », une seule fois
@@ -334,11 +325,11 @@ var I, B: Integer;
 begin
   Result := 0;
   for I := Ord(Low(TTech)) to Ord(High(TTech)) do
-    if TTech(I) in C.Tech then Result := Result + 1;
+    if TTech(I) in C.Tech then Result := Result + CHEF_TECH;
   for B := 0 to 30 do
-    if ((C.InnoK shr B) and 1) <> 0 then Result := Result + 1.5;
-  Result := Result + C.Cult * 8;
-  Result := Result + Min(C.Age, 70) / 70 * 3;    // la sagesse des anciens
+    if ((C.InnoK shr B) and 1) <> 0 then Result := Result + CHEF_INNO;
+  Result := Result + C.Cult * CHEF_CULT;
+  Result := Result + Min(C.Age, 70) / 70 * CHEF_SAGE;   // la sagesse des anciens
 end;
 
 function EloireChef(V: TCity): Boolean;
@@ -804,14 +795,6 @@ uses
   MicroChrono,  // ChronAdd, CK_PEOPLE
   MicroAudio;   // ★Phase C : la cloche du sacre
 
-const
-  VILLE_SEUIL   = 10;    // huttes pour fonder (naît bourg, niveau 2)
-  VILLE_NIVEAU3 = 18;    // ville
-  VILLE_NIVEAU4 = 28;    // cité
-  VILLE_RAYON   = 14.0;
-  ROAD_DIST       = 200.0;  // distance max ville-ville pour fonder une route
-  ROAD_CROISSANCE = 3;     // cellules construites par jour
-  MIGR_DIST       = 60.0;  // ★Exode : au-delà, les pionniers restent aux frontières
 
 var
   VilleT: Single = 0;
@@ -1004,11 +987,11 @@ var I, K, Nb: Integer;
 begin
   if Cities.Count = 0 then Exit;
   case EreCourante of           // l'urbanisation s'accélère avec les ères
-    2: Proba := 0.04;
-    3: Proba := 0.08;
-    4: Proba := 0.14;
-    5: Proba := 0.20;
-    6: Proba := 0.28;
+    2: Proba := EXODE_2;
+    3: Proba := EXODE_3;
+    4: Proba := EXODE_4;
+    5: Proba := EXODE_5;
+    6: Proba := EXODE_6;
   else Exit;                    // ère 1 : le monde est encore dispersé
   end;
   Nb := 0;
@@ -1296,7 +1279,7 @@ begin
     end;
   end;
 
-  if Roads.Count >= 12 then Exit;
+  if Roads.Count >= ROUTE_MAX then Exit;
 
   // 1) croissance : chaque route existante avance de ROAD_CROISSANCE cases
   for I := 0 to Roads.Count - 1 do begin

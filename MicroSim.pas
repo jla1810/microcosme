@@ -680,8 +680,7 @@ begin
 end;
 
 procedure TryBuild(C: TCreature);
-const
-  HAMEAU_DIST = 12.0;   // ★Hameau : la portée du déjà-bâti (greffer si ≤)
+
 var H: THut;
    K, J: Integer;
    R2: Single;
@@ -712,24 +711,25 @@ begin
       Exit;
     end;
   end;
-  // ★Hameau — le déjà-bâti attire : greffer à la hutte la plus proche.
-  // Le sapiens qui bâtit près d'un hameau L'AGRANDIT (la grappe protège) ;
-  // loin de tout, il fonde un NOUVEL îlot. Fini le hasard qui regroupe.
+  // ★Hameau — le déjà-bâti attire : greffer à la hutte la plus proche,
+  // en spirale d'or (comme PlaceHutInVille — PAS de garde de distance
+  // entre huttes : une grappe serrée, c'est le but ; seul l'anti-
+  // chevauchement graphique reste, à 1.2).
   HM := NearestHut(C.X, C.Y, HAMEAU_DIST);
   if HM <> nil then begin
-    OK := False;                                     // la mini-spirale de greffe :
-    for J := 0 to 9 do begin                         // trouver la place AVANT de payer
+    OK := False;                                     // trouver la place AVANT de payer
+    for J := 0 to 11 do begin
       NA := J * 2.399963 + Random * 0.7;
-      NR := 2.2 + 0.25 * Sqrt(J) + Random * 0.5;
+      NR := 1.6 + 0.30 * Sqrt(J) + Random * 0.4;     // 1.6 → ~2.8 cases
       NX := HM.X + Cos(NA) * NR;
       NY := HM.Y + Sin(NA) * NR;
       if Walkable(NX, NY) and (TerrType[CellIdx(NX, NY)] <= T_FOR) and
-         (NearestHutDist(NX, NY) >= 2.0) then begin
+         (NearestHutDist(NX, NY) >= 1.2) then begin
         OK := True;
         Break;
       end;
     end;
-    if not OK then Exit;              // le hameau est plein : on bâtira ailleurs
+    if not OK then Exit;              // le hameau est cerné : on bâtira plus tard
     C.Energy := C.Energy - 26;
     C.BuildCd := 9;
     H := THut.Create;
@@ -1037,8 +1037,24 @@ begin
     end;
   end;
 
-  C.GuardC := nil;
+    C.GuardC := nil;
   if tPast in C.Tech then begin
+    // ★Garde du hameau : le prédateur en chasse près des huttes est à moi
+    // (si je ne garde pas déjà le troupeau). Le corps du hameau se défend.
+    if (C.GuardC = nil) and (C.Age > CHILDHOOD) and
+       (NearestHutDist(C.X, C.Y) < 9) then begin
+      CollectNear(C.X, C.Y, C.Se * 1.2);
+      for OM in NB do begin
+        if (not OM.Alive) or ((OM.Kind <> 1) and (OM.Kind <> 4)) then Continue;
+        if (OM.TargetC = nil) and (OM.TargetP = nil) then Continue;  // pas en chasse
+        if Sqr(OM.X - C.X) + Sqr(OM.Y - C.Y) > Sqr(C.Se * 1.2) then Continue;
+        if NearestHutDist(OM.X, OM.Y) < 9 then begin
+          C.GuardC := OM;
+          ChronAdd(CK_PEOPLE, Format(L(175), [C.Name]));
+          Break;
+        end;
+      end;
+    end;
     CollectNear(C.X, C.Y, 11);
     for OM in NB do
            if OM.Alive and ((OM.Kind = 1) or (OM.Kind = 4)) and (OM.TargetC <> nil) and

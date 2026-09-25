@@ -22,7 +22,7 @@ var
 implementation
 
 const
-  FR: array[0..174] of string = (
+  FR: array[0..175] of string = (
     'Observer le monde',            // 0
     'l''île s''éveille…',           // 1
     'nouveau monde',                // 2
@@ -190,17 +190,18 @@ const
     'bourg' ,                             //164
     'ville',                              //165
     'cité',                               //166
-    'Fiche de %s' ,
-    'Rang : %s',
-    'Fondée il y a %d jours',
-    'Foyers : %d' ,
-    'Habitants : %d' ,
-    'Routes : %d'  ,
-    'Chef : %s',
-    'Aucun'
+    'Fiche de %s' ,                       //167
+    'Rang : %s',                          //168
+    'Fondée il y a %d jours',             //169
+    'Foyers : %d' ,                       //170
+    'Habitants : %d' ,                    //171
+    'Routes : %d'  ,                      //172
+    'Chef : %s',                          //173
+    'Aucun',                              //1744
+    '%s défend le hameau'                 //175
   );
 
-  EN: array[0..163] of string = (
+  EN: array[0..175] of string = (
     'Observe the world',            // 0       00000
     'the island awakens…',          // 1
     'new world',                    // 2
@@ -364,7 +365,19 @@ const
     '%s is elected chief of %s',          // 160
     '%s succeeds %s as chief of %s',       // 161
     'sheep',                              // 162
-    'bears'                              // 163
+    'bears',                              // 163
+    'bourg' ,                             //164
+    'ville',                              //165
+    'cité',                               //166
+    'Fiche de %s' ,                       //167
+    'Rang : %s',                          //168
+    'Fondée il y a %d jours',             //169
+    'Foyers : %d' ,                       //170
+    'Habitants : %d' ,                    //171
+    'Routes : %d'  ,                      //172
+    'Chef : %s',                          //173
+    'Aucun',                              //1744
+    '%s défend le hameau'                 //175
      );
 
 

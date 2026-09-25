@@ -374,14 +374,7 @@ begin
           BID_HELP:
             HelpToggle;
           BID_CFGSHOW:
-            begin
-              FCfgShow := not FCfgShow;
-              if FCfgShow then
-                FPanelScroll := MaxInt
-              else
-                FPanelScroll := 0;
-              SaveCfg
-            end;
+            OuvreReglages;      // ★v16 : la fenêtre à onglets
           BID_CFGDEF:
             begin
               ResetCfg;
@@ -498,16 +491,7 @@ begin
     Invalidate;
   end;
   if Key = VK_F2 then
-  begin
-    FCfgShow := not FCfgShow;
-    if FCfgShow then
-      FPanelScroll := MaxInt
-    else
-      FPanelScroll := 0;
-    SaveCfg;
-    Invalidate;
-    Key := 0;
-  end;
+    OuvreReglages;
   if Key = VK_F3 then
   begin
     if FSelected <> nil then
