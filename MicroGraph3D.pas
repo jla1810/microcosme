@@ -27,7 +27,9 @@ implementation
 
 uses
   MicroVilles,   // ★S3 : SurRoute (la route au sol)
-  MicroLang;     // ★S6b : L() pour reconnaître les états de métier
+  MicroLang ,    // ★S6b : L() pour reconnaître les états de métier
+  MicroEre;      // ★v17 : PeopleHas (la nuit devient jour, les cheminées)
+
 
 const
   VK_LEFT   = $25;   // ★S5 : constantes clavier en local — Winapi.Windows
@@ -614,6 +616,19 @@ var
                  PutPix(PX, PY, 255, 205, 100);     // l'étincelle
                end;
              end;
+                          if PeopleHas(teUsines) and (Hh.Ville <> nil) then begin
+               // ★ère 7 : les cheminées fumantes des villes-usines
+               YT := Trunc(Bbs[K].Pied - Bbs[K].Haut);
+               for J := 1 to 6 do begin
+                 PX := Trunc(Bbs[K].SX) + Trunc(Bruit(Bbs[K].Sem + J * 13,
+                          Trunc(GTime * 1.5)) * 5) - 2;
+                 PY := YT - 1 - J * 2;
+                 VB := (0.55 + 0.3 * Bruit(J * 3.1 + Bbs[K].Sem, GTime * 0.7)) *
+                       (1 - J / 9) * (1 - FM);
+                 PutPix(PX, PY, 118 * VB + hr * FM, 116 * VB + hg * FM,
+                        114 * VB + hb * FM);
+               end;
+             end;
            end;
 
         2: begin                                     // ★S6/S8 la créature articulée
@@ -895,6 +910,8 @@ begin
   GTime := GTime + 0.04;
   if GTime > 6283 then GTime := 0;
   Day := 0.28 + 0.72 * FDayLight;
+  if PeopleHas(teElectricite) then        // ★ère 8 : la nuit devient jour
+  Day := Max(Day, 0.62);
   PlaneLen := Tan(FOV / 2);
   Foc := (RES_W * 0.5) / PlaneLen;
   DirA := S.Angle;

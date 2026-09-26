@@ -185,7 +185,7 @@ type
   end;
 
 const
-  TECH_COUNT = 47;
+  TECH_COUNT = 63;
 
 function  TechBits(const T: TTechs): UInt64;
 procedure BitsToTech(M: UInt64; out T: TTechs);
@@ -260,6 +260,7 @@ const
   EXODE_4: Single = 0.14;
   EXODE_5: Single = 0.20;
   EXODE_6: Single = 0.28;
+  EXODE_7: Single = 0.35;   // ★ère 7-8 : l'industrialisation vide la campag
   ROAD_DIST: Single = 200.0;
   ROAD_CROISSANCE: Integer = 3;
   ROUTE_MAX: Integer = 12;
@@ -429,6 +430,25 @@ begin
   AddTech(teBanque,      6, 'Banque',                12, -1, efAucun, 0.00009, 'l''argent prête et voyage');
   AddTech(teMethode,     6, 'Méthode',               18, -1, efAucun, 0.00009, 'observer, mesurer, recommencer');
   AddTech(teHumanites,   6, 'Humanités',              6, -1, efAucun, 0.00009, 'l''humain au centre des textes');
+    // ★v17 — ère 7 Révolution industrielle (47..54)
+  AddTech(teVapeur,      7, 'Machine à vapeur',  31, -1, efAucun, 0.00008, 'le feu qui pousse les pistons');
+  AddTech(teTelegraphe,  7, 'Télégraphe',         47, -1, efAucun, 0.00008, 'les mots filent sur les fils');
+  AddTech(teEngrais,     7, 'Engrais',            35, -1, efAucun, 0.00008, 'la terre rendue plus riche');
+  AddTech(teVaccination, 7, 'Vaccination',        37, -1, efAucun, 0.00008, 'la variole domptée');
+  AddTech(teGaz,         7, 'Gaz',                47, -1, efAucun, 0.00008, 'les rues éclairées au gaz');
+  AddTech(teUsines,      7, 'Usines',             47, -1, efAucun, 0.00008, 'la machine remplace la main');
+  AddTech(teFerroviaire, 7, 'Chemin de fer',      47, 32, efAucun, 0.00008, 'des trains entre les villes');
+  AddTech(teHygPub,      7, 'Hygiène publique',   29, -1, efAucun, 0.00008, 'l''eau propre pour tous');
+  // ★v17 — ère 8 Ère moderne (55..62)
+  AddTech(teElectricite, 8, 'Électricité',        48, -1, efAucun, 0.00007, 'la foudre apprivoisée');
+  AddTech(teAntibios,    8, 'Antibiotiques',      50, -1, efAucun, 0.00007, 'les microbes vaincus');
+  AddTech(teInformatique,8, 'Informatique',       55, -1, efAucun, 0.00007, 'les machines qui comptent');
+  AddTech(teInternet,    8, 'Internet',           57, 48, efAucun, 0.00007, 'le monde en un fil');
+  AddTech(teAgro,        8, 'Agro-industrie',     49, -1, efAucun, 0.00007, 'la terre nourrit tous');
+  AddTech(teEcoleTous,   8, 'École pour tous',    22, 39, efAucun, 0.00007, 'le savoir pour chaque enfant');
+  AddTech(teMedMod,      8, 'Médecine moderne',   56, -1, efAucun, 0.00007, 'vivre cent ans');
+  AddTech(teEcologie,    8, 'Écologie',           59, -1, efAucun, 0.00007, 'la terre aussi est vivante');
+
 end;
 
 initialization

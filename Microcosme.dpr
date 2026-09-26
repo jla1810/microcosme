@@ -21,14 +21,15 @@ uses
   MicroLang in 'MicroLang.pas',
   MicroSim in 'MicroSim.pas',
   MicroVilles in 'MicroVilles.pas',
-  MicrocityWin in 'MicrocityWin.pas';
+  MicrocityWin in 'MicrocityWin.pas',
+  MicroInfoWin in 'MicroInfoWin.pas';
 
 {$R *.res}
 
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.Title := 'Microcosme v ';
+  Application.Title := 'Microcosme v 0.16beta';
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

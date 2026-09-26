@@ -15,7 +15,9 @@ procedure OpenInfoWindow;
 
 implementation
 
-uses MicroChrono;
+{$OVERFLOWCHECKS OFF}{$RANGECHECKS OFF}
+
+uses MicroChrono, MicroLang;
 
 type
   TInfoForm = class(TForm)
@@ -140,11 +142,11 @@ begin
     C.TextOut(20, Y, Sp.Name);
     Inc(Y, 28);
     case Sp.Kind of
-      0: KindS := 'herbivore';
-      1: KindS := 'prédateur';
+      0: KindS := L(21);
+      1: KindS := L(22);
     else KindS := 'sapien';
     end;
-    S := Format('%s · gén. %d · %s', [KindS, Sp.Gen, Sp.State]);
+        S := Format('%s · gén. %d · %s', [KindS, Sp.Gen, Sp.State]);
     if Sp.Kind = 2 then S := S + Format(' · mutations %.2f×', [Sp.MutRate]);
     Ligne(S, Col(139, 138, 116));
     Inc(Y, 6);

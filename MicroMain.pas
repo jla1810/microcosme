@@ -235,7 +235,15 @@ begin
       for I := 1 to 3 do
         SpawnCreature(1, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
     end;
-    X := GW / 2;
+    for G := 1 to 2 do             // ★faune : 2 clans de 5 moutons
+    begin
+      X := Random(GW);
+      Y := Random(GH);
+      for I := 1 to 5 do
+        SpawnCreature(5, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
+    end;
+    for G := 1 to 3 do             // ★faune : 3 ours solitaires
+      SpawnCreature(4, Random(GW), Random(GH), nil, nil, 0);
     ResetChron;
     ChronAdd(CK_PEOPLE, L(105));
     FZoom := 1;

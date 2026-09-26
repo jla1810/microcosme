@@ -242,7 +242,14 @@ begin
   DeathLog[k].Day := DayCount;
   DeathLog[k].Gen := C.Gen;
   DeathLog[k].ParentId := C.ParentId;
-  case C.Kind of 0: Dec(CountH); 1: Dec(CountP); 2: Dec(CountS); 3: Dec(CountD) end;
+    case C.Kind of
+    0: Dec(CountH);
+    1: Dec(CountP);
+    2: Dec(CountS);
+    3: Dec(CountD);
+    4: Dec(CountO);   // ★fix : les ours meurent aussi (garde du hameau, vieillesse)
+    5: Dec(CountM);   // ★fix : les moutons aussi (prédation)
+  end;
   if C.Kind = 2 then
     ChronAdd(CK_LIFE, Format(L(98), [C.Name, Cause, Trunc(C.Age)]));
   if (Cause <> L(101)) and (Cause <> L(102)) and

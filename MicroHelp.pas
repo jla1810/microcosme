@@ -132,6 +132,7 @@ begin
   LT('Les sons du monde', 6, 10);
   LT('Jouer et expérimenter', 1);
   LT('Les outils', 6, 3);
+  LT('Les réglages du monde (F2)', 6, 22);
   LT('Expériences et défis', 6, 12);
   LT('Questions fréquentes', 6, 16);
   LT('les pages « essayer » agissent sur la vraie simulation.', 2);
@@ -453,8 +454,8 @@ begin
   LT('pause / lecture. Premier appui : démarre le monde.');
   LT('');
   LT('F2', 1);
-  LT('réglages : ouvre/ferme les molettes de rythme du monde');
-  LT('(feu, agriculture, immigration, mémoire du peuple…).');
+ LT('réglages : la fenêtre des réglages du monde — quatre onglets,');
+  LT('trente-sept paramètres (voir la page des réglages).', 6, 22);
   LT('');
   LT('F3', 1);
   LT('fiche : ouvre la fenêtre détaillée du spécimen sélectionné.');
@@ -791,6 +792,44 @@ begin
   LT('circulent mieux.', 3);
   LT('Un anneau de routes reliant plusieurs villes : le signe d''un monde', 2);
   LT('qui se tient.', 2);
+
+
+  // ============================================================ 22. RÉGLAGES
+  P('Les réglages du monde');
+  LT('F2 — ou le bouton « réglages » du carnet — ouvre la fenêtre :');
+  LT('quatre onglets, trente-sept paramètres, et le monde obéit au');
+  LT('tic suivant. Tout est sauvé dans microcosme.ini.', 2);
+  LT('');
+  LT('Découvertes', 1);
+  LT('· les molettes feu, agriculture, réserves, pastoralisme, pêche,');
+  LT('  navigation, écriture : la chance qu''elles soient inventées ;');
+  LT('· intervalle : les jours entre deux inventions mineures ;');
+  LT('· diffusion : la vitesse du savoir entre voisins ;');
+  LT('· mémoire peuple : la bibliothèque vivante du camp ;');
+  LT('· mutations × : le tempo de l''évolution ;');
+  LT('· immigrants : les sapiens qui rejoignent le monde par vague ;');
+  LT('· ère auto : le passage d''ère par le bouton doré ou tout seul.');
+  LT('');
+  LT('Le monde', 1);
+  LT('· durée du jour : le rythme des journées et des saisons ;');
+  LT('· plafond huttes, chiens, ours, moutons : ce que l''île porte.');
+  LT('');
+  LT('Villes & routes', 1);
+  LT('· seuil bourg / ville / cité : les foyers qu''il faut ;');
+  LT('· rayon de ville : l''emprise du rattachement ;');
+  LT('· hameau : la portée du déjà-bâti — le déjà-bâti attire ;');
+  LT('· exode : distance et probabilités, ère par ère ;');
+  LT('· routes : portée, vitesse de pousse, plafond.');
+  LT('');
+  LT('Le chef', 1);
+  LT('· techs, inventions, culture, sagesse : le poids de chaque savoir');
+  LT('  dans l''élection ;');
+  LT('· majorité : l''âge où l''on peut être élu.');
+  LT('');
+  LT('Chaque [-] [+] agit EN DIRECT — baissez le seuil du bourg, et les');
+  LT('hameaux deviennent villages dès le lendemain. « Tout par défaut »', 3);
+  LT('rend au monde ses valeurs d''origine.', 3);
+
 end;
   procedure HelpBuildEN;
 begin
