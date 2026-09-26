@@ -242,8 +242,25 @@ begin
       for I := 1 to 5 do
         SpawnCreature(5, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
     end;
-    for G := 1 to 3 do             // ★faune : 3 ours solitaires
+        for G := 1 to 3 do             // ★faune : 3 ours solitaires
       SpawnCreature(4, Random(GW), Random(GH), nil, nil, 0);
+    // ★fondateurs : 5 clans de 5 sapiens ; le clan 1, au centre, fixe le foyer
+    for G := 1 to 5 do
+    begin
+      if G = 1 then
+      begin
+        X := GW / 2;
+        Y := GH / 2;
+        FHomeX := X;
+        FHomeY := Y;
+      end
+      else begin
+        X := Random(GW);
+        Y := Random(GH);
+      end;
+      for I := 1 to 5 do
+        SpawnCreature(2, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
+    end;
     ResetChron;
     ChronAdd(CK_PEOPLE, L(105));
     FZoom := 1;

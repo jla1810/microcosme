@@ -17,6 +17,8 @@
 
 interface
 
+{$OVERFLOWCHECKS OFF}{$RANGECHECKS OFF}
+
 uses
   System.SysUtils, System.Math, System.Types, System.Classes,
   System.Generics.Collections, Vcl.Graphics,
@@ -429,13 +431,82 @@ end;
 
 { ★FIX4 — BFS terrestre 8-connexe : plus court chemin garanti s'il existe,
   tableau VIDE si la cible est inatteignable (île). }
+{ ★SERPENT — chemin à coût bruité : chaque case tire un prix déterministe
+  (bruit lissé, même famille que le grain du sol 3D) ; la route contourne
+  les cases chères et serpente comme un sentier piétiné. Mêmes garanties
+  que l'ancien BFS : 100% terrestre, chemin garanti s'il existe, tableau
+  VIDE si l'île est inatteignable. Signature inchangée. }
 function CheminRoute(x1, y1, x2, y2: Integer): TArray<TPoint>;
 const
+  SERP = 6;   // amplitude du serpentement : 0 = ancienne ligne droite
   DX8: array[0..7] of Integer = (-1, 0, 1, -1, 1, -1, 0, 1);
   DY8: array[0..7] of Integer = (-1, -1, -1, 0, 0, 1, 1, 1);
 var
-  Prev, Queue: TArray<Integer>;
-  QH, QT, K, N, Start, Goal, Cur, Idx, NX, NY: Integer;
+  Dist, Prev, Heap, HDist: TArray<Integer>;
+  HN, Start, Goal, Cur, Idx, NX, NY, K, N, CD, ND: Integer;
+
+  function Bruit(IX, IY: Integer): Integer;    // déterministe, 0..$FFFFFF
+  begin
+    Result := ((IX * 73856093) xor (IY * 19349663)) and $FFFFFF;
+  end;
+
+  function ValNoise(X, Y: Integer): Single;    // bruit lissé 0..1 (pas 8)
+  const
+    PAS = 8.0;
+  var
+    FX, FY, FX2, FY2, A, B, C, D: Single;
+    IX, IY: Integer;
+  begin
+    FX := X / PAS; FY := Y / PAS;
+    IX := Trunc(FX); IY := Trunc(FY);
+    FX := FX - IX; FY := FY - IY;
+    FX2 := FX * FX * (3 - 2 * FX);
+    FY2 := FY * FY * (3 - 2 * FY);
+    A := Bruit(IX, IY) / $1000000;
+    B := Bruit(IX + 1, IY) / $1000000;
+    C := Bruit(IX, IY + 1) / $1000000;
+    D := Bruit(IX + 1, IY + 1) / $1000000;
+    Result := (A + (B - A) * FX2) * (1 - FY2) + (C + (D - C) * FX2) * FY2;
+  end;
+
+  procedure HPush(I, D: Integer);              // tas binaire min sur D
+  var
+    C, P, T: Integer;
+  begin
+    if HN >= Length(Heap) then begin
+      SetLength(Heap, Length(Heap) * 2);
+      SetLength(HDist, Length(HDist) * 2);
+    end;
+    Heap[HN] := I; HDist[HN] := D;
+    C := HN; Inc(HN);
+    while C > 0 do begin
+      P := (C - 1) div 2;
+      if HDist[P] <= HDist[C] then Break;
+      T := Heap[P]; Heap[P] := Heap[C]; Heap[C] := T;
+      T := HDist[P]; HDist[P] := HDist[C]; HDist[C] := T;
+      C := P;
+    end;
+  end;
+
+  procedure ExtractMin(var I, D: Integer);
+  var
+    C, L, R, M, T: Integer;
+  begin
+    I := Heap[0]; D := HDist[0];
+    Dec(HN);
+    Heap[0] := Heap[HN]; HDist[0] := HDist[HN];
+    C := 0;
+    while True do begin
+      L := 2 * C + 1; R := L + 1; M := C;
+      if (L < HN) and (HDist[L] < HDist[M]) then M := L;
+      if (R < HN) and (HDist[R] < HDist[M]) then M := R;
+      if M = C then Break;
+      T := Heap[M]; Heap[M] := Heap[C]; Heap[C] := T;
+      T := HDist[M]; HDist[M] := HDist[C]; HDist[C] := T;
+      C := M;
+    end;
+  end;
+
 begin
   SetLength(Result, 0);
   if (x1 < 0) or (x1 >= GW) or (y1 < 0) or (y1 >= GH) or
@@ -444,38 +515,42 @@ begin
   Start := y1 * GW + x1;
   Goal  := y2 * GW + x2;
 
-  // Prev : -2 = pas visité, -1 = départ, sinon l'index de la case d'où l'on vient
-  SetLength(Prev, NC);
-  for Idx := 0 to NC - 1 do Prev[Idx] := -2;
-  SetLength(Queue, NC);
-  QH := 0; QT := 0;
-  Prev[Start] := -1;
-  Queue[QT] := Start; Inc(QT);
+  SetLength(Dist, NC);  SetLength(Prev, NC);
+  for Idx := 0 to NC - 1 do begin Dist[Idx] := MaxInt; Prev[Idx] := -2 end;
+  SetLength(Heap, NC * 4); SetLength(HDist, NC * 4); HN := 0;
 
-  while QH < QT do begin
-    Cur := Queue[QH]; Inc(QH);
+  Dist[Start] := 0; Prev[Start] := -1;
+  HPush(Start, 0);
+
+  while HN > 0 do begin
+    ExtractMin(Cur, CD);
+    if CD > Dist[Cur] then Continue;           // entrée périmée
     if Cur = Goal then Break;
     for K := 0 to 7 do begin
       NX := (Cur mod GW) + DX8[K];
       NY := (Cur div GW) + DY8[K];
       if (NX < 0) or (NX >= GW) or (NY < 0) or (NY >= GH) then Continue;
       Idx := NY * GW + NX;
-      if (Prev[Idx] <> -2) or (TerrType[Idx] < T_SAND) then Continue;  // pas d'eau
-      Prev[Idx] := Cur;
-      Queue[QT] := Idx; Inc(QT);
+      if TerrType[Idx] < T_SAND then Continue; // pas d'eau, comme avant
+      ND := Dist[Cur] + 1 + Round(SERP * ValNoise(NX, NY));
+      if ND < Dist[Idx] then begin
+        Dist[Idx] := ND;
+        Prev[Idx] := Cur;
+        HPush(Idx, ND);
+      end;
     end;
   end;
 
-  if Prev[Goal] = -2 then Exit;                 // inatteignable → pas de route
+  if Prev[Goal] = -2 then Exit;  // île inatteignable : tableau vide (comme avant)
 
-  // remontée Goal → Start, puis écriture à l'endroit
   N := 0; Cur := Goal;
   while Cur <> -1 do begin Inc(N); Cur := Prev[Cur] end;
   SetLength(Result, N);
   Cur := Goal;
-  for Idx := N - 1 downto 0 do begin
-    Result[Idx].X := Cur mod GW;
-    Result[Idx].Y := Cur div GW;
+  while N > 0 do begin
+    Dec(N);
+    Result[N].X := Cur mod GW;
+    Result[N].Y := Cur div GW;
     Cur := Prev[Cur];
   end;
 end;
