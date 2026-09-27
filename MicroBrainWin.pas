@@ -18,10 +18,13 @@ type
     procedure BrainPaint(Sender: TObject);
     procedure BrainTimer(Sender: TObject);
     procedure BrainClose(Sender: TObject; var Action: TCloseAction);
+    procedure BrainDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
   end;
 
 var
   BW: TBrainForm = nil;
+  MindMode: Boolean = False;
 
 procedure OpenBrainWindow;
 var T: TTimer;
@@ -39,6 +42,7 @@ begin
     DoubleBuffered := True;
     OnPaint := BrainPaint;
     OnClose := BrainClose;
+    OnMouseDown := BrainDown;
   end;
   T := TTimer.Create(BW);
   T.Interval := 150;
@@ -57,6 +61,12 @@ begin
   BW := nil;
 end;
 
+procedure TBrainForm.BrainDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  MindMode := not MindMode;
+end;
+
 procedure TBrainForm.BrainPaint(Sender: TObject);
 begin
   FSimCS.Enter;
@@ -65,7 +75,17 @@ begin
       Caption := 'Microcosme — cerveau de ' + FSelected.Name
     else
       Caption := 'Microcosme — cerveau';
-    DrawBrainBig(Canvas, ClientWidth, ClientHeight);
+    try
+      if MindMode then
+        DrawMind(Canvas, ClientWidth, ClientHeight)      // filet conv. 11
+      else
+        DrawBrainBig(Canvas, ClientWidth, ClientHeight);
+    except
+      on E: Exception do begin
+        Toast('CRASH esprit: ' + E.Message);
+        MindMode := False;
+      end;
+    end;
   finally
     FSimCS.Leave;
   end;

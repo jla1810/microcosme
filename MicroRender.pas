@@ -29,6 +29,7 @@ procedure DrawPanel(C: TCanvas; H: Integer);
 procedure AddBtn(const R: TRect; const Cap: string; Id: Integer;
   Active: Boolean);
 procedure DrawBrainBig(C: TCanvas; W, H: Integer);
+procedure DrawMind(C: TCanvas; W, H: Integer);
 procedure DrawObservatoire(C: TCanvas; W, H: Integer);
 procedure SetRelief(AOn: Boolean);
 function ReliefOn: Boolean;
@@ -960,7 +961,6 @@ begin
     'RÉSEAU NEURONAL · 34 → 9 → 9 → 10 · PENSÉE, MÉMOIRE & LANGAGE');
 end;
 
-procedure DrawBrainBig(C: TCanvas; W, H: Integer);
 const
   INLBL: array [0 .. 33] of string = ('biais', 'énergie', 'lumière', 'nour.x',
     'nour.y', 'nour.d', 'pair.x', 'pair.y', 'pair.d', 'préd.x', 'préd.y',
@@ -969,6 +969,9 @@ const
     'r.rep', 'r.cha', 'r.α', 'r.β', 'r.γ', 'r.δ', 'biais2');
   OUTLBL: array [0 .. 9] of string = ('tourner', 'vitesse', 'BÂTIR', 'reprod',
     'chasse', 'α', 'β', 'γ', 'δ', 'REPOS');
+
+procedure DrawBrainBig(C: TCanvas; W, H: Integer);
+
 var
   I, J, K, O, XIn, XH1, XH2, XOut, Y1, Y2: Integer;
   Wv, A: Single;
@@ -1164,6 +1167,151 @@ begin
 
   C.Font.Color := Col(100, 105, 88);
   C.TextOut(20, H - 30, L(76)); // ★i18n légende
+end;
+
+{ ★MODE ESPRIT — ce que « pense » le sapiens, en clair :
+  perception, humeur (couche 2), intentions, et les 3 contributions
+  dominantes de sa décision la plus forte (poids × activation). }
+procedure DrawMind(C: TCanvas; W, H: Integer);
+const
+  DIRS: array[0..7] of string = ('E', 'SE', 'S', 'SO', 'O', 'NO', 'N', 'NE');
+var
+  I, K, O, P, J, Y, X, YC, BH, B, BestO: Integer;
+  S: string;
+  A, BV: Single;
+  OrdO: array[0..NOUT - 1] of Integer;
+  PC: array[0..NIN + NHID2 - 1] of Single;
+  Pris: array[0..NIN + NHID2 - 1] of Boolean;
+
+  procedure Titre(const TT: string);
+  begin
+    C.Font.Name := 'Segoe UI'; C.Font.Size := 8; C.Font.Style := [];
+    C.Font.Color := Col(139, 138, 116); C.Brush.Style := bsClear;
+    C.TextOut(20, Y, AnsiUpperCase(TT)); Inc(Y, 16);
+  end;
+
+  procedure Ligne(const LL: string; Clr2: TColor);
+  begin
+    C.Font.Name := 'Segoe UI'; C.Font.Size := 9; C.Font.Style := [];
+    C.Brush.Style := bsClear; C.Font.Color := Clr2;
+    C.TextOut(28, Y, LL); Inc(Y, 15);
+  end;
+
+begin
+  C.Brush.Style := bsSolid; C.Pen.Style := psClear;
+  C.Brush.Color := Col(17, 21, 15);
+  C.FillRect(Rect(0, 0, W, H));
+  if (FSelected = nil) or (FSelected.Kind <> 2) or (Length(FSelected.Net) < NW) then
+  begin
+    C.Font.Name := 'Segoe UI'; C.Font.Size := 11; C.Font.Style := [];
+    C.Brush.Style := bsClear; C.Font.Color := Col(139, 138, 116);
+    C.TextOut(24, 24, L(73));
+    Exit;
+  end;
+  Y := 16;
+  C.Font.Name := 'Georgia'; C.Font.Size := 14; C.Font.Style := [fsItalic, fsBold];
+  C.Font.Color := FSelected.HueCol; C.Brush.Style := bsClear;
+  C.TextOut(20, Y, FSelected.Name + ' — ' + FSelected.State);
+  Inc(Y, 26);
+
+  Titre('Il perçoit');
+  Ligne(Format('énergie %d%%', [Round(100 * FSelected.Energy / Max(1, FSelected.MaxE))]),
+        Col(230, 224, 205));
+  if Abs(FSelected.Inp[5]) > 0.01 then
+    Ligne(Format('nourriture  proximité %.2f (1 = sous le nez)', [Abs(FSelected.Inp[5])]),
+          Col(157, 187, 107))
+  else
+    Ligne('nourriture  aucune vue', Col(100, 105, 88));
+  if Abs(FSelected.Inp[11]) > 0.01 then
+    Ligne(Format('prédateur   proximité %.2f', [Abs(FSelected.Inp[11])]), Col(201, 106, 69))
+  else
+    Ligne('prédateur   aucun', Col(100, 105, 88));
+  Ligne(Format('congénère   proximité %.2f', [Abs(FSelected.Inp[8])]), Col(230, 224, 205));
+  S := 'mots entendus  ';
+  if (Abs(FSelected.Inp[12]) > 0.05) or (Abs(FSelected.Inp[13]) > 0.05) or
+     (Abs(FSelected.Inp[14]) > 0.05) or (Abs(FSelected.Inp[15]) > 0.05) then
+    for I := 12 to 15 do
+      if Abs(FSelected.Inp[I]) > 0.05 then S := S + ' ' + INLBL[I];
+  if S = 'mots entendus  ' then S := S + '—';
+  Ligne(S, Col(230, 224, 205));
+  B := -1; BV := -1; K := -1; A := -1;
+  for I := 0 to High(FSelected.Mem) do
+    if FSelected.Mem[I].K = 0 then begin
+      if 100 * (1 - FSelected.Mem[I].T / MEMLIFE) > BV then
+        BV := 100 * (1 - FSelected.Mem[I].T / MEMLIFE)
+    end else begin
+      if 100 * (1 - FSelected.Mem[I].T / MEMLIFE) > A then
+        A := 100 * (1 - FSelected.Mem[I].T / MEMLIFE)
+    end;
+  S := 'souvenirs   ';
+  if BV >= 0 then S := S + Format('danger (fraîche %d%%) ', [Round(BV)]);
+  if A >= 0 then S := S + Format('· nourriture (fraîche %d%%)', [Round(A)]);
+  if (BV < 0) and (A < 0) then S := S + '—';
+  Ligne(S, Col(230, 224, 205));
+  Inc(Y, 8);
+
+  Titre('Son humeur interne (couche 2 — sans nom, mais vivante)');
+  X := 28; YC := Y + 20;
+  for K := 0 to NHID2 - 1 do begin
+    A := FSelected.Hid2[K];
+    BH := Round(Abs(A) * 18);
+    if A >= 0 then
+      C.Brush.Color := AlphaColorBlend(Col(157, 187, 107), Col(30, 34, 27),
+        Trunc((0.2 + 0.8 * Abs(A)) * 255))
+    else
+      C.Brush.Color := AlphaColorBlend(Col(201, 106, 69), Col(30, 34, 27),
+        Trunc((0.2 + 0.8 * Abs(A)) * 255));
+    C.FillRect(Rect(X, YC - BH, X + 9, YC + BH));
+    X := X + 13;
+  end;
+  Y := YC + 26;
+
+  Titre('Il veut');
+  for O := 0 to NOUT - 1 do OrdO[O] := O;
+  for I := 0 to NOUT - 2 do
+    for K := I + 1 to NOUT - 1 do
+      if Abs(FSelected.Oo[OrdO[K]]) > Abs(FSelected.Oo[OrdO[I]]) then begin
+        J := OrdO[I]; OrdO[I] := OrdO[K]; OrdO[K] := J
+      end;
+  for I := 0 to 4 do begin
+    O := OrdO[I];
+    S := Format('%s : %+.2f', [OUTLBL[O], FSelected.Oo[O]]);
+    if (O >= 5) and (FSelected.Oo[O] > 0.25) then
+      Ligne(S, WORDCOL[O - 5])
+    else
+      Ligne(S, Col(230, 224, 205));
+  end;
+  if FSelected.Word >= 0 then
+    Ligne('cri en cours : « ' + FSelected.WordS + ' »', Col(240, 180, 95));
+  Inc(Y, 8);
+
+  // la décision la plus forte, et ce qui la porte (top 3 poids × activation)
+  BestO := -1; BV := 0;
+  for O := 0 to NOUT - 1 do
+    if Abs(FSelected.Oo[O]) > Abs(BV) then begin BV := FSelected.Oo[O]; BestO := O end;
+  if BestO >= 0 then begin
+    Titre('Pourquoi « ' + OUTLBL[BestO] + ' » ?');
+    for I := 0 to NIN - 1 do
+      PC[I] := FSelected.Net[IDX_SO + I * NOUT + BestO] * FSelected.Inp[I];
+    for K := 0 to NHID2 - 1 do
+      PC[NIN + K] := FSelected.Net[IDX_HO + K * NOUT + BestO] * FSelected.Hid2[K];
+    for I := 0 to NIN + NHID2 - 1 do Pris[I] := False;
+    for P := 1 to 3 do begin
+      B := -1; BV := 0;
+      for I := 0 to NIN + NHID2 - 1 do
+        if not Pris[I] and (Abs(PC[I]) > Abs(BV)) then begin BV := PC[I]; B := I end;
+      if B < 0 then Break;
+      Pris[B] := True;
+      if B < NIN then
+        S := Format('%d. direct · %s : %+.2f', [P, INLBL[B], BV])
+      else
+        S := Format('%d. interne #%d : %+.2f', [P, B - NIN + 1, BV]);
+      if BV >= 0 then Ligne(S, Col(157, 187, 107)) else Ligne(S, Col(201, 106, 69));
+    end;
+  end;
+
+  C.Font.Size := 8; C.Font.Color := Col(100, 105, 88); C.Brush.Style := bsClear;
+  C.TextOut(20, H - 24, 'clic : revenir au graphe des poids');
 end;
 
 { ★F7 — l'Observatoire : réseau neuronal en géant au centre, fiche du
