@@ -141,10 +141,12 @@ begin
     C.Brush.Style := bsClear;
     C.TextOut(20, Y, Sp.Name);
     Inc(Y, 28);
-    case Sp.Kind of
-      0: KindS := L(21);
-      1: KindS := L(22);
-    else KindS := 'sapien';
+        case Sp.Kind of
+      0: KindS := L(176);        // herbivore
+      1: KindS := L(177);        // prédateur
+      5: KindS := L(178);        // mouton (bug préexistant : affichait « sapiens »)
+      4: KindS := L(179);        // ours (idem)
+    else KindS := L(23);         // sapiens
     end;
         S := Format('%s · gén. %d · %s', [KindS, Sp.Gen, Sp.State]);
     if Sp.Kind = 2 then S := S + Format(' · mutations %.2f×', [Sp.MutRate]);

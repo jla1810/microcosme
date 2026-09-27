@@ -16,7 +16,7 @@ uses
 
 const
   CN = 13;                 { les paramètres historiques du panneau carnet }
-  CNALL = 37;              { tous les paramètres (0..36) }
+  CNALL = 38;              { tous les paramètres (0..36) }
   BID_CFGSHOW = 200;       { bouton "réglages" → ouvre la fenêtre }
   BID_CFGDEF  = 201;       { bouton "tout par défaut" }
   BID_CFGDEC  = 210;       { 210..210+CN-1 : boutons [-] du panneau }
@@ -54,7 +54,7 @@ implementation
 uses
   System.Math, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.ComCtrls, Vcl.StdCtrls,
-  MicroTypes;    // les variables du monde — AUCUN cycle possible
+  MicroTypes,MicroLang;    // les variables du monde — AUCUN cycle possible
 
 procedure Defaults;
 begin
@@ -73,7 +73,7 @@ begin
   VILLE_SEUIL := 10; VILLE_NIVEAU3 := 18; VILLE_NIVEAU4 := 28;
   VILLE_RAYON := 14.0; HAMEAU_DIST := 12.0; MIGR_DIST := 60.0;
   EXODE_2 := 0.04; EXODE_3 := 0.08; EXODE_4 := 0.14;
-  EXODE_5 := 0.20; EXODE_6 := 0.28;
+    EXODE_5 := 0.20; EXODE_6 := 0.28; EXODE_7 := 0.35;
   ROAD_DIST := 200.0; ROAD_CROISSANCE := 3; ROUTE_MAX := 12;
   CHEF_TECH := 1.0; CHEF_INNO := 1.5; CHEF_CULT := 8.0; CHEF_SAGE := 3.0;
 end;
@@ -100,6 +100,7 @@ begin
    31: Result := ROUTE_MAX;      32: Result := CHEF_TECH;
    33: Result := CHEF_INNO;      34: Result := CHEF_CULT;
    35: Result := CHEF_SAGE;      36: Result := CHILDHOOD;
+   37: Result := EXODE_7;
   else Result := 0;
   end;
 end;
@@ -126,6 +127,7 @@ begin
    31: ROUTE_MAX := Round(V);      32: CHEF_TECH := V;
    33: CHEF_INNO := V;     34: CHEF_CULT := V;
    35: CHEF_SAGE := V;     36: CHILDHOOD := V;
+   37: EXODE_7 := V;
   end;
 end;
 
@@ -140,7 +142,7 @@ begin
    14, 18, 19, 20: Result := 1;     // les seuils, le plafond de huttes
    15..17: Result := 1;             // les plafonds de faune
    21, 22, 23: Result := 1;         // rayon, hameau, exode (cases)
-   24..28: Result := 0.01;          // les probas d'exode
+   24..28,37: Result := 0.01;          // les probas d'exode
    29: Result := 10;                // la portée des routes
    30, 31: Result := 1;             // vitesse et plafond de routes
    32..35: Result := 0.5;           // les poids du chef
@@ -199,46 +201,7 @@ end;
 
 function CfgName(Idx: Integer): string;
 begin
-  case Idx of
-    0: Result := 'inv. feu';
-    1: Result := 'inv. agriculture';
-    2: Result := 'inv. réserves';
-    3: Result := 'inv. pastoralisme';
-    4: Result := 'inv. pêche';
-    5: Result := 'inv. navigation';
-    6: Result := 'inv. écriture';
-    7: Result := 'intervalle (jours)';
-    8: Result := 'diffusion';
-    9: Result := 'mémoire peuple';
-   10: Result := 'mutations ×';
-   11: Result := 'immigrants';
-   12: Result := 'ère auto';
-   13: Result := 'durée du jour (s)';
-   14: Result := 'plafond huttes';
-   15: Result := 'chiens max';
-   16: Result := 'ours max';
-   17: Result := 'moutons max';
-   18: Result := 'seuil bourg (foyers)';
-   19: Result := 'seuil ville';
-   20: Result := 'seuil cité';
-   21: Result := 'rayon de ville';
-   22: Result := 'hameau : portée';
-   23: Result := 'exode : distance';
-   24: Result := 'exode ère 2';
-   25: Result := 'exode ère 3';
-   26: Result := 'exode ère 4';
-   27: Result := 'exode ère 5';
-   28: Result := 'exode ère 6';
-   29: Result := 'routes : portée';
-   30: Result := 'routes : vitesse';
-   31: Result := 'routes : plafond';
-   32: Result := 'chef : techs ×';
-   33: Result := 'chef : inventions ×';
-   34: Result := 'chef : culture ×';
-   35: Result := 'chef : sagesse ×';
-   36: Result := 'majorité (âge)';
-  else Result := '?';
-  end;
+  Result := L(183 + Idx);
 end;
 
 function CfgText(Idx: Integer): string;
@@ -247,10 +210,10 @@ begin
     0..6: Result := Format('%.3f', [CfgGet(Idx)]);
     7, 11, 14, 15, 16, 17, 18, 19, 20, 30, 31, 36:
         Result := IntToStr(Round(CfgGet(Idx)));
-    8, 24..28: Result := Format('%.2f', [CfgGet(Idx)]);
-    9: if CfgGet(Idx) >= 0.5 then Result := 'oui' else Result := 'non';
+    8, 24..28,37: Result := Format('%.2f', [CfgGet(Idx)]);
+    9: if CfgGet(Idx) >= 0.5 then Result := L(225) else Result := L(226);
    10: Result := Format('%.2f ×', [CfgGet(Idx)]);
-   12: if CfgGet(Idx) >= 0.5 then Result := 'auto' else Result := 'manuel';
+   12: if CfgGet(Idx) >= 0.5 then Result := L(227) else Result := L(228);
    13: Result := Format('%.0f s', [CfgGet(Idx)]);
    21, 22, 23, 29: Result := Format('%.0f', [CfgGet(Idx)]);
    32..35: Result := Format('%.1f ×', [CfgGet(Idx)]);
@@ -298,6 +261,7 @@ begin
     INI.WriteFloat('Villes', 'Exode4', EXODE_4);
     INI.WriteFloat('Villes', 'Exode5', EXODE_5);
     INI.WriteFloat('Villes', 'Exode6', EXODE_6);
+    INI.WriteFloat('Villes', 'Exode7', EXODE_7);
     INI.WriteFloat('Villes', 'RoadDist', ROAD_DIST);
     INI.WriteInteger('Villes', 'RoadCroiss', ROAD_CROISSANCE);
     INI.WriteInteger('Villes', 'RoadMax', ROUTE_MAX);
@@ -345,6 +309,8 @@ begin
     EXODE_4 := INI.ReadFloat('Villes', 'Exode4', EXODE_4);
     EXODE_5 := INI.ReadFloat('Villes', 'Exode5', EXODE_5);
     EXODE_6 := INI.ReadFloat('Villes', 'Exode6', EXODE_6);
+    EXODE_7 := INI.ReadFloat('Villes', 'Exode7', EXODE_7);
+
     ROAD_DIST := INI.ReadFloat('Villes', 'RoadDist', ROAD_DIST);
     ROAD_CROISSANCE := INI.ReadInteger('Villes', 'RoadCroiss', ROAD_CROISSANCE);
     ROUTE_MAX := INI.ReadInteger('Villes', 'RoadMax', ROUTE_MAX);
@@ -435,16 +401,19 @@ begin
   Result := Y + 31;
 end;
 
-procedure Onglet(PC: TPageControl; const Titre: string; D1, D2: Integer);
+procedure Onglet(PC: TPageControl; const Titre: string; D1, D2: Integer;
+  Extra: Integer = -1);
 var SH: TTabSheet;
     Y, I: Integer;
 begin
   SH := TTabSheet.Create(PC);
   SH.PageControl := PC;
-  SH.Caption := Titre;
+  SH.Caption := Titre;    { le titre arrive déjà traduit (voir ci-dessous) }
   Y := 12;
   for I := D1 to D2 do
     Y := LigneReg(SH, Y, I, FReg.Vals[I]);
+  if Extra >= 0 then
+    Y := LigneReg(SH, Y, Extra, FReg.Vals[Extra]);
 end;
 
 procedure OuvreReglages;
@@ -454,8 +423,8 @@ begin
   if FReg <> nil then begin FReg.BringToFront; Exit end;
   FReg := TRegForm.CreateNew(nil);
   with FReg do begin
-    Caption := 'Microcosme — Réglages du monde';
-    ClientWidth := 440; ClientHeight := 530;
+    Caption := L(231);
+    ClientWidth := 440; ClientHeight := 560;
     Position := poScreenCenter;
     BorderStyle := bsSingle;
     BorderIcons := [biSystemMenu];
@@ -463,17 +432,17 @@ begin
   end;
   PC := TPageControl.Create(FReg);
   PC.Parent := FReg;
-  PC.Left := 8; PC.Top := 8; PC.Width := 424; PC.Height := 474;
-  Onglet(PC, 'Découvertes', 0, 12);
-  Onglet(PC, 'Le monde', 13, 17);
-  Onglet(PC, 'Villes & routes', 18, 31);
-  Onglet(PC, 'Le chef', 32, 36);
+  PC.Left := 8; PC.Top := 8; PC.Width := 424; PC.Height := 504;
+  Onglet(PC, L(221), 0, 12);
+  Onglet(PC, L(222), 13, 17);
+  Onglet(PC, L(223), 18, 31, 37);
+  Onglet(PC, L(224), 32, 36);
   BD := TButton.Create(FReg);
-  BD.Parent := FReg; BD.Left := 8; BD.Top := 490; BD.Width := 180;
-  BD.Caption := 'Tout par défaut'; BD.OnClick := FReg.DefClick;
+  BD.Parent := FReg; BD.Left := 8; BD.Top := 520; BD.Width := 180;
+    BD.Caption := L(229); BD.OnClick := FReg.DefClick;
   BF := TButton.Create(FReg);
-  BF.Parent := FReg; BF.Left := 352; BF.Top := 490; BF.Width := 80;
-  BF.Caption := 'Fermer'; BF.OnClick := FReg.FermeClick;
+  BF.Parent := FReg; BF.Left := 352; BF.Top := 520; BF.Width := 80;
+  BF.Caption := L(230); BF.OnClick := FReg.FermeClick;
   FReg.RefreshVals;
   FReg.Show;
 end;

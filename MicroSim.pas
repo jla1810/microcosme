@@ -491,6 +491,22 @@ begin
   if (C.TargetP <> nil) and C.TargetP.Morte then C.TargetP := nil;  // ★purge différée
   if (C.TargetC <> nil) and (not C.TargetC.Alive) then C.TargetC := nil;
 
+    // ★MORSURE — loup et ours dévorent enfin leur proie (avant : poursuite
+  // sans contact, la mort ne venait que par épuisement). Même squelette
+  // que la morsure du chasseur sapiens : recharge 1.1 s, flash, gain.
+  if ((C.Kind = 1) or (C.Kind = 4)) and (C.TargetC <> nil) and
+     C.TargetC.Alive and (C.AtkCd <= 0) then begin
+    D := Sqrt(D2(C.X, C.Y, C.TargetC.X, C.TargetC.Y));
+    if D < 1.05 then begin
+      C.AtkCd := 1.1; C.Flash := 0.55;
+      C.TargetC.Energy := C.TargetC.Energy - IfThen(C.Kind = 4, 70, 50);
+      if C.TargetC.Energy <= 0 then begin
+        C.Energy := Min(C.MaxE, C.Energy + 45 + 20 * C.TargetC.Sz);
+        Kill(C.TargetC, L(101));
+        C.TargetC := nil;
+      end;
+    end;
+  end;
   if C.Kind = 0 then
     C.Energy := C.Energy - (0.45 + 0.10 * Des + 0.32 * C.Sz) * DT
   else
