@@ -591,11 +591,9 @@ var I, K: Integer;
    VA, VB, BestVB: TCity;
    R: TRoad;
    D, BestD: Single;
-   Fant,Purge: Boolean;
-
+   Fant: Boolean;
 begin
   if EreCourante < 4 then Exit;
-  Purge := False;
 
   // ★SOIN — purge des routes fantômes : une route saine se termine SUR B.
   for I := Roads.Count - 1 downto 0 do begin
@@ -608,51 +606,51 @@ begin
     if Fant then begin
       Roads.Delete(I);
       R.Free;    // sûr : les routes ne sont référencées que par Roads et
-      Purge := True;           // RouteGrid — qui est reconstruit en fin de procédure.
+                 // RouteGrid — reconstruit en fin de procédure.
     end;
   end;
 
-    if Roads.Count >= 12 then begin
-    if Purge then RebuildRouteGrid;
-    Exit;
-  end;
-
-  // 1) croissance : chaque route existante avance de ROAD_CROISSANCE cases
+  // 1) croissance : TOUJOURS — le plafond ne gèle que les FONDATIONS.
+  // (avant : routes nées en rafale au saut d'ère restaient à Prog=0,
+  //  donc invisibles à jamais — la liste les comptait, le crayon non)
   for I := 0 to Roads.Count - 1 do begin
     R := Roads[I];
     if R.Prog < High(R.Chemin) then
       R.Prog := Min(High(R.Chemin), R.Prog + ROAD_CROISSANCE);
   end;
 
-  // 2) fondation : chaque ville sans route → vers la ville la plus proche
-  for I := 0 to Cities.Count - 1 do begin
-    VA := Cities[I];
-    BestVB := nil; BestD := 1e9;
-    for K := 0 to Cities.Count - 1 do begin
-      if K = I then Continue;
-      VB := Cities[K];
-      D := Sqrt(Sqr(VA.X - VB.X) + Sqr(VA.Y - VB.Y));
-      if (D < ROAD_DIST) and (D < BestD) and (RouteEntre(VA, VB) = nil) then begin
-        BestD := D; BestVB := VB;
+  // 2) fondation : seulement sous le plafond
+  if Roads.Count < 12 then begin
+    for I := 0 to Cities.Count - 1 do begin
+      VA := Cities[I];
+      BestVB := nil; BestD := 1e9;
+      for K := 0 to Cities.Count - 1 do begin
+        if K = I then Continue;
+        VB := Cities[K];
+        D := Sqrt(Sqr(VA.X - VB.X) + Sqr(VA.Y - VB.Y));
+        if (D < ROAD_DIST) and (D < BestD) and (RouteEntre(VA, VB) = nil) then begin
+          BestD := D; BestVB := VB;
+        end;
       end;
-    end;
-    if (BestVB <> nil) and (RouteEntre(VA, BestVB) = nil) then begin
-      R := TRoad.Create;
-      R.A := VA; R.B := BestVB;
-      R.Chemin := CheminRoute(Trunc(VA.X), Trunc(VA.Y),
-                              Trunc(BestVB.X), Trunc(BestVB.Y));
-      if Length(R.Chemin) < 2 then
-        R.Free                              // ★ inatteignable : on renonce,
-      else begin                            //   JAMAIS de route fantôme
-        R.Prog := 0;
-        R.Jour := DayCount;
-        Roads.Add(R);
-        Toast(Format(L(156), [VA.Nom, BestVB.Nom]));
-        ChronAdd(CK_PEOPLE, Format(L(157), [VA.Nom, BestVB.Nom]));
+      if (BestVB <> nil) and (RouteEntre(VA, BestVB) = nil) then begin
+        R := TRoad.Create;
+        R.A := VA; R.B := BestVB;
+        R.Chemin := CheminRoute(Trunc(VA.X), Trunc(VA.Y),
+                                Trunc(BestVB.X), Trunc(BestVB.Y));
+        if Length(R.Chemin) < 2 then
+          R.Free                              // inatteignable : on renonce,
+        else begin                            // JAMAIS de route fantôme
+          R.Prog := 0;
+          R.Jour := DayCount;
+          Roads.Add(R);
+          Toast(Format(L(156), [VA.Nom, BestVB.Nom]));
+          ChronAdd(CK_PEOPLE, Format(L(157), [VA.Nom, BestVB.Nom]));
+        end;
       end;
     end;
   end;
-  RebuildRouteGrid;     // ★FIX3 : le calque suit la croissance
+
+  RebuildRouteGrid;   // ★ une seule fois, en fin : purge + croissance + fondation
 end;
 
 {─── point d'entrée unique pour MicroSim.DoStep ───────────────────────────}

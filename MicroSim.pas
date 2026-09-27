@@ -29,7 +29,7 @@ implementation
 
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$RANGECHECKS ON}   // DIAGNOSTIC TEMPORAIRE — retirer après
+
 
 uses MicroRender, MicroEre, MicroLang, MicroVilles, MicroAudio;
 

@@ -95,7 +95,7 @@ type
   end;
 
 const
-  NB_IN = 34;  NB_H1 = 9;  NB_H2 = 9;  NB_OUT = 10;
+  NB_IN = 34;  NB_H1 = 16;  NB_H2 = 16;  NB_OUT = 10;
 
 type
   TBrain = record
@@ -206,7 +206,7 @@ const
   MAXFS = 680;
   MAXFD = 480;
 
-  NIN = 34; NHID = 9; NHID2 = 9; NOUT = 10;
+  NIN = 34; NHID = 16; NHID2 = 16; NOUT = 10;
   IDX_H1B = NIN * NHID;
   IDX_H2 = IDX_H1B + NHID;
   IDX_H2B = IDX_H2 + NHID * NHID2;
