@@ -22,7 +22,7 @@ var
 implementation
 
 const
-  FR: array[0..231] of string = (
+  FR: array[0..232] of string = (
     'Observer le monde',            // 0
     'l''île s''éveille…',           // 1
     'nouveau monde',                // 2
@@ -254,12 +254,13 @@ const
     'manuel',                             //228
     'Tout par défaut',                    //229
     'Fermer',                             //230
-    'Microcosme — Réglages du monde'      //231
+    'Microcosme — Réglages du monde',      //231
+    '%s nomme « %s » — %s'                //232
   );
 
 
 
-  EN: array[0..231] of string = (
+  EN: array[0..232 ]of string = (
     'Observe the world',            // 0       00000
     'the island awakens…',          // 1
     'new world',                    // 2
@@ -491,8 +492,8 @@ const
     'manual',                             //228
     'Restore defaults',                   //229
     'Close',                              //230
-    'Microcosme — World settings'         //231
-
+    'Microcosme — World settings',        //231
+    '%s names "%s" — %s'                  //232
   );
 
 

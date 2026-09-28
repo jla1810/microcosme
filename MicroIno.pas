@@ -43,6 +43,7 @@ type
   TInnov = record
     Kind: Integer;
     Base: string;
+    Mot: string;      // ★le mot frappé (remplace Word: Integer)
     Word: Integer;
     Who: string;
     Day: Integer;
@@ -166,16 +167,36 @@ begin
 end;
 
 procedure AddInno(C: TCreature; K: Integer);
-var N, W: Integer;
+var N: Integer;
+   Mot, Mot2: string;
+   I,I2: Integer;
 begin
   N := Length(InnoLog);
   SetLength(InnoLog, N + 1);
   InnoLog[N].Kind := K;
   InnoLog[N].Base := INNOBASE[K];
-  if (C.Word >= 0) and (C.Word <= 3) then W := C.Word else W := Random(4);
-  InnoLog[N].Word := W;
-  InnoLog[N].Who := C.Name;
-  InnoLog[N].Day := DayCount;
+  // ★LEXIQUE — un mot en syllabes pour l'invention (frappé localement :
+  // MicroSim ne peut pas être dans nos uses — cycle)
+  Mot := '';
+  for I := 0 to 99 do begin
+    Mot := SYL[Random(Length(SYL))] + SYL[Random(Length(SYL))];
+    if Random < 0.5 then
+      Mot := Mot + SYL[Random(Length(SYL))];
+    Mot2 := '';
+    for I2 := 0 to High(LexiqueDuPeuple) do
+      if LexiqueDuPeuple[I2].Mot = Mot then Mot2 := 'x';
+    if Mot2 = '' then Break;
+    Mot := '';
+  end;
+  InnoLog[N].Mot := Mot;
+  if Mot <> '' then begin
+    SetLength(LexiqueDuPeuple, Length(LexiqueDuPeuple) + 1);
+    LexiqueDuPeuple[High(LexiqueDuPeuple)].Mot := Mot;
+    LexiqueDuPeuple[High(LexiqueDuPeuple)].Sens := INNOBASE[K];
+    LexiqueDuPeuple[High(LexiqueDuPeuple)].Qui := C.Name;
+    LexiqueDuPeuple[High(LexiqueDuPeuple)].Jour := DayCount;
+    ChronAdd(CK_INNO, Format(L(232), [C.Name, Mot, INNOBASE[K]]));
+  end;
   GiveInno(C, K);
   Toast(Format(L(118), [C.Name, InnoFull(N)]));
   ChronAdd(CK_INNO, InnoFull(N));
@@ -280,11 +301,10 @@ end;
 function InnoFull(I: Integer): string;
 begin
   if (I < 0) or (I > High(InnoLog)) then Exit('?');
-  if (InnoLog[I].Word >= 0) and (InnoLog[I].Word <= 3) then
-    Result := Format('%s %s de %s',
-      [InnoLog[I].Base, WORDS[InnoLog[I].Word], InnoLog[I].Who])
+  if InnoLog[I].Mot <> '' then
+    Result := Format('%s «%s» de %s',
+      [InnoLog[I].Base, InnoLog[I].Mot, InnoLog[I].Who])
   else
     Result := Format('%s de %s', [InnoLog[I].Base, InnoLog[I].Who]);
 end;
-
 end.

@@ -2035,6 +2035,29 @@ begin
         if FSelected.Inp[12 + I] > 0.05 then
           S := S + ' · ' + L(63) + ' ' + WORDS[I];
     end;
+        // ★LEXIQUE VIVANT — le dictionnaire du peuple, sous les devinettes
+    if Length(LexiqueDuPeuple) > 0 then
+    begin
+      Inc(Y, 8);
+      C.Font.Size := IfThen(FPanelW > 320, 10, 8);
+      C.Font.Style := [fsBold];
+      C.Font.Color := Col(208, 167, 92);
+      C.Brush.Style := bsClear;
+      C.TextOut(20, Y, '— ' + IntToStr(Length(LexiqueDuPeuple)) + ' —');
+      C.Font.Style := [];
+      Inc(Y, IfThen(FPanelW > 320, 18, 15));
+      for I := 0 to High(LexiqueDuPeuple) do
+      begin
+        C.Font.Color := Col(157, 187, 107);
+        C.TextOut(20, Y, LexiqueDuPeuple[I].Mot);
+        C.Font.Color := Col(230, 224, 205);
+        C.TextOut(90, Y, LexiqueDuPeuple[I].Sens);
+        C.Font.Color := Col(139, 138, 116);
+        S := LexiqueDuPeuple[I].Qui + ' · ' + IntToStr(LexiqueDuPeuple[I].Jour);
+        C.TextOut(PW - 20 - C.TextWidth(S), Y, S);
+        Inc(Y, IfThen(FPanelW > 320, 15, 12));
+      end;
+    end;
     C.TextOut(20, Y, S);
     Inc(Y, 20);
     DrawBar(C, 20, Y, PW - 74, FSelected.Energy / FSelected.MaxE,

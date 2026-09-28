@@ -814,10 +814,50 @@ begin
   end;
 end;
 
+{ ★LEXIQUE — frappe un mot nouveau en syllabes (2-3 de SYL, sans remise)
+  pour la première découverte mondiale d'une technologie ou invention. }
+function FrapperMot: string;
+var NSyl, I, S: Integer;
+   Mot: string;
+begin
+  Result := '';
+  for I := 0 to 99 do begin                       // 100 essais, puis tant pis
+    Mot := '';
+    NSyl := 2 + Random(2);                        // 2 ou 3 syllabes
+    for S := 1 to NSyl do
+      Mot := Mot + SYL[Random(Length(SYL))];
+    for S := 0 to High(LexiqueDuPeuple) do        // jamais deux fois le même
+      if LexiqueDuPeuple[S].Mot = Mot then begin Mot := ''; Break end;
+    if Mot <> '' then Break;
+  end;
+  Result := Mot;
+end;
+
+procedure PoserMot(const AMot, ASens, AQui: string);
+var N: Integer;
+begin
+  if AMot = '' then Exit;
+  N := Length(LexiqueDuPeuple);
+  SetLength(LexiqueDuPeuple, N + 1);
+  LexiqueDuPeuple[N].Mot := AMot;
+  LexiqueDuPeuple[N].Sens := ASens;
+  LexiqueDuPeuple[N].Qui := AQui;
+  LexiqueDuPeuple[N].Jour := DayCount;
+end;
+
 procedure GiveTech(C: TCreature; Code: TEcode);
 var T1, T2: string;
+   Mot, Sens: string;
 begin
   if HasTech(C.Tech, Code) then Exit;
+  Sens := '';
+  if TechInfo[Code].Who = '' then begin            // ★première découverte mondiale
+    Sens := TechNom(Code);
+    Mot := FrapperMot;
+    PoserMot(Mot, Sens, C.Name);
+    if Mot <> '' then
+      ChronAdd(CK_TECH, Format(L(232), [C.Name, Mot, Sens]));
+  end;
   Include(C.Tech, Code);
   TechInfo[Code].Who := C.Name;
   TechInfo[Code].Day := DayCount;
@@ -877,7 +917,7 @@ begin
   LastDay := -1;
   for i := 0 to TECH_COUNT - 1 do
     if TechInfo[TECHBASE[i].Code].Day > LastDay then
-      LastDay := TechInfo[TECHBASE[i].Code].Day;
+    LastDay := TechInfo[TECHBASE[i].Code].Day;
   if (LastDay > 0) and (DayCount - LastDay < CfgGap) then Exit;
   Tente := False;
   for i := 0 to TECH_COUNT - 1 do

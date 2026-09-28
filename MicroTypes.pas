@@ -274,6 +274,17 @@ const
     'zu','fe','ol','an','yr','bre','shi','do','na','el','mu','ki','ra');
   SMAGIC: array[0..3] of AnsiChar = ('M','C','R','1');
 
+  type
+  TMot = record
+    Mot: string;      // le mot en syllabes (« karo »)
+    Sens: string;     // ce qu'il nomme (« le feu », non traduit)
+    Qui: string;      // l'inventeur
+    Jour: Integer;
+  end;
+
+var
+  LexiqueDuPeuple: array of TMot;   // le dictionnaire vivant — croît avec les ères
+
 type
   THistRec = record P, H, C, S: Integer; end;
   TBtn = record R: TRect; Cap: string; Id: Integer; Active: Boolean; end;
