@@ -95,7 +95,7 @@ type
   end;
 
 const
-  NB_IN = 34;  NB_H1 = 16;  NB_H2 = 16;  NB_OUT = 10;
+  NB_IN = 34;  NB_H1 = 24;  NB_H2 = 24;  NB_OUT = 10;
 
 type
   TBrain = record
@@ -206,7 +206,7 @@ const
   MAXFS = 680;
   MAXFD = 480;
 
-  NIN = 34; NHID = 16; NHID2 = 16; NOUT = 10;
+  NIN = 34; NHID = 24; NHID2 = 24; NOUT = 10;
   IDX_H1B = NIN * NHID;
   IDX_H2 = IDX_H1B + NHID;
   IDX_H2B = IDX_H2 + NHID * NHID2;
@@ -238,7 +238,7 @@ const
   BID_TI = 10; BID_TS = 11; BID_TH = 12; BID_TP = 13; BID_TSA = 14; BID_NEW = 15;
   BID_SAVE = 20; BID_LOAD = 21;
   BID_ERE  = 22;
-  SVERSION = 15;
+  SVERSION = 17;
 
   var
   { ★v16 — réglages du monde : étaient des constantes, la fenêtre F2

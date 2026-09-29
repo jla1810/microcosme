@@ -348,7 +348,7 @@ const
     'No sapien selected.',          // 73
     'Close this window, click a sapien with the "view" tool,',  // 74
     'then reopen the brain from the notebook.',     // 75
-    'green = excitation · red = inhibition · dashed = direct path · 34 → 9 → 9 → 10',  // 76
+    'green = excitation · red = inhibition · dashed = direct path · 34 → 24 → 24 → 10',  // 76
     'click: next sapiens · F7: back',               // 77
     'energy',                       // 78
     'no technologies yet',          // 79

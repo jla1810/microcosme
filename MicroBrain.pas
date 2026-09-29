@@ -32,7 +32,8 @@ function AddPlant(X, Y, S: Single): TPlant;
 procedure RemovePlant(P: TPlant);
 procedure StepPlants(DT, DayF: Single);
 procedure FillInnateNet(var W: TArray<Single>);
-procedure MutateNet(var W: TArray<Single>; const AMutRate: Single);
+procedure MutateNet(
+var W: TArray<Single>; const AMutRate: Single);
 procedure ThinkNet(C: TCreature);
 function MakeName: string;
 procedure RebuildGrid;
