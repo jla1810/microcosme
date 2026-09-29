@@ -1,0 +1,72 @@
+LA RELIGION — note de design (le charismatique)
+
+    Statut : design esquissé, RIEN n'est implémenté. Modèle : GUERRE.md.Étape 1 = l'ascension du charismatique, zéro manipulation, zéro mort.En ouverture de séance : relire §2, §4, §5. Ids L() : L233+ (232 prispar le lexique ; la guerre en réserve L233+ aussi — coordonner).
+
+1. Principe (acté en séance)
+
+Jamais de bouton « messie ». Le charisme est un SCORE ÉMERGENT sur ce quele monde a déjà vu faire. Au-dessus d'un seuil + disciples suffisant :le carnet écrit « le peuple écoute X ». Le mot messie ne sera JAMAISdans le code — le carnet interprète, comme pour les cris.
+2. Quatre tranchages EN OUVERTURE (recos, décision du créateur)
+
+    Messie faux possible (mener dans le vide) ? — reco OUI à terme,PAS en étape 1.
+    Messie ET chef sur le même sapiens ? — reco OUI (plus terrifiant).
+    Les disciples se délieraient-ils ? — reco OUI : le charisme décroîtavec les faits (dédain, scandale, famine mal gérée).
+    Curseur réglages « charisme » 0 = jamais ? — reco OUI, indice 39,CNALL 40, la leçon WAR_P.
+
+3. Le score de charisme (matériaux existants, tous vérifiés)
+
+    Cult (le savoir) ;
+    Orn (la parure — déjà hérité/muté, le charisme du corps) ;
+    Bio (les exploits — survivances, apprivoisements, découvertes) ;
+    la parole : mots frappés dans LexiqueDuPeuple (le dictionnaire vientde naître — le charismatique est celui dont les mots se propagent) ;
+    le nombre de congénères qui l'ont déjà choisi (recursion douce).
+
+Style à imiter : ScoreChef (MicroVilles — élection au savoir). Lecharisme est son miroir : l'élection du POUVOIR PARLE, contrel'élection du POUVOIR SAIT.
+4. Les réactions du peuple (étape 1 : observation seule)
+
+    DISCIPLES : dévotion plus forte que le mentorat — glisse d'esprit versle sien SANS la limite des 30 % (l'extase dépasse l'école). Blocmentorat (MicroSim, « for I := 0 to NW - 1 ... * 0.30 ») àDIFFÉRENCIER, jamais copier : un embranchement si Disciple, mêmeboucle, coefficient différent et plafond différent ;
+    les disciples suivent les déplacements, jusqu'aux villes voisines ;
+    TENSION avec le chef : deux pouvoirs (couronne vs parole) — coexistenceou rival, laissé à l'émergence ;
+    MIRACLES HONNÊTES : un fait réel mal attribué (trouve à manger enfamine, survit à l'ours, revient du rivage). Le carnet note lescoïncidences — style LogWord/Lex du carnet des cris ;
+    MORT DU MESSIE : ses mots restent (LexiqueDuPeuple — déjà vrai), sesdisciples restent liés, annale du carnet ; ère de l'écriture venue,le culte de la mémoire peut durer plus que l'homme.
+
+5. Freins (la leçon GUERRE)
+
+    charisme rare et COÛTEUX (parler, mener : énergie) ;
+    étape 1 : zéro mort, zéro manipulation — ascension, dévotion, annale,observation ;
+    fuite possible : les sceptiques ignorent (Damp de charisme) ;
+    GUERRE.md garde le chapitre sombre en réserve (guerres saintes ?) —pas à l'étape 1.
+
+6. Ancrages de code vérifiés en séance
+
+    ScoreChef : MicroVilles (style du score à imiter) ;
+    bloc mentorat : MicroSim (grep « for I := 0 to NW - 1 ») ;
+    Bio : TCreature.Bio: TStringList (fiche MicroInfoWin l'affiche) ;
+    LexiqueDuPeuple : MicroTypes (TMot : Mot/Sens/Qui/Jour) — né aujourd'hui ;
+    InnoLog.Word → remplacé par Mot (MicroIno) : les inventions ont des mots ;
+    AudioSpeak(const AWord: string) : prononce TOUTE chaîne — les sermonssonneront ;
+    DayCount : MicroBrain (piège du cycle : MicroTypes ne peut pas levoir — leçon du lexique : chaque unité frappe chez elle si cycle) ;
+    Flash : le marqueur de coup — un « miraculé » en porte un au jour oùl'ours l'a laissé.
+
+7. Colles encore manquantes (AVANT de coder — conv. 13)
+
+    ScoreChef en entier (le style exact du score) ;
+    le bloc mentorat en entier (déjà vu en vrac — le reprendre propre) ;
+    Bio : où il est écrit (grep Bio.Add ?) — pour compter les exploits ;
+    la page « fiche » : où Bio s'affiche — le carnet du charismatique ;
+    DayCount : sa déclaration exacte dans MicroBrain (pour l'annale).
+
+8. Étape 1 (une séance)
+
+    MicroTypes : TCreature.Charisme: Single (défaut 0) ;
+    MicroSim : calcul du score (style ScoreChef), seuil, disciples ;
+    le bloc mentorat : embranchement disciple (sans la limite 30 %) ;
+    MicroChrono + MicroLang : annales L233+ (deux tableaux d'abord !) ;
+    le carnet : « le peuple écoute X » — et l'observation ;
+    SVERSION +1 (nouveau champ créature) — même fenêtre que le lexique ;
+    ZÉRO mort, ZÉRO manipulation. Q1 (messie faux) ne mord qu'à l'étape 2.
+
+9. Étapes suivantes (esquisse, NON engagée)
+
+    étape 2 : le messie faux, le dédain, la chute ;
+    étape 3 : culte de la mémoire (écriture), fêtes (le théâtre), lechapitre sombre en lien avec GUERRE.md ;
+    curseur F2 (§2.4) visible quand l'étape 1 tourne.

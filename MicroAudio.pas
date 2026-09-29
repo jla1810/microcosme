@@ -34,7 +34,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes, System.SyncObjs, System.Math,
-  Winapi.Windows, Winapi.MMSystem;
+  Winapi.Windows, Winapi.MMSystem,MicroTypes;
 
 const
   AUD_SR        = 44100;
@@ -213,12 +213,12 @@ begin
   t0 := 0.02;
   for i := 1 to n do
   begin
-    case AWord[i] of
+        case AWord[i] of
       'α','a','A': f0 := 78;
-      'β','b','B': f0 := 108;
-      'γ','g','G': f0 := 66;
-      'δ','d','D': f0 := 122;
-    else f0 := 90;
+      'β','b','B','o','O': f0 := 108;            // ★le o latin rejoint le rond
+      'γ','g','G','i','I','e','E','y','Y': f0 := 66;  // ★i,e,y : l'aigu clair
+      'δ','d','D','u','U': f0 := 122;            // ★le u latin rejoint le grave
+    else f0 := 90;                                // consonnes : le neutre, voulu
     end;
     v := NewVoice(vkDrum, gT + t0, 0.7, 0.85*GL, 0.85*GR);
     if v = nil then Break;
@@ -269,8 +269,8 @@ end;
 { voix v2 — synthèse additive : 6 harmoniques modelées par voyelle,
   enveloppe naturelle, vibrato + jitter propres au locuteur. }
 procedure SpawnWord(const AWord: string; X, Y: Integer);
-var i, n, k,k2: Integer; h: Cardinal;
-    f0, GL, GR, t0, dur: Double;
+var i, n, k: Integer; h: Cardinal;
+    f0, GL, GR, t0: Double;
     v: PVoice;
 begin
   Inc(gDbgCall);
@@ -278,6 +278,16 @@ begin
   gCS.Enter;
   if Sqr(X - gLX) + Sqr(Y - gLY) > Sqr(50) then begin gCS.Leave; Exit end;
   gCS.Leave;
+
+  // ★chœur : pas plus de 6 voix chantantes simultanées — au-delà, c'est
+  // de la boue, pas de la polyphonie
+  gCS.Enter;
+  n := 0;
+  for i := 0 to AUD_MAXVOICES-1 do
+    if gVoices[i].Active and (gVoices[i].Kind = vkVoice) then Inc(n);
+  gCS.Leave;
+  if n >= 6 then Exit;
+
   h := WordHash(AWord);
   PlaceAt(X, Y, GL, GR);
   n := Min(Length(AWord), 6);
@@ -285,6 +295,7 @@ begin
   for i := 1 to n do
   begin
     // — modèle d'harmoniques par voyelle (le cœur du timbre) —
+    // ★voyelles latines du lexique admises dans les familles grecques
     case AWord[i] of
       'α','a','A': begin          // « a » : riche, ouvert
         k := Integer((h shr ((i and 7)*2)) and $F);
@@ -295,7 +306,7 @@ begin
         v.Amp[0] := 1.00; v.Amp[1] := 0.72; v.Amp[2] := 0.48;
         v.Amp[3] := 0.22; v.Amp[4] := 0.10; v.Amp[5] := 0.05;
       end;
-      'β','b','B': begin          // « o » : rond, sombre
+      'β','b','B','o','O': begin  // « o » : rond, sombre (+ o latin)
         k := Integer((h shr ((i and 7)*2)) and $F);
         f0 := 118.0*PENTA[k mod 5];
         if (k and 8) <> 0 then f0 := f0*1.335;
@@ -304,7 +315,7 @@ begin
         v.Amp[0] := 1.00; v.Amp[1] := 0.55; v.Amp[2] := 0.20;
         v.Amp[3] := 0.07; v.Amp[4] := 0.03; v.Amp[5] := 0.01;
       end;
-      'γ','g','G': begin          // « é/i » : clair, front
+      'γ','g','G','i','I','e','E','y','Y': begin  // « é/i » : clair (+ i,e,y latins)
         k := Integer((h shr ((i and 7)*2)) and $F);
         f0 := 165.0*PENTA[k mod 5];
         if (k and 8) <> 0 then f0 := f0*1.335;
@@ -313,7 +324,7 @@ begin
         v.Amp[0] := 0.45; v.Amp[1] := 1.00; v.Amp[2] := 0.85;
         v.Amp[3] := 0.40; v.Amp[4] := 0.18; v.Amp[5] := 0.07;
       end;
-      'δ','d','D': begin          // « ou/u » : profond, gorge
+      'δ','d','D','u','U': begin  // « ou/u » : profond, gorge (+ u latin)
         k := Integer((h shr ((i and 7)*2)) and $F);
         f0 := 105.0*PENTA[k mod 5];
         if (k and 8) <> 0 then f0 := f0*1.335;
@@ -322,7 +333,7 @@ begin
         v.Amp[0] := 1.00; v.Amp[1] := 0.38; v.Amp[2] := 0.08;
         v.Amp[3] := 0.02; v.Amp[4] := 0.01; v.Amp[5] := 0;
       end;
-    else begin                    // défaut : « e » neutre
+    else begin                    // consonnes : « e » neutre, voulu
         k := Integer((h shr ((i and 7)*2)) and $F);
         f0 := 150.0*PENTA[k mod 5];
         v := NewVoice(vkVoice, gT + t0, 0.22, 0.46*GL, 0.46*GR);
@@ -393,7 +404,7 @@ begin
   begin
     gNextChirp := gT + 1.0 + (ARand + 0.5)*6.0*(1.35 - gA_Day);
     r := ARand + 0.5;
-    GL := Cos(r*Pi/2)*0.12;  GR := Sin(r*Pi/2)*0.12;
+    GL := Cos(r*Pi/2)*0.12*VoxGril;  GR := Sin(r*Pi/2)*0.12*VoxGril;;
     v := NewVoice(vkChirp, gT + 0.05 + ARand*0.1, 0.07 + (ARand+0.5)*0.14, GL, GR);
     if v <> nil then
     begin
@@ -450,7 +461,7 @@ begin
           v.Phase := v.Phase + 2*Pi*f*INV_SR;
           s := Sin(v.Phase) + 0.45*Sin(v.Phase*1.62 + 0.4)*Exp(-et*11);
           n := ARand*Exp(-et*140);
-          s := 1.15*e*s + 0.8*n;
+          s := 0.7*VoxTamb*e*s + 0.5*VoxTamb*n;
         end;
               vkVoice:  // ★ synthèse additive : 6 harmoniques, enveloppe, vibrato, jitter
         begin
@@ -481,7 +492,7 @@ begin
           if v.Amp[5] > 0 then s := s + v.Amp[5]*Sin(6*v.Phase + 1.7);
           // micro-souffle glottal (humanise l'attaque)
           n := ARand*0.02*e;
-          s := 1.15*(s*e + n);
+          s := 0.45*VoxVoix*(s*e + n);
         end;
       vkChirp:
         begin
@@ -519,13 +530,15 @@ begin
           s := 0.6*(s + n);
         end;
     end;
-    L := L + s*v.GL;  R := R + s*v.GR;
+    s := (gFireLP*1.5 + (gFireLP*gFireLP - 0.08)*8)*gA_Fire*0.12;
+    L := L + s*VoxFeu;  R := R + s*VoxFeu;
+
   end;
 
   n := ARand;
   gWindLP := gWindLP + 0.028*(n - gWindLP);
   s := gWindLP*(1 + 0.4*Sin(2*Pi*0.017*gT) + 0.25*Sin(2*Pi*0.041*gT + 2.0))*0.45;
-  L := L + s;  R := R + s;
+  L := L + s*VoxAmbi;  R := R + s*VoxAmbi;
 
   if gA_Wave > 0.002 then
   begin
@@ -534,7 +547,7 @@ begin
     e := 0.5 + 0.5*Sin(2*Pi*0.070*gT);
     e := e*e*(0.65 + 0.35*(0.5 + 0.5*Sin(2*Pi*0.043*gT + 1.7)));
     s := (gWaveLP2*4.0 + (gWaveLP1 - gWaveLP2)*7.0)*e*gA_Wave*0.25;
-    L := L + s;  R := R + s;
+    L := L + s*VoxAmbi; R := R + s*VoxAmbi;
   end;
 
   if gA_Day < 0.85 then
@@ -556,8 +569,7 @@ begin
   if gA_Fire > 0.01 then
   begin
     gFireLP := gFireLP + 0.012*(ARand - gFireLP);
-    s := (gFireLP*2.5 + gFireLP*gFireLP*20)*gA_Fire*0.15;
-    L := L + s;  R := R + s;
+    s := (gFireLP*1.5 + (gFireLP*gFireLP - 0.08)*8)*gA_Fire*0.12;
   end;
 
   gT := gT + INV_SR;

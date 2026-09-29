@@ -22,7 +22,8 @@ uses
   MicroSim in 'MicroSim.pas',
   MicroVilles in 'MicroVilles.pas',
   MicrocityWin in 'MicrocityWin.pas',
-  MicroInfoWin in 'MicroInfoWin.pas';
+  MicroInfoWin in 'MicroInfoWin.pas',
+  MicroDicWin in 'MicroDicWin.pas';
 
 {$R *.res}
 

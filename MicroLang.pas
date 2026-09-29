@@ -22,7 +22,7 @@ var
 implementation
 
 const
-  FR: array[0..232] of string = (
+  FR: array[0..243] of string = (
     'Observer le monde',            // 0
     'l''île s''éveille…',           // 1
     'nouveau monde',                // 2
@@ -255,12 +255,23 @@ const
     'Tout par défaut',                    //229
     'Fermer',                             //230
     'Microcosme — Réglages du monde',      //231
-    '%s nomme « %s » — %s'                //232
-  );
+    '%s nomme « %s » — %s',                //232
+    'Microcosme — Le dictionnaire du peuple',  //233
+    'Le peuple parle %d mots',                 //234
+    'la langue du monde — non traduite',       //235
+    'le peuple n''a pas encore parlé',          //236
+    'volume général',                     //237
+    'voix des sapiens',                   //238
+    'tambours',                           //239
+    'houle et vent',                      //240
+    'feux',                               //241
+    'grillons',                           //242
+    'fanfares et cloches'                 //243
+   );
 
 
 
-  EN: array[0..232 ]of string = (
+  EN: array[0..243 ]of string = (
     'Observe the world',            // 0       00000
     'the island awakens…',          // 1
     'new world',                    // 2
@@ -493,8 +504,21 @@ const
     'Restore defaults',                   //229
     'Close',                              //230
     'Microcosme — World settings',        //231
-    '%s names "%s" — %s'                  //232
+    '%s names "%s" — %s',                 //232
+    'Microcosme — The people''s dictionary',   //233
+    'The people speaks %d words',              //234
+    'the language of the world — untranslated', //235
+    'the people has not yet spoken' ,           //236
+     'master volume',                      //237
+    'sapien voices',                      //238
+    'drums',                              //239
+    'waves and wind',                     //240
+    'fires',                              //241
+    'crickets',                           //242
+    'fanfares and bells'                  //243
   );
+ 
+
 
 
 

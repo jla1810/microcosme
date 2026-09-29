@@ -16,7 +16,7 @@ uses
   Winapi.Windows, Winapi.Messages,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls,
   MicroTypes, MicroBrain, MicroSim, MicroRender, MicroIO, MicroConfig,
-  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo, MicroVilles,MicroCityWin;
+  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo, MicroVilles,MicroCityWin,MicroDicWin;
 
 const
   BID_HELP = 207;
@@ -569,6 +569,13 @@ begin
     Toast(LangNom);
     Invalidate;
   end;
+
+   if Key = VK_F9 then
+   Begin
+    key := 0;
+    OuvreDictionnaire;   // F9 — le dictionnaire du peuple
+   End;
+
 
   // ── ★ERE triche verrouillée : Ctrl+Shift+E · B · P · U · V · W ──
   if FStarted and (Creatures <> nil) and (Shift = CHEAT_GATE) then

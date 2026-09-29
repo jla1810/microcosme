@@ -343,6 +343,14 @@ var
   TECHBASE: array[0..TECH_COUNT-1] of TEchDef;
   FVue: Integer = 0;       // ★ 0 normal · 1 monde plein écran (F5) · 2 carnet plein écran (F7)
   FPanelW: Integer = PANELW; // ★ largeur courante du carnet (302 · pleine largeur en F7)
+  { la table de mixage — chaque piste à 1.0 = le mixage historique }
+var
+  VoxVoix: Single = 1.0;    // les sapiens qui parlent
+  VoxTamb: Single = 1.0;    // les tambours
+  VoxAmbi: Single = 1.0;    // houle + vent
+  VoxFeu:  Single = 1.0;    // crépitement des foyers
+  VoxGril: Single = 1.0;    // grillons
+  VoxEvent: Single = 1.0;   // lyre d'ère + cloche
 
 implementation
 
