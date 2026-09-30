@@ -30,7 +30,7 @@ uses
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.Title := 'Microcosme v 0.16beta';
+  Application.Title := 'Microcosme v 0.18beta';
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

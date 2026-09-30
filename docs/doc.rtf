@@ -1,0 +1,135 @@
+{\rtf1\ansi\ansicpg1252\deff0\nouicompat\deflang1036{\fonttbl{\f0\fnil\fcharset0 Calibri;}{\f1\fnil Calibri;}{\f2\fnil\fcharset1 Cambria Math;}{\f3\fnil\fcharset161 Calibri;}{\f4\fnil\fcharset238 Calibri;}{\f5\fnil\fcharset2 Symbol;}}
+{\*\generator Riched20 10.0.19041}{\*\mmathPr\mmathFont2\mwrapIndent1440 }\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\qc\f0\fs44\lang12 Le r\'e9seau neuronal de Microcosme\par
+\fs22\par
+\i\fs28     Ce n'est pas un mod\'e8le entra\'een\'e9 \f1\emdash\f0  c'est une esp\'e8ce vivante\i0\fs22 .\par
+
+\pard\sa200\sl276\slmult1\par
+Chaque sapiens de Microcosme porte son propre r\'e9seau neuronal : 1 342 poids flottants, h\'e9rit\'e9s, mut\'e9s, s\'e9lectionn\'e9s par la seule survie. Pas de r\'e9tropropagation, pas de r\'e9compense, pas d'objectif \f1\emdash\f0  l'h\'e9ritage, le mentoratet la s\'e9lection fa\'e7onnent tout.\par
+\par
+\b L'Observatoire (F7) \b0 : le r\'e9seau, en direct \f1\emdash\f0  chaque lien allum\'e9 par le signaldu moment. Un clic bascule entre le graphe des poids et le mode esprit.\par
+\b 1. Un cerveau par cr\'e9ature\par
+\b0 Il n'y a pas UN r\'e9seau dans Microcosme \f1\emdash\f0  il y en a autant que de sapiens. La faune, elle, \'e9volue sur ses traits seuls (vitesse, vue, taille), sansr\'e9seau. Chaque sapiens porte :\par
+
+\pard{\pntext\f5\'B7\tab}{\*\pn\pnlvlblt\pnf5\pnindent360{\pntxtb\'B7}}\fi-360\li360\sa200\sl276\slmult1\par
+{\pntext\f5\'B7\tab}    son g\'e9nome mental (Dna) : les 1 342 poids re\'e7us \'e0 la naissance ;\par
+{\pntext\f5\'B7\tab}    son r\'e9seau vivant (Net) : les m\'eames poids, d\'e9riv\'e9s par la culture (\'a77)\f1\emdash\f0  jamais au-del\'e0 de ce que l'ADN permet ;\par
+{\pntext\f5\'B7\tab}    sa m\'e9moire (Mem) : jusqu'\'e0 six souvenirs de danger et de nourriture ;\par
+{\pntext\f5\'B7\tab}    ses \'e9chos (PrevOo) : ses neuf d\'e9cisions pr\'e9c\'e9dentes, r\'e9inject\'e9es enentr\'e9es.\par
+
+\pard\sa200\sl276\slmult1\par
+Le r\'e9seau pense toutes les 0,1 seconde de monde : il sent (SenseSapien), ild\'e9cide (ThinkNet), le corps ex\'e9cute. Indissociable : le r\'e9seau agit en temps r\'e9el, et le monde r\'e9pond \f1\emdash\f0  ses d\'e9cisions d\'e9cident de sa survie.\par
+\par
+\b 2. L'architecture : trois chemins dans un m\'eame g\'e9nome\par
+\b0 Les 1 342 poids sont stock\'e9s \'e0 plat dans un tableau (Net), avec une carte symbolique \f1\emdash\f0  changer les dimensions recalcule tous les index :\par
+Bloc\tab\tab Taille\tab\tab R\'f4le\par
+entr\'e9es \f2\u8594?\f0  H1\tab 34 \'d7 16 = 544\tab la r\'e9flexion, premier \'e9tage : les traits\par
+\lang12 biais de H1\tab 16\tab\par
+H1 \f2\u8594?\f0  H2\tab 16 \'d7 16 = 256\tab la r\'e9flexion, second \'e9tage : les situations\par
+\lang12 biais de H2\tab 16\tab\par
+H2 \f2\u8594?\f0  sorties\tab 16 \'d7 10 = 160\tab la r\'e9flexion, sortie\par
+\lang12 voie directe\tab 34 \'d7 10 = 340\tab les r\'e9flexes (entr\'e9es \f2\u8594?\f0  sorties, sans d\'e9tour)\par
+\lang12 biais de sortie\tab 10\tab\par
+Total (NW)\tab\tab 1 342\par
+\par
+La passe avant (ThinkNet) calcule :\par
+ le chemin lent : 34 entr\'e9es \f2\u8594?\f0  16 neurones (tanh) \f2\u8594?\f0  16 neurones (tanh)\f2\u8594?\f0  10 sorties (tanh). Le premier \'e9tage fabrique des traits (desconjonctions simples), le second fabrique des situations (des conjonctionsde traits) \f2\emdash\f0  le moment de jugement entre voir et agir ;\par
+\lang12     la voie directe : les entr\'e9es alimentent aussi les sorties directement \f1\emdash\f0 les r\'e9flexes ne passent pas par la r\'e9flexion ;\par
+    les \'e9chos : les neuf premi\'e8res sorties de la pens\'e9e pr\'e9c\'e9dente reviennent en entr\'e9es (24-32). C'est ce qui donne la persistance du comportement : un sapiens qui fuit continue de fuir, un crieur continue de crier.\par
+\par
+Toutes les unit\'e9s sont des tanh : les signaux vivent dans [-1, +1].\par
+    Historique \f1\emdash\f0  le grand basculement. La seconde couche a \'e9t\'e9 pos\'e9e d\'e8sl'origine mais bypass\'e9e pendant toute la premi\'e8re vie du projet : le cheminlent court-circuitait H2, qui mutait dans le vide. Le biais de H1 \'e9tait m\'eamelu au mauvais endroit (dans le bloc H2\f2\u8594?\f0 sorties \f2\emdash\f0  un couplage parasite avecles poids). L'activation de la couche 2 et la correction du biais ont eu lieulors d'un big bang : les cerveaux du monde ancien devenaient invalidesd'un coup. Les mondes sauvegard\'e9s avant cette version sont incompatibles.\par
+\lang12\par
+\b 3. Les 34 sens\par
+\b0 Entr\'e9es\tab\tab Sens\par
+0\tab\tab biais constant = 1\par
+1\tab\tab l'\'e9nergie (0 = la faim, 1 = repu)\par
+2\tab\tab la lumi\'e8re du jour\par
+3\f1\endash\f0 5\tab\tab la nourriture la plus proche : direction X, Y, proximit\'e9\par
+6\f1\endash\f0 8\tab\tab le cong\'e9n\'e8re le plus proche : direction X, Y, proximit\'e9\par
+9\f1\endash\f0 11\tab\tab le pr\'e9dateur le plus proche : direction X, Y, proximit\'e9\par
+12\f1\endash\f0 15\tab\tab les quatre cris entendus : \f3\lang1032\'e1, \'e2, \'e3, \'e4 (force du signal)\par
+\f0\lang12 16\f1\endash\f0 17\tab\tab la direction du cri le plus fort\par
+18\f1\endash\f0 20\tab\tab le souvenir de danger le plus pressant : direction, force\par
+21\f1\endash\f0 23\tab\tab le souvenir de nourriture (pond\'e9r\'e9 par la faim)\par
+24\f1\endash\f0 32\tab\tab les neuf \'e9chos \f1\emdash\f0  ce que le r\'e9seau a d\'e9cid\'e9 la pens\'e9e d'avant\par
+33\tab\tab biais = 1\par
+\par
+Les directions sont relatives au corps : \'ab devant \'e0 ma gauche \'bb, pas \'ab au nord-ouest de l'\'eele \'bb.\par
+La vue n'est pas un don uniforme. Sa port\'e9e (Se, 6 \'e0 12 cases \'e0 la naissance, mut\'e9e) est multipli\'e9e :\par
+    \'d7 1,15 avec l'Optique ;\par
+    \'d7 1,3 la nuit avec les lunettes (invention) ;\par
+    \'d7 1,8 d\'e8s qu'un chien r\'f4de \'e0 moins de six cases \f1\emdash\f0  la domestication fondatrice est aussi une extension des sens.\par
+L'ou\'efe porte \'e0 14 cases, \'d7 2 avec le tambour.\par
+\par
+\b 4. Les dix d\'e9cisions\par
+\b0 Chaque sortie est lue contre son propre seuil \f1\emdash\f0  tourner et avancers'appliquent en continu, les autres sont des portes :\par
+Sortie\tab D\'e9cision\tab\tab\tab\tab\tab\tab\tab Lecture\par
+0\tab tourner\tab proportionnel, jusqu'\'e0 \'b14,5 rad/s\par
+1\tab avancer pouss\'e9e de 18 % \'e0 108 % de la vitesse propre\par
+2\tab construire\tab > 0,55 \f1\emdash\f0  une hutte, si le monde s'y pr\'eate\par
+3\tab se reproduire\tab module la probabilit\'e9 (\'e0 condition d'avoir l'\'e9nergie, d'\'eatre adulte)\par
+4\tab chasser\tab > 0,4 et une proie sauvage en vue\par
+5\f1\endash\f0 8\tab crier \f3\lang1032\'e1 \'e2 \'e3 \'e4\tab le plus actif (> 0,25) devient le cri du jour\par
+\f0\lang12 9\tab se reposer\tab > 0,5 \f1\emdash\f0  le corps veille toujours (faim, vieillesse)\par
+\par
+\b 5. Le r\'e9flexe qui n'est pas du r\'e9seau\par
+\b0 Quand un pr\'e9dateur entre \'e0 moins de 3,6 cases, le corps ne demande pas son avis au r\'e9seau : il fuit, direction oppos\'e9e. Le r\'e9seau voit quand m\'eame le pr\'e9dateur (entr\'e9es 9-11) et l'\'e9crit en m\'e9moire \f1\emdash\f0  mais la fuite elle-m\'eame estc\'e2bl\'e9e. La peur a pr\'e9c\'e9d\'e9 le cortex.\par
+\par
+\b 6. H\'e9r\'e9dit\'e9 et mutation\par
+\b0\'c0 la naissance (SpawnCreature) :\par
+le corps : chaque trait (vitesse, vue, taille, parure, teinte) vientd'un des deux parents au hasard, puis d\'e9rive d'un facteur exponentiel doux(\'d7 e^\'b10,15 environ), born\'e9 par les bornes de l'esp\'e8ce ;\par
+    le cerveau : copie int\'e9grale du r\'e9seau d'UN parent, puis mutation(MutateNet) \f1\emdash\f0  environ 13 % des poids d\'e9rivent l\'e9g\'e8rement, ~2 % sautent carr\'e9ment ailleurs ; et les poids de la voix (les sorties 5-8) mutent deuxfois plus \f1\emdash\f0  par dessein : le langage doit pouvoir varier plus vite que le corps. La boucle porte sur tout le Net : depuis l'activation, la couche 2est mut\'e9e et s\'e9lectionn\'e9e comme le reste ;\par
+    le taux de mutation lui-m\'eame est un g\'e8ne : h\'e9rit\'e9 (\'d7 e^\'b10,10), born\'e9[0,5 ; 2,0] \f1\emdash\f0  des lign\'e9es \'ab innovantes \'bb et \'ab conservatrices \'bb coexistent,et la s\'e9lection arbitre ;\par
+    les inventions (bits) : le OU des bits des deux parents ;\par
+    la culture : ~90 % du meilleur parent (une d\'e9cote d'au plus 12 %) \f1\emdash\f0 le savoir se transmet partiellement, jamais int\'e9gralement ;\par
+    les fondateurs (sans parent) : un r\'e9seau inn\'e9 tir\'e9 par le programme(FillInnateNet) \f1\emdash\f0  bruit faible partout, r\'e9flexes \'e9crits dans la voiedirecte, et couche 2 transparente : H2 recopie H1 au premier jour(diagonale \'e0 1.0, biais nul). Les fondateurs se comportent comme s'iln'y avait qu'un \'e9tage ; l'\'e9volution sculpte ensuite la couche neuve sanschoc d\'e9mographique. Culture de d\'e9part : 0,18 \'e0 0,30.\par
+\par
+\b 7. Le mentorat : la culture qui guide l'ADN\par
+\b0 L'enfant choisit le voisin le plus \'ab cultiv\'e9 \'bb (culture sup\'e9rieure \'e0 lasienne, dans 14 cases) \f1\emdash\f0  et le re-choisit toutes les 0,4 s. Son r\'e9seau glissevers celui du mentor, mais jamais au-del\'e0 de 30 % de la distance g\'e9n\'e9tique.Le code r\'e9el, tel qu'il tourne :\par
+\par
+// \f1\emdash\f0  transmission culturelle + apprentissage autonome \f1\emdash\f0 if (C.Mentor <> nil) and (C.Cult < 0.95) then begin  ...  C.Cult := Min(0.95, C.Cult + Gain);  // le r\'e9seau d\'e9rive vers le mentor SANS effacer l'ADN :  // au plus 30 % de la distance g\'e9n\'e9tique peut \'eatre combl\'e9e  for I := 0 to NW - 1 do begin    Tgt := C.Dna[I] + (C.Mentor.Net[I] - C.Dna[I]) * 0.30;    C.Net[I] := C.Net[I] + (Tgt - C.Net[I]) * (0.15 * DT);  end;  ...end;\par
+Le rythme du savoir : 0,070 par seconde de monde (0,112 pr\'e8s d'une hutte),\'d7 1,5 avec l'\'c9cole, \'d7 1,2 avec la Rh\'e9torique, \'d7 1,25 avec les Humanit\'e9s \f1\emdash\f0 et cela co\'fbte 0,05/s d'\'e9nergie : aPprendre, \'e7a nourrit moins. Plafond : 0,95.\par
+\par
+Pendant l'apprentissage, les techniques du mentor coulent aussi \f1\emdash\f0  et ladiffusion entre voisins (\'a78) les r\'e9pand bien au-del\'e0.\par
+C'est un \'e9tage lamarckien pos\'e9 sur une transmission darwinienne : ce qui estappris dans une vie ne passe pas aux enfants \f1\emdash\f0  mais cela change qui survit,donc quels g\'e8nes se diffusent. L'effet Baldwin, en direct.\par
+\b\fs24 8. La diffusion : les id\'e9es circulent\par
+\b0\fs22 Toutes les 0,1 s, chaque sapiens regarde ses voisins (dans 8 cases) : avecune probabilit\'e9 de base (curseur de configuration) multipli\'e9e par\par
+    \'d7 1,6 si l'autre a l'Imprimerie \f1\emdash\f0  l'encre multiplie les mots ;\par
+    \'d7 1,5 la Monnaie \f1\emdash\f0  l'argent pr\'eate et voyage ;\par
+    \'d7 1,3 si l'un des deux marche sur une route ;\par
+    \'d7 1,25 la Banque, la L\'e9gislation, le Th\'e9\'e2tre ; \'d7 1,1 le Parchemin ;\par
+\'85les techniques manquantes sont copi\'e9es. Les bits d'invention passent avec4 % de chance par voisin. Une invention n\'e9e chez un sapiens peut ainsiconqu\'e9rir le peuple \f1\emdash\f0  ou mourir avec lui.\par
+\b 9. La m\'e9moire : personnelle et collective\par
+\b0 Personnelle \f1\emdash\f0  jusqu'\'e0 six souvenirs, qui vieillissent en ~70 secondes demonde (environ un jour et trois quarts) :\par
+  le danger : \'e9crit d\'e8s qu'un pr\'e9dateur est rep\'e9r\'e9 sans souvenir correspondant ;\par
+    la nourriture : \'e9crite en mangeant.\par
+Leur force = proximit\'e9 (1 \f2\u8722?\f0  d/40) \'d7 fra\'eecheur (1 \f2\u8722?\f0  \'e2ge/vie), pond\'e9r\'e9e par lafaim pour la nourriture. Elles alimentent les entr\'e9es 18-23 : le pass\'e9 procheguide le pas pr\'e9sent.\par
+\lang12 Collective \f1\emdash\f0  avec les Archives (ou pr\'e8s du foyer d'origine), chaquenouveau-n\'e9 re\'e7oit d'embl\'e9e tout ce que le peuple sait, et tous les bitsd'invention : la mort ne tue plus le savoir. C'est la promesse de l'\'e8re dufer \f1\emdash\f0  tenue par le code.\par
+\par
+\b 10. Le langage \'e9mergent\par
+\b0 Quatre cris \f1\emdash\f0  \f3\lang1032\'e1, \'e2, \'e3, \'e4 \f1\emdash\f0  port\lang1036\'e9\lang1032 s \lang1036\'e0 14 cases (\'d7 2 avec le tambour). Qui parleest entendu (entr\'e9es 12-15), avec la direction du cri le plus fort(entr\'e9es 16-17).\par
+\lang12 Personne ne fixe leur sens. Le carnet observe les co\'efncidences \f1\emdash\f0  un cri, puisun pr\'e9dateur ? une trouvaille de nourriture ? \f1\emdash\f0  et devine un lexique. Lavoix de chaque sapiens est synth\'e9tis\'e9e en direct ; avec l'invention dutambour, le cri devient percussion.\par
+Et puisque les poids de la voix mutent deux fois plus vite que le reste (\'a76),le langage se transforme plus vite que les corps qui le portent.\par
+\b 11. Comment l'observer\par
+\b0     F7 \f1\emdash\f0  l'Observatoire, deux lectures au clic :\par
+        le graphe : le r\'e9seau en g\'e9ant, chaque lien allum\'e9 par son signal du moment \f1\emdash\f0  les trois colonnes (16, 16) et la sortie (10) ;\par
+        \b le mode esprit \b0 : le journal de bord \f1\emdash\f0  ce qu'il per\'e7oit (\'e9nergie,nourriture, pr\'e9dateur, cong\'e9n\'e8re, mots entendus, souvenirs), son humeurinterne (16 barres : la couche 2, vivante mais sans nom \f1\emdash\f0  on ne mentirapas sur ce qu'elle \'ab signifie \'bb), ce qu'il veut (les d\'e9cisions tri\'e9es),et pour sa d\'e9cision la plus forte les trois contributions les pluslourdes (poids \'d7 activation, voie directe ou interne n\'b0k) : du pourquoimesurable, pas de la po\'e9sie ;\par
+    F3 \f1\emdash\f0  la fiche : vitesse, vue, taille, g\'e9n\'e9ration, culture, inventions ;\par
+    les courbes du carnet : apr\'e8s 30-40 g\'e9n\'e9rations, elles racontent \f1\emdash\f0  lavitesse et la vue montent si les pr\'e9dateurs pressent, la culture scie (uneinvention perdue, r\'e9apprise au camp), les mots apparaissent et disparaissent ;\par
+    en 3D : la couleur d'un sapiens est sa lign\'e9e ; le b\'e2ton du berger, lalance du chasseur, la canne du p\'eacheur et le diad\'e8me du chef se lisentd'un coup d'\f4\u339?il.\par
+\f0\par
+\b 12. La place du projet\par
+\b0 Microcosme appartient \'e0 la famille de la neuro\'e9volution \f1\emdash\f0  voir NEAT(Stanley & Miikkulainen) et la c\'e9l\'e8bre exp\'e9rience Mar I/O. Ce qui le distingue :\par
+\par
+    les r\'e9seaux vivent dans un monde persistant (saisons, pr\'e9dateurs, famines,la m\'e9moire d'un peuple), pas dans une t\'e2che \'e9ph\'e9m\'e8re ;\par
+    l'\'e9tage culturel (mentorat born\'e9 par la distance g\'e9n\'e9tique) fait UN pont entre Lamarck et Darwin ;\par
+    un langage \'e9mergent dont la voix mute plus vite que le corps, et dont le sens n'est fix\'e9 par personne \f1\emdash\f0  le carnet ne fait que le deviner.\par
+\par
+Les curseurs de configuration (mutation, diffusion, m\'e9moire) en font un petitlaboratoire d'\'e9volution : on s\'e8me, on rel\'e2che, on regarde \f1\emdash\f0  et l'histoires'\'e9crit toute seule.\par
+Historique du document :\par
+v1 \f1\emdash\f0  845 poids, couche 2 allou\'e9e mais bypass\'e9e.\par
+v2 \f1\emdash\f0  1 342 poids (couches \'e9largies \'e0 16), couche 2 active en s\'e9rie, biais H1corrig\'e9, couche 2 transparente \'e0 la naissance, mode esprit. Mondes ant\'e9rieurs incompatibles.\par
+\par
+}
+ 

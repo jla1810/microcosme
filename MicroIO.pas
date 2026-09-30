@@ -54,7 +54,7 @@ end;
 
 procedure SaveWorld;
 var FS: TFileStream; I, N, B: Integer; C: TCreature; P: TPlant;
-   Ver: Integer; TmpS: Single; TT: TTech; Mask: UInt64;
+   Ver: Integer; TmpS: Single; TT: TTech;Mask: TTechMask;
 begin
   FSimCS.Enter;
   try
@@ -203,7 +203,7 @@ var FS: TFileStream; I, K, N, B: Integer; C: TCreature;
    H: THut; F: TFish; M: TMark; V: TCity;
    Magic: array[0..3] of AnsiChar; VerI, SXi, SYi: Integer;
    FXs, FYs, FSz, TmpS: Single;
-   TT: TTech; Mask: UInt64;
+   TT: TTech; Mask: TTechMask;
 begin
   FSimCS.Enter;
   try

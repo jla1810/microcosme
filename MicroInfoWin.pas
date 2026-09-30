@@ -194,7 +194,7 @@ begin
         Col(230, 224, 205));
       S := '';
       for I := Ord(Low(TTech)) to Ord(High(TTech)) do
-        if TTech(I) in Sp.Tech then S := S + TECHNAMES[I] + '  ';
+      if TTech(I) in Sp.Tech then S := S + TechNom(TTech(I)) + '  ';
       if S = '' then S := '(aucune)';
       Ligne('technos : ' + S, Col(240, 180, 95));
       Inc(Y, 4);
