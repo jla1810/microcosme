@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le réseau neuronal de Microcosme — neuroévolution en Pascal</title>
+<meta name="description" content="Comment fonctionne le réseau neuronal de Microcosme : 2 030 poids, neuroévolution, algorithme génétique, mentorat et effet Baldwin, langage émergent — sans rétropropagation, en Pascal/Delphi.">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0b0e0b; color: #e6e0cd;
+    font-family: 'Segoe UI', sans-serif; line-height: 1.75;
+  }
+  .hero {
+    text-align: center; padding: 60px 20px 40px;
+    background: linear-gradient(180deg, #141a12 0%, #0b0e0b 100%);
+    border-bottom: 1px solid #2a3025;
+  }
+  .hero h1 { font-family: Georgia, serif; font-size: 2.4em; color: #d0a75c; }
+  .hero p { color: #8b8a74; font-style: italic; margin-top: 12px; }
+  .retour { display: inline-block; margin-bottom: 20px; color: #d0a75c; text-decoration: none; font-size: .9em; }
+  section { max-width: 860px; margin: 0 auto; padding: 40px 24px; }
+  h2 {
+    font-family: Georgia, serif; color: #d0a75c; font-size: 1.6em;
+    margin-bottom: 20px; border-bottom: 1px solid #2a3025; padding-bottom: 8px;
+  }
+  p { margin-bottom: 16px; color: #c9c4ae; }
+  strong { color: #e6e0cd; }
+  em { color: #b8b39e; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 20px 0; font-size: .95em;
+  }
+  th, td {
+    border: 1px solid #2a3025; padding: 9px 13px; text-align: left;
+  }
+  th { background: #141a12; color: #d0a75c; font-family: Georgia, serif; }
+  td { color: #c9c4ae; }
+  .bloc {
+    background: #141a12; border: 1px solid #2a3025; border-left: 3px solid #d0a75c;
+    border-radius: 6px; padding: 18px 22px; margin: 22px 0;
+  }
+  .bloc p { margin: 0; }
+  .schema {
+    display: flex; align-items: center; justify-content: center;
+    gap: 14px; flex-wrap: wrap; margin: 30px 0;
+    font-family: Georgia, serif;
+  }
+  .neuron {
+    border: 2px solid #d0a75c; border-radius: 10px; padding: 16px 20px;
+    text-align: center; min-width: 110px;
+  }
+  .neuron .n { font-size: 1.6em; color: #d0a75c; font-weight: bold; }
+  .neuron .l { font-size: .8em; color: #8b8a74; }
+  .fleche { color: #5c6650; font-size: 1.6em; }
+  .chemin { font-size: .85em; color: #8b8a74; text-align: center; margin-top: 8px; }
+  .vert { color: #9dbb6b; } .rouge { color: #c96a45; } .or { color: #d0a75c; }
+  .histo {
+    border-left: 3px solid #c96a45; background: #171310;
+    border-radius: 6px; padding: 16px 22px; margin: 22px 0;
+  }
+  .histo p { margin: 0; }
+  footer {
+    text-align: center; padding: 30px; color: #5c5f52; font-size: .9em;
+    border-top: 1px solid #2a3025; margin-top: 40px;
+  }
+  footer a { color: #d0a75c; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <a class="retour" href="index.html">← retour au site</a>
+  <h1>🧠 Le réseau neuronal de Microcosme</h1>
+  <p>Neuroévolution en Pascal — 2 030 poids, zéro rétropropagation, zéro récompense.</p>
+</div>
+
+<section>
+  <h2>L'idée en une phrase</h2>
+  <p>Chaque sapiens porte son propre réseau de neurones — <strong>2 030 poids</strong> flottants,
+  hérités de ses parents, mutés à la naissance, et façonnés par la seule
+  <strong>sélection naturelle</strong>. Aucun gradient, aucune récompense, aucun entraînement :
+  celui qui trouve à manger, esquive les loups et élève des enfants diffuse ses poids.
+  La leçon s'apprend entre les générations, jamais dans une vie.</p>
+  <p class="chemin">C'est la <strong class="or">neuroévolution</strong> — la famille de NEAT et de
+  l'expérience MarI/O — appliquée non pas à une tâche, mais à une espèce entière
+  dans un monde persistant.</p>
+</section>
+
+<section>
+  <h2>L'architecture : trois chemins dans un même génome</h2>
+  <div class="schema">
+    <div class="neuron"><div class="n">34</div><div class="l">les sens</div></div>
+    <div class="fleche">→</div>
+    <div class="neuron"><div class="n">24</div><div class="l">traits (H1)</div></div>
+    <div class="fleche">→</div>
+    <div class="neuron"><div class="n">24</div><div class="l">situations (H2)</div></div>
+    <div class="fleche">→</div>
+    <div class="neuron"><div class="n">10</div><div class="l">décisions</div></div>
+  </div>
+  <div class="bloc">
+    <p><strong class="vert">La réflexion</strong> — le chemin lent : les 34 sens entrent, le
+    premier étage fabrique des <em>traits</em> (des conjonctions simples), le second fabrique
+    des <em>situations</em> (des conjonctions de traits). « Proie visible ET moi affamé ET pas
+    de prédateur plus proche » : c'est le second étage qui le sait. Le moment de jugement
+    entre voir et agir.</p>
+  </div>
+  <div class="bloc">
+    <p><strong class="rouge">La voie directe</strong> — les réflexes : 340 poids qui relient les
+    sens aux décisions <em>sans détour</em>. Voir le prédateur, fuir — sans jugement. Elle porte
+    les instincts innés : tout sapiens naît avec elle, l'évolution la polit depuis l'origine.</p>
+  </div>
+  <div class="bloc">
+    <p><strong class="or">Les échos</strong> — les neuf premières décisions de la pensée
+    précédente re-rentrent en entrées. Une mémoire d'un instant : un sapiens qui fuit continue
+    de fuir, un crieur continue de crier. La persistance du comportement.</p>
+  </div>
+  <table>
+    <tr><th>Bloc</th><th>Taille</th><th>Rôle</th></tr>
+    <tr><td>entrées → H1</td><td>34 × 24 = 816</td><td>les traits</td></tr>
+    <tr><td>biais de H1</td><td>24</td><td></td></tr>
+    <tr><td>H1 → H2</td><td>24 × 24 = 576</td><td>les situations</td></tr>
+    <tr><td>biais de H2</td><td>24</td><td></td></tr>
+    <tr><td>H2 → sorties</td><td>24 × 10 = 240</td><td>la sortie de la réflexion</td></tr>
+    <tr><td>voie directe</td><td>34 × 10 = 340</td><td>les réflexes</td></tr>
+    <tr><td>biais de sortie</td><td>10</td><td></td></tr>
+    <tr><td><strong>Total</strong></td><td></td><td><strong>2 030 poids (NW)</strong></td></tr>
+  </table>
+  <p>Toutes les unités sont des tangentes hyperboliques : les signaux vivent dans [-1, +1].
+  Les poids sont stockés à plat dans un tableau, avec une carte symbolique — changer les
+  dimensions recalcule tous les index, ce qui a permis deux agrandissements sans douleur.</p>
+</section>
+
+<section>
+  <h2>Ce qu'il sent — les 34 sens</h2>
+  <table>
+    <tr><th>Entrées</th><th>Sens</th></tr>
+    <tr><td>0</td><td>biais constant = 1</td></tr>
+    <tr><td>1</td><td>l'énergie (0 = la faim, 1 = repu)</td></tr>
+    <tr><td>2</td><td>la lumière du jour</td></tr>
+    <tr><td>3–5</td><td>la nourriture la plus proche : direction X, Y, proximité</td></tr>
+    <tr><td>6–8</td><td>le congénère le plus proche : direction, proximité</td></tr>
+    <tr><td>9–11</td><td>le prédateur le plus proche : direction, proximité</td></tr>
+    <tr><td>12–15</td><td>les quatre cris entendus : α, β, γ, δ (force du signal)</td></tr>
+    <tr><td>16–17</td><td>la direction du cri le plus fort</td></tr>
+    <tr><td>18–20</td><td>le souvenir de danger le plus pressant : direction, force</td></tr>
+    <tr><td>21–23</td><td>le souvenir de nourriture (pondéré par la faim)</td></tr>
+    <tr><td>24–32</td><td>les neuf échos — les décisions de la pensée d'avant</td></tr>
+    <tr><td>33</td><td>biais = 1</td></tr>
+  </table>
+  <p>Les directions sont <em>relatives au corps</em> : « devant à ma gauche », pas « au
+  nord-ouest de l'île ». Et la vue n'est pas un don uniforme : sa portée est mutée à chaque
+  naissance, multipliée × 1,15 par l'Optique, × 1,3 la nuit avec les lunettes, × 1,8 dès qu'un
+  chien rôde à moins de six cases — la domestication est aussi une extension des sens.</p>
+</section>
+
+<section>
+  <h2>Ce qu'il décide — les dix sorties</h2>
+  <table>
+    <tr><th>Sortie</th><th>Décision</th><th>Lecture</th></tr>
+    <tr><td>0</td><td>tourner</td><td>proportionnel, jusqu'à ±4,5 rad/s</td></tr>
+    <tr><td>1</td><td>avancer</td><td>poussée de 18 % à 108 % de la vitesse propre</td></tr>
+    <tr><td>2</td><td>construire</td><td>&gt; 0,55 — une hutte, si le monde s'y prête</td></tr>
+    <tr><td>3</td><td>se reproduire</td><td>module la probabilité (énergie et âge requis)</td></tr>
+    <tr><td>4</td><td>chasser</td><td>&gt; 0,4 et une proie sauvage en vue</td></tr>
+    <tr><td>5–8</td><td>crier α β γ δ</td><td>le plus actif (&gt; 0,25) devient le cri du jour</td></tr>
+    <tr><td>9</td><td>se reposer</td><td>&gt; 0,5 — le corps veille toujours</td></tr>
+  </table>
+  <div class="histo">
+    <p><strong>Le réflexe qui n'est pas du réseau :</strong> quand un prédateur entre à moins
+    de 3,6 cases, le corps ne demande pas son avis au réseau — il fuit, direction opposée.
+    Le réseau voit quand même le prédateur et l'écrit en mémoire, mais la fuite elle-même est
+    câblée. <em>La peur a précédé le cortex.</em></p>
+  </div>
+</section>
+
+<section>
+  <h2>Comment ça apprend</h2>
+  <p><strong>À la naissance</strong> : copie du réseau d'un parent, puis mutation — environ
+  13 % des poids dérivent légèrement, 2 % sautent ailleurs. Les poids de la voix mutent
+  <em>deux fois plus</em> : le langage doit varier plus vite que le corps. Le taux de mutation
+  lui-même est un gène : des lignées « innovantes » et « conservatrices » coexistent, la
+  sélection arbitre.</p>
+  <p><strong>Les fondateurs</strong> (sans parent) reçoivent un réseau inné : réflexes écrits
+  dans la voie directe, et couche 2 <em>transparente</em> — le second étage recopie le premier
+  au premier jour. Les fondateurs se comportent comme s'il n'y avait qu'un étage ; l'évolution
+  sculpte ensuite la couche neuve sans choc démographique.</p>
+  <p><strong>Le mentorat</strong> — l'effet Baldwin, en direct : l'enfant choisit le voisin le
+  plus « cultivé » (dans 14 cases), et son réseau glisse vers le sien — <em>mais jamais au-delà
+  de 30 % de la distance génétique</em>. Pour chaque poids : une cible à mi-chemin vers le
+  mentor, un glissement de 15 % par seconde, et l'ADN — jamais écrit — reste la signature
+  immuable de la naissance. La culture tire, l'hérédité ancre. Ce qui est appris ne passe pas
+  aux enfants — mais change qui survit, donc quels gènes se diffusent.</p>
+  <p><strong>La diffusion</strong> — les idées circulent : toutes les 0,1 s, les techniques
+  manquantes se copient de voisin à voisin (× 1,6 avec l'Imprimerie, × 1,5 la Monnaie,
+  × 1,3 une route…). Les bits d'invention passent à 4 % par voisin. Une invention peut
+  conquérir le peuple — ou mourir avec lui.</p>
+</section>
+
+<section>
+  <h2>Le langage : la pièce que personne d'autre n'a</h2>
+  <p>Quatre cris — α, β, γ, δ — portés à 14 cases. <strong>Personne ne fixe leur sens</strong> :
+  le carnet du jeu observe les coïncidences (un cri, puis un prédateur ?) et devine un
+  lexique — qui peut se défaire.</p>
+  <p>Et depuis le <strong>dictionnaire vivant</strong> : chaque découverte — technologie ou
+  invention — frappe un <strong>mot nouveau</strong> assemblé en syllabes (22 syllabes,
+  jamais réutilisées), <strong>prononcé à voix haute</strong> par son inventeur — synthèse à
+  formants, consonnes neutres, voyelles chantées — et archivé avec son sens, son auteur et son
+  jour. Les mots ne se traduisent pas : la langue du monde est une.</p>
+  <p class="chemin">Le futur chapitre — le charismatique dont les mots se propagent — est
+  dessiné et attend son heure.</p>
+</section>
+
+<section>
+  <h2>L'observer</h2>
+  <p><strong>F7</strong> ouvre le cerveau en géant, et un clic bascule entre deux lectures :
+  le <em>graphe</em> (chaque lien allumé par son signal — vert excite, rouge inhibe) et le
+  <em>mode esprit</em> : ce qu'il perçoit en clair, son humeur interne (24 barres — la couche 2,
+  vivante mais sans nom : on ne mentira pas sur ce qu'elle « signifie »), ce qu'il veut, et
+  pour sa décision la plus forte <strong>les trois contributions les plus lourdes</strong>
+  (poids × activation) : du pourquoi mesurable, pas de la poésie.</p>
+  <p><strong>F9</strong> ouvre le dictionnaire du peuple — chaque mot, son sens, son auteur,
+  son jour. <strong>F3</strong> la fiche du spécimen. Les courbes du carnet, après 30-40
+  générations, racontent le reste.</p>
+</section>
+
+<section>
+  <h2>Les deux big bangs</h2>
+  <div class="histo">
+    <p><strong>v1</strong> — 845 poids : la seconde couche était <em>posée dès l'origine mais
+    bypassée</em> — elle mutait dans le vide, et le biais de H1 était lu au mauvais endroit.
+    Un couplage parasite qui aura vécu des mois sans qu'on le voie.</p>
+    <p><strong>v2</strong> — le premier big bang : couche 2 activée en série, biais corrigé,
+    étages élargis à 16 (1 342 poids). Tous les cerveaux du monde ancien invalides d'un coup —
+    mise à jour au monde neuf uniquement.</p>
+    <p><strong>v3</strong> — le palier actuel : étages à 24 (2 030 poids). Le second
+    agrandissement fut une formalité : la carte symbolique et l'identité transparente posées
+    dès le premier big bang avaient tout prévu.</p>
+  </div>
+  <p><strong>Les limites honnêtes</strong> : l'apprentissage est lent (mutation + sélection,
+  pas de gradient) ; à 2 030 poids, on approche le seuil de bruit de sélection (~2 500) — le
+  prochain palier ne se fera pas sans renforcer le signal. Pour un cerveau plus gros :
+  élargir avant de creuser, et d'abord enrichir les capteurs — chaque nouveau canal sensoriel
+  vaut mieux qu'un étage.</p>
+</section>
+
+<footer>
+  Microcosme · neuroévolution en Pascal/Delphi ·
+  <a href="https://github.com/JLA1810/microcosme">GitHub</a> ·
+  <a href="index.html">retour au site</a>
+</footer>
+
+</body>
+</html>

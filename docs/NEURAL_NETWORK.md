@@ -34,16 +34,20 @@ réel, et le monde répond — ses décisions décident de sa survie.
 Les 2 030 poids sont stockés à plat dans un tableau (`Net`), avec une carte
 symbolique — changer les dimensions recalcule tous les index :
 
-| Bloc | Taille | Rôle |
-|---|---|---|
-| entrées → H1 | 34 × 24 = 816 | la réflexion, premier étage : les traits |
-| biais de H1 | 24 | |
-| H1 → H2 | 24 × 24 = 576 | la réflexion, second étage : les situations |
-| biais de H2 | 24 | |
-| H2 → sorties | 24 × 10 = 240 | la réflexion, sortie |
-| voie directe | 34 × 10 = 340 | les réflexes (entrées → sorties, sans détour) |
-| biais de sortie | 10 | |
-| **Total (NW)** | | **2 030** |
+| Bloc              | Taille     | Rôle                        |
+| ----------------- | ---------- | --------------------------- |
+| entrées → H1      | 34 ×       | la réflexion, premier étage |
+| biais             |            | :                           |
+| de H1             | 24 = 81624 | les traits                  |
+| H1 → H2 biais de  | 24 ×       | la réflexion, second étage  |
+|                   |            | :                           |
+| H2                | 24 = 57624 | les situations              |
+| H2 → sorties      | 24 ×10 =   | la réflexion, sortie        |
+|                   | 240        |                             |
+| voie directe      | 34 ×       | les réflexes (entrées →     |
+| biais             |            |                             |
+| de sortie **Total | 10 =       | sorties, sans détour) **2   |
+| (NW)**            | 34010      | 030**                       |
 
 La passe avant (`ThinkNet`) calcule :
 
@@ -69,20 +73,26 @@ Toutes les unités sont des tanh : les signaux vivent dans [-1, +1].
 
 ## 3. Les 34 sens
 
-| Entrées | Sens |
-|---|---|
-| 0 | biais constant = 1 |
-| 1 | l'énergie (0 = la faim, 1 = repu) |
-| 2 | la lumière du jour |
-| 3–5 | la nourriture la plus proche : direction X, Y, proximité |
-| 6–8 | le congénère le plus proche : direction X, Y, proximité |
-| 9–11 | le prédateur le plus proche : direction X, Y, proximité |
-| 12–15 | les quatre cris entendus : α, β, γ, δ (force du signal) |
-| 16–17 | la direction du cri le plus fort |
-| 18–20 | le souvenir de danger le plus pressant : direction, force |
-| 21–23 | le souvenir de nourriture (pondéré par la faim) |
-| 24–32 | les neuf échos — ce que le réseau a décidé la pensée d'avant |
-| 33 | biais = 1 |
+| Entrées | Sens                                               |
+| ------- | -------------------------------------------------- |
+| 0       | biais constant = 1                                 |
+| 1       | l'énergie (0 = la faim, 1 = repu)                  |
+| 2       | la lumière du jour                                 |
+| 3–5     | la nourriture la plus proche : direction X, Y,     |
+|         | proximité                                          |
+| 6–8     | le congénère le plus proche : direction X, Y,      |
+|         | proximité                                          |
+| 9–11    | le prédateur le plus proche : direction X, Y,      |
+|         | proximité                                          |
+| 12–15   | les quatre cris entendus : α, β, γ, δ (force du    |
+|         | signal)                                            |
+| 16–17   | la direction du cri le plus fort                   |
+| 18–20   | le souvenir de danger le plus pressant :           |
+|         | direction, force                                   |
+| 21–23   | le souvenir de nourriture (pondéré par la faim)    |
+| 24–32   | les neuf échos — ce que le réseau a décidé la      |
+|         | pensée d'avant                                     |
+| 33      | biais = 1                                          |
 
 Les directions sont relatives au corps : « devant à ma gauche », pas « au
 nord-ouest de l'île ».
@@ -99,15 +109,21 @@ L'ouïe porte à 14 cases, × 2 avec le tambour.
 
 ## 4. Les dix décisions
 
-| Sortie | Décision | Lecture |
-|---|---|---|
-| 0 | tourner | proportionnel, jusqu'à ±4,5 rad/s |
-| 1 | avancer | poussée de 18 % à 108 % de la vitesse propre |
-| 2 | construire | > 0,55 — une hutte, si le monde s'y prête |
-| 3 | se reproduire | module la probabilité (énergie et âge requis) |
-| 4 | chasser | > 0,4 et une proie sauvage en vue |
-| 5–8 | crier α β γ δ | le plus actif (> 0,25) devient le cri du jour |
-| 9 | se reposer | > 0,5 — le corps veille toujours (faim, vieillesse) |
+| Sortie | Décision | Lecture                                  |
+| ------ | -------- | ---------------------------------------- |
+| 0      | tourner  | proportionnel, jusqu'à ±4,5 rad/s        |
+| 1      | avancer  | poussée de 18 % à 108 % de la vitesse    |
+|        |          | propre                                   |
+| 2      | construi | > 0,55 — une hutte, si le monde s'y      |
+|        | re       | prête                                    |
+| 3      | se       | module la probabilité (énergie et âge    |
+|        | reprodui | requis)                                  |
+|        | re       |                                          |
+| 4      | chasser  | > 0,4 et une proie sauvage en vue        |
+| 5–8    | crierαβγ | le plus actif (> 0,25) devient le cri du |
+|        | δ        | jour                                     |
+| 9      | se       | > 0,5 — le corps veille toujours (faim,  |
+|        | reposer  | vieillesse)                              |
 
 ## 5. Le réflexe qui n'est pas du réseau
 
