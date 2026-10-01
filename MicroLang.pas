@@ -22,7 +22,7 @@ var
 implementation
 
 const
-  FR: array[0..243] of string = (
+  FR: array[0..245] of string = (
     'Observer le monde',            // 0
     'l''île s''éveille…',           // 1
     'nouveau monde',                // 2
@@ -266,12 +266,14 @@ const
     'houle et vent',                      //240
     'feux',                               //241
     'grillons',                           //242
-    'fanfares et cloches'                 //243
+    'fanfares et cloches' ,                //243
+    ' ',
+    'sapiens au départ'                    //245
    );
 
 
 
-  EN: array[0..243 ]of string = (
+  EN: array[0..245 ]of string = (
     'Observe the world',            // 0       00000
     'the island awakens…',          // 1
     'new world',                    // 2
@@ -515,7 +517,9 @@ const
     'waves and wind',                     //240
     'fires',                              //241
     'crickets',                           //242
-    'fanfares and bells'                  //243
+    'fanfares and bells',                  //243
+    ' ',
+    'starting sapiens'                     //245
   );
  
 

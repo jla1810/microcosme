@@ -270,6 +270,7 @@ const
   EXODE_5: Single = 0.20;
   EXODE_6: Single = 0.28;
   EXODE_7: Single = 0.35;   // ★ère 7-8 : l'industrialisation vide la campag
+  NB_SAPIENS0: Integer = 25;   // ★Éden : 0 = aucun sapiens au départ (semis manuel)
   ROAD_DIST: Single = 200.0;
   ROAD_CROISSANCE: Integer = 3;
   ROUTE_MAX: Integer = 12;

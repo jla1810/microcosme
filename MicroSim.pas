@@ -1504,7 +1504,7 @@ begin
           if CountH < 24 then for I := 1 to 2 do
             SpawnCreature(0, Random(GW), Random(GH), nil, nil, 0);
           if CountP < 8  then SpawnCreature(1, Random(GW), Random(GH), nil, nil, 0);
-          if (CountS < 4) and (CfgImmig > 0) then begin
+            if (CountS < 4) and (CfgImmig > 0) and (NB_SAPIENS0 > 0) then begin
             for I := 1 to CfgImmig do
               SpawnCreature(2, FHomeX + Random * 12 - 6,
                                FHomeY + Random * 12 - 6, nil, nil, 0);
