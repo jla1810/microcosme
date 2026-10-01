@@ -145,20 +145,124 @@ câblée. La peur a précédé le cortex.
 ## 7. Le mentorat : la culture qui guide l'ADN
 
 L'enfant choisit le voisin le plus « cultivé » (culture supérieure à la
-sienne, dans 14 cases) — et le re-choisit toutes les 0,4 s. Son réseau glisse
-vers celui du mentor, mais jamais au-delà de 30 % de la distance génétique.
-Le code réel, tel qu'il tourne :
+sienne, dans 14 cases) — et le re-choisit toutes les 0,4 secondes. Son réseau
+glisse ensuite vers celui du mentor, **mais jamais au-delà de 30 % de la
+distance génétique** : pour chaque poids, le mentor ne peut l'entraîner qu'à
+travers les trois dixièmes du chemin qui sépare l'élève de son propre ADN —
+la culture tire, l'hérédité ancre.
 
-```pascal
-// — transmission culturelle + apprentissage autonome —
-if (C.Mentor <> nil) and (C.Cult < 0.95) then begin
-  ...
-  C.Cult := Min(0.95, C.Cult + Gain);
-  // le réseau dérive vers le mentor SANS effacer l'ADN :
-  // au plus 30 % de la distance génétique peut être comblée
-  for I := 0 to NW - 1 do begin
-    Tgt := C.Dna[I] + (C.Mentor.Net[I] - C.Dna[I]) * 0.30;
-    C.Net[I] := C.Net[I] + (Tgt - C.Net[I]) * (0.15 * DT);
-  end;
-  ...
-end;
+Le mécanisme, décrit pas à pas : chaque poids de l'élève calcule d'abord sa
+cible (son ADN plus 30 % de la distance vers le poids du mentor), puis glisse
+vers cette cible à un rythme de 15 % par seconde de monde. L'ADN lui-même
+n'est jamais écrit : il reste la signature immuable de la naissance, le
+point de retour.
+
+Le rythme du savoir : 0,070 par seconde de monde (0,112 près d'une hutte),
+× 1,5 avec l'École, × 1,2 avec la Rhétorique, × 1,25 avec les Humanités —
+et cela coûte 0,05 par seconde d'énergie : apprendre, ça nourrit moins.
+Plafond : 0,95.
+
+Pendant l'apprentissage, les techniques du mentor coulent aussi — et la
+diffusion entre voisins (§8) les répand bien au-delà.
+
+C'est un étage lamarckien posé sur une transmission darwinienne : ce qui est
+appris dans une vie ne passe pas aux enfants — mais cela change qui survit,
+donc quels gènes se diffusent. L'effet Baldwin, en direct.
+
+## 8. La diffusion : les idées circulent
+
+Toutes les 0,1 s, chaque sapiens regarde ses voisins (dans 8 cases) : avec
+une probabilité de base (curseur de configuration) multipliée par
+
+- × 1,6 si l'autre a l'Imprimerie — l'encre multiplie les mots ;
+- × 1,5 la Monnaie — l'argent prête et voyage ;
+- × 1,3 si l'un des deux marche sur une route ;
+- × 1,25 la Banque, la Législation, le Théâtre ; × 1,1 le Parchemin ;
+
+…les techniques manquantes sont copiées. Les bits d'invention passent avec
+4 % de chance par voisin. Une invention née chez un sapiens peut ainsi
+conquérir le peuple — ou mourir avec lui.
+
+## 9. La mémoire : personnelle et collective
+
+**Personnelle** — jusqu'à six souvenirs, qui vieillissent en ~70 secondes de
+monde (environ un jour et trois quarts) :
+
+- le danger : écrit dès qu'un prédateur est repéré sans souvenir correspondant ;
+- la nourriture : écrite en mangeant.
+
+Leur force = proximité (1 − d/40) × fraîcheur (1 − âge/vie), pondérée par la
+faim pour la nourriture. Elles alimentent les entrées 18-23 : le passé proche
+guide le pas présent.
+
+**Collective** — avec les Archives (ou près du foyer d'origine), chaque
+nouveau-né reçoit d'emblée tout ce que le peuple sait, et tous les bits
+d'invention : la mort ne tue plus le savoir. C'est la promesse de l'ère du
+fer — tenue par le code.
+
+## 10. Le langage émergent
+
+Quatre cris — α, β, γ, δ — portés à 14 cases (× 2 avec le tambour). Qui parle
+est entendu (entrées 12-15), avec la direction du cri le plus fort
+(entrées 16-17).
+
+Personne ne fixe leur sens. Le carnet observe les coïncidences — un cri, puis
+un prédateur ? une trouvaille de nourriture ? — et devine un **lexique**. La
+voix de chaque sapiens est synthétisée en direct ; avec l'invention du
+tambour, le cri devient percussion.
+
+Et depuis le **dictionnaire vivant** : chaque découverte — technologie ou
+invention — frappe un **mot nouveau** assemblé en syllabes (jamais
+réutilisées), prononcé à voix haute par son inventeur (synthèse à formants :
+consonnes neutres, voyelles chantées, le tambour qui percute le motif),
+archivé avec son sens, son auteur et son jour — consultable en F9. Les mots
+ne se traduisent pas : la langue du monde est une.
+
+## 11. Comment l'observer
+
+- **F7 — l'Observatoire**, deux lectures au clic :
+  - le **graphe** : les trois colonnes (24, 24) et la sortie (10), chaque lien
+    allumé par son signal du moment — vert excite, rouge inhibe, l'opacité
+    dit la force, les pointillés sont la voie directe ;
+  - le **mode esprit** : le journal de bord — ce qu'il perçoit en clair
+    (énergie, nourriture, prédateur, congénère, mots entendus, souvenirs),
+    son **humeur interne** (24 barres : la couche 2, vivante mais sans nom —
+    on ne mentira pas sur ce qu'elle « signifie »), ce qu'il **veut** (les
+    décisions triées), et pour sa décision la plus forte les **trois
+    contributions les plus lourdes** (poids × activation, voie directe ou
+    interne n°k) : du pourquoi mesurable, pas de la poésie ;
+- **F9** : le dictionnaire du peuple — chaque mot, son sens, son auteur, son jour ;
+- **F3 — la fiche** : vitesse, vue, taille, génération, culture, inventions ;
+- **les courbes du carnet** : après 30-40 générations, elles racontent — la
+  vitesse et la vue montent si les prédateurs pressent, la culture scie (une
+  invention perdue, réapprise au camp), les mots apparaissent et disparaissent ;
+- **en 3D** : la couleur d'un sapiens est sa lignée ; le bâton du berger, la
+  lance du chasseur, la canne du pêcheur et le diadème du chef se lisent
+  d'un coup d'œil.
+
+## 12. La place du projet
+
+Microcosme appartient à la famille de la **neuroévolution** — voir NEAT
+(Stanley & Miikkulainen) et la célèbre expérience MarI/O. Ce qui le distingue :
+
+- les réseaux vivent dans un monde persistant (saisons, prédateurs, famines,
+  la mémoire d'un peuple), pas dans une tâche éphémère ;
+- l'étage culturel (mentorat borné par la distance génétique) fait pont entre
+  Lamarck et Darwin ;
+- un langage émergent dont la voix mute plus vite que le corps, dont les mots
+  s'archivent avec leur histoire — le carnet ne fait que deviner leur sens.
+
+**Les limites honnêtes** : l'apprentissage est lent (mutation + sélection, pas
+de gradient) ; à 2 030 poids, le monde approche le seuil de bruit de sélection
+(~2 500) — le prochain palier ne se fera pas sans renforcer le signal
+(population plus grande, plasticité vivante) ; pour un cerveau plus gros :
+élargir avant de creuser, et d'abord enrichir les capteurs — chaque nouveau
+canal sensoriel vaut mieux qu'un étage.
+
+---
+
+*Historique du document : v1 — 845 poids, couche 2 allouée mais bypassée.
+v2 — 1 342 poids (étages à 16), couche 2 active en série, biais H1 corrigé,
+couche 2 transparente à la naissance, mode esprit. v3 — 2 030 poids (étages
+à 24), dictionnaire vivant, mots chantés à leur naissance. Mondes antérieurs
+incompatibles.*
