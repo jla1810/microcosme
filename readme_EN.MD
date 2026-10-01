@@ -28,55 +28,97 @@ not dreamed of. **Everything else belongs to them.**
 
 > *Not a trained model — a living species.*
 
-|             |                                                                                                           |
-| ----------- | --------------------------------------------------------------------------------------------------------- |
-| **          | Selection acts on speed, sight, size. Every lineage carries its own color — and its own mutation rate,    |
-|             | inherited                                                                                                 |
-| 🧬 Evo lut  | and itself mutable: "innovative" and "conservative" families coexist, survival arbitrates.                |
-| ion **      |                                                                                                           |
-| **          | Every sapien carries its own neural network — 34 senses, ten decisions, **2,030 weights**, three paths:   |
-| 🧠          | reflection (two tiers — the second builds *situations*), reflex, echoes. No backpropagation: inheritance, |
-| Min         | mentorship and selection shape everything. Microcosme belongs to **neuroevolution** — the family of       |
-|             | *NEAT* and                                                                                                |
-| ds* *       | the famous *MarI/O* experiment: neural networks shaped by a **genetic algorithm**.                        |
-| **          | Four calls (α β γ δ) whose **meaning is fixed by no one** — the notebook guesses: alarm? food? And every  |
-| 🗣️          | discovery strikes a **new word in syllables**, spoken aloud by its inventor: the people writes its own    |
-| Lan gua ge* | dictionary.                                                                                               |
-| *           |                                                                                                           |
-| **          | Each child picks a mentor; its mind glides toward theirs, never beyond 30 % of the genetic distance.      |
-|             | DNAis                                                                                                     |
-| 🏛️ Cul tur  | guided, never overwritten — the Baldwin effect, live.                                                     |
-| e**         |                                                                                                           |
-| **          | A skewer is born of a hungry night by the fire, a drum of a memory of danger by the water. Each named by  |
-|             | the                                                                                                       |
-| 💡 Inv ent  | emergent lexicon.                                                                                         |
-| ion s**     |                                                                                                           |
-| **          | A cluster of huts becomes a named town: a square, walls with four gates, a monument. Winding roads grow   |
-|             | from town                                                                                                 |
-| 🏘️ Cit ies  | to town. Then the countryside empties — "the people turns urban", the notebook writes one day.            |
-| **          |                                                                                                           |
-| **          | When a town stands, it elects a chief: the one who knows. Reign for life; at their death a bell tolls and |
-|             | the                                                                                                       |
-| 👑 The chi  | notebook writes who succeeds.                                                                             |
-| ef* *       |                                                                                                           |
-| **          | Everything synthesized live (waveOut + one thread): formant voices, drums, crickets, swell, wind, the     |
-|             | lyre                                                                                                      |
-| 🎵 Sou nd*  | fanfare at each era's gate — and the bell of the coronation.                                              |
-| *           |                                                                                                           |
+|     |                                                |
+| --- | ---------------------------------------------- |
+| **  | Selection acts on speed, sight, size. Every    |
+|     | lineage carries its own color — and its own    |
+|     | mutation rate, inherited                       |
+| 🧬  | and itself mutable: "innovative" and           |
+| Evo | "conservative" families coexist, survival      |
+| lut | arbitrates.                                    |
+| ion |                                                |
+| **  |                                                |
+| **  | Every sapien carries its own neural network—34 |
+|     | senses, ten decisions, **2,030 weights**,      |
+|     | three paths:                                   |
+| 🧠  | reflection (two tiers — the second builds      |
+|     | *situations*), reflex, echoes. No              |
+|     | backpropagation: inheritance,                  |
+| Min | mentorship and selection shape everything.     |
+|     | Microcosme belongs to **neuroevolution** — the |
+|     | family of *NEAT* and                           |
+| ds* | the famous *MarI/O* experiment: neural         |
+| *   | networks shaped by a **genetic algorithm**.    |
+| **  | Four calls (α β γ δ) whose **meaning is        |
+|     | fixedby no one** — the notebook guesses:       |
+|     | alarm? food? And every                         |
+| 🗣️  | discovery strikes a **new word in syllables**, |
+|     | spoken aloud by its inventor: the people       |
+|     | writes its own                                 |
+| Lan | dictionary.                                    |
+| gua |                                                |
+| ge* |                                                |
+| *   |                                                |
+| **  | Each child picks a mentor; its mind glides     |
+|     | toward theirs, never beyond 30 % of the        |
+|     | genetic distance. DNAis                        |
+| 🏛️  | guided, never overwritten — the Baldwin        |
+| Cul | effect, live.                                  |
+| tur |                                                |
+| e** |                                                |
+| **  | A skewer is born of a hungry night by the      |
+|     | fire, a drum of a memory of danger by the      |
+|     | water. Each named by the                       |
+| 💡  | emergent lexicon.                              |
+| Inv |                                                |
+| ent |                                                |
+| ion |                                                |
+| s** |                                                |
+| **  | A cluster of huts becomes a named town: a      |
+|     | square, walls with four gates, a monument.     |
+|     | Winding roads grow from town                   |
+| 🏘️  | to town. Then the countryside empties — "the   |
+| Cit | people turns urban", the notebook writes one   |
+| ies | day.                                           |
+| **  |                                                |
+| **  | When a town stands, it elects a chief: the one |
+|     | who knows. Reign for life; at their death a    |
+|     | bell tolls and the                             |
+| 👑  | notebook writes who succeeds.                  |
+| The |                                                |
+| chi |                                                |
+| ef* |                                                |
+| *   |                                                |
+| **  | Everything synthesized live (waveOut + one     |
+|     | thread): formant voices, drums, crickets,      |
+|     | swell, wind, the lyre                          |
+| 🎵  | fanfare at each era's gate — and the bell of   |
+| Sou | the coronation.                                |
+| nd* |                                                |
+| *   |                                                |
 
 ## 🏛️ The eras
 
-| Era                  | What it brings                                      |
-| -------------------- | --------------------------------------------------- |
-| Neolithic            | fire → writing; round huts, the first camp          |
-| Bronze Age           | plough, sail, science; stone houses                 |
-| Iron Age             | philosophy, medicine; knowledge that no longer dies |
-| Antiquity            | the City; paved squares, marble columns, roads      |
-| Middle Ages          | universities, mills; walls and keeps                |
-| Renaissance          | the printing press; painted facades                 |
-| Industrial era       | steam, factories; smoking chimneys on the horizon   |
-| Modern era           | electricity; night is no longer quite night         |
-| **The Three Cities** | *written into the program — the people's future*    |
+| Era       | What it brings                                   |
+| --------- | ------------------------------------------------ |
+| Neolithic | fire → writing; round huts, the first camp       |
+| Bronze    | plough, sail, science; stone houses              |
+| Age       |                                                  |
+| Iron Age  | philosophy, medicine; knowledge that no longer   |
+|           | dies                                             |
+| Antiquity | the City; paved squares, marble columns, roads   |
+| Middle    | universities, mills; walls and keeps             |
+| Ages      |                                                  |
+| Renaissan | the printing press; painted facades              |
+| ce        |                                                  |
+| Industria | steam, factories; smoking chimneys on the        |
+| l         |                                                  |
+| era       | horizon                                          |
+| Modern    | electricity; night is no longer quite night      |
+| era       |                                                  |
+| **The     | *written into the program — the people's         |
+| Three     |                                                  |
+| Cities**  | future*                                          |
 
 Passing an era is never automatic. When every technology of the age is found, when the people
 is numerous and inventive enough, a **golden button** appears in the notebook — and waits for your hand.
@@ -104,17 +146,19 @@ staff, the hunter's spear, the fisher's rod — and the chief wears the diadem a
 
 ## ⌨️ Controls
 
-|    Key    | Action                                                |
-| :-------: | ----------------------------------------------------- |
-|  **F1**   | the built-in manual (23 illustrated pages, FR/EN)     |
-|  **F2**   | world pace — live settings, including the audio mixer |
-|  **F3**   | specimen sheet                                        |
-|  **F4**   | sound: all / mute                                     |
-|  **F5**   | borderless fullscreen world                           |
-|  **F7**   | the Observatory — the selected mind, live             |
-|  **F8**   | français / english                                    |
-|  **F9**   | the people's dictionary                               |
-| **Space** | pause                                                 |
+|    Key    | Action                                           |
+| :-------: | ------------------------------------------------ |
+|  **F1**   | the built-in manual (23 illustrated pages,       |
+|           | FR/EN)                                           |
+|  **F2**   | world pace — live settings, including the audio  |
+|           | mixer                                            |
+|  **F3**   | specimen sheet                                   |
+|  **F4**   | sound: all / mute                                |
+|  **F5**   | borderless fullscreen world                      |
+|  **F7**   | the Observatory — the selected mind, live        |
+|  **F8**   | français / english                               |
+|  **F9**   | the people's dictionary                          |
+| **Space** | pause                                            |
 
 *Mouse: left click = the chosen tool (lens, seed, herbivore, predator, sapien) ·
 right-drag = move the camera · wheel = zoom.*
