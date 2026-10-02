@@ -2,9 +2,14 @@
 
 { Microcosme — fenêtre 3D interactive :
   · mode TRAITS : chaque habitant est une étoile dans l'espace
-  vitesse × vue × taille (évolution et spécialisations visibles)
+    vitesse × vue × taille (évolution et spécialisations visibles)
   · mode POPULATIONS : les 4 courbes de l'histoire en 3D
-  Glisser : tourner · molette : zoom · clic droit : changer de mode }
+  · mode YEUX DE SAPIENS : raycaster 100 % code — le monde vu depuis
+    la tête d'un sapiens (S1), habité de billboards (S2), avec cités
+    (S3), incarnation (S5), personnages articulés (S6), textures
+    procédurales (S7) et modelé (S8).
+  Clic droit : changer de mode · clic gauche (mode yeux) : sapiens suivant
+  · ESPACE : incarner · flèches/ZQSD : marcher }
 
 interface
 
@@ -17,36 +22,44 @@ procedure OpenGraph3DWindow;
 
 implementation
 
-uses
-  MicroVilles, // ★S3 : SurRoute (la route au sol)
-  MicroLang;    // ★S6b : L() pour reconnaître les états de métier
-
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
 
+uses
+  MicroVilles,   // ★S3 : SurRoute (la route au sol)
+  MicroLang ,    // ★S6b : L() pour reconnaître les états de métier
+  MicroEre;      // ★v17 : PeopleHas (la nuit devient jour, les cheminées)
+
+
+const
+  VK_LEFT   = $25;   // ★S5 : constantes clavier en local — Winapi.Windows
+  VK_RIGHT  = $27;   //   écraserait TBitmap (Vcl.Graphics) par le record GDI
+  VK_UP     = $26;
+  VK_DOWN   = $28;
+  VK_SPACE  = $20;
+  VK_ESCAPE = $1B;
+
 type
+  TRGBTri = packed record               // un pixel 24 bits (ordre mémoire BGR)
+    B, G, R: Byte;
+  end;
+  TRGBRow = array[0..0] of TRGBTri;
+  PRGBRow = ^TRGBRow;
+
   TG3DForm = class(TForm)
   public
     procedure GPaint(Sender: TObject);
     procedure GTimer(Sender: TObject);
     procedure GClose(Sender: TObject; var Action: TCloseAction);
-    procedure GDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState;
-      X, Y: Integer);
+    procedure GDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure GMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
-    procedure GUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState;
-      X, Y: Integer);
-    procedure GWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer;
-      MousePos: TPoint; var Handled: Boolean);
-    procedure GKey(Sender: TObject; var Key: Word; Shift: TShiftState); // ★S5
+    procedure GUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure GWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure GKey(Sender: TObject; var Key: Word; Shift: TShiftState);
   end;
-
-type
-  TRGBTri = packed record // un pixel 24 bits (ordre mémoire BGR)
-    B, G, R: Byte;
-  end;
-
-  TRGBRow = array [0 .. 0] of TRGBTri;
-  PRGBRow = ^TRGBRow;
 
 var
   G3: TG3DForm = nil;
@@ -56,30 +69,65 @@ var
   GMode: Integer = 0;
   GDrag: Boolean = False;
   GLX, GLY: Integer;
-  GTim: TTimer = nil; // le batteur (pour changer sa cadence)
-  GBuf: TBitmap = nil; // l'écran basse résolution du raycaster
-  GFollowCId: Integer = 0; // le sapiens suivi : un CId, JAMAIS un pointeur
-  GTime: Single = 0;                    // ★S6 : l'horloge d'animation
-  GWalkT: Single = 0;                   // ★S6 : la cadence des mains incarnées
-  GLastSX : Single = 0;
-  GLastSY: Single = 0;         // ★S6 : la position précédente du suivi
+  GTim: TTimer = nil;                   // le batteur (pour changer sa cadence)
+  GBuf: TBitmap = nil;                  // l'écran du raycaster
+  GFollowCId: Integer = 0;              // le sapiens suivi : un CId, JAMAIS un pointeur
+  GTime: Single = 0;                    // ★S6 l'horloge d'animation
+  GWalkT: Single = 0;                   // ★S6 la cadence des mains incarnées
+  GLastSX: Single = 0;                  // ★S6 la position précédente du suivi
+  GLastSY: Single = 0;                  //   (une initialisation par ligne : E2196 sinon)
   GLastInit: Boolean = False;
 
-procedure OpenGraph3DWindow;
-var
-  T: TTimer;
+{ ★S7 — le bruit procédural : déterministe (même entrée = même grain),
+  renvoie toujours dans [0,1). Hash entier, ~20× plus vite que le Sin.
+  Les débordements de multiplication sont voulus et sûrs (conv. 1). }
+function Bruit(A, B: Single): Single;
+var H: Integer;
 begin
-  if G3 <> nil then
-  begin
-    G3.BringToFront;
-    Exit
+  H := (Trunc(A) * 73856093) xor (Trunc(B) * 19349663);
+  Result := (H and $FFFFFF) / $1000000;
+end;
+
+{ le sapiens suivi : par CId, jamais de pointeur stocké (leçon KillPlantEx) }
+function SapienSuivant(Rot: Boolean): TCreature;
+var I, J, N, Cur: Integer;
+begin
+  Result := nil;
+  if (Creatures = nil) or (Creatures.Count = 0) then begin
+    GFollowCId := 0; Exit;
   end;
+  N := Creatures.Count;
+  Cur := -1;
+  if GFollowCId <> 0 then
+    for I := 0 to N - 1 do
+      if (Creatures[I] <> nil) and Creatures[I].Alive and
+         (Creatures[I].Kind = 2) and (Creatures[I].CId = GFollowCId) then begin
+        Cur := I; Break;
+      end;
+  if (not Rot) and (Cur >= 0) then begin
+    Result := Creatures[Cur];            // le suivi tient bon
+    Exit;
+  end;
+  for J := 1 to N do begin               // le suivant, en bouclant
+    I := (Cur + J) mod N;
+    if (Creatures[I] <> nil) and Creatures[I].Alive and
+       (Creatures[I].Kind = 2) then begin
+      Result := Creatures[I];
+      GFollowCId := Result.CId;
+      Exit;
+    end;
+  end;
+  GFollowCId := 0;                       // plus aucun sapiens vivant
+end;
+
+procedure OpenGraph3DWindow;
+var T: TTimer;
+begin
+  if G3 <> nil then begin G3.BringToFront; Exit end;
   G3 := TG3DForm.CreateNew(nil);
-  with G3 do
-  begin
+  with G3 do begin
     Caption := 'Microcosme — 3D · traits';
-    Width := 780;
-    Height := 580;
+    Width := 980; Height := 640;
     Position := poScreenCenter;
     Color := Col(11, 14, 11);
     DoubleBuffered := True;
@@ -89,30 +137,30 @@ begin
     OnMouseMove := GMove;
     OnMouseUp := GUp;
     OnMouseWheel := GWheel;
-    KeyPreview := True; // ★S5 : la fenêtre 3D attrape les touches
+    KeyPreview := True;                       // ★S5 : la fenêtre 3D attrape les touches
     OnKeyDown := GKey;
   end;
   T := TTimer.Create(G3);
   T.Interval := 120;
   T.OnTimer := G3.GTimer;
+  GTim := T;
   G3.Show;
 end;
 
 procedure TG3DForm.GTimer(Sender: TObject);
 begin
-  if not GDrag then
-    GYaw := GYaw + 0.005;
+  if not GDrag then GYaw := GYaw + 0.005;
   Invalidate;
 end;
 
-const
-  VK_LEFT   = $25;   // ★S5 : constantes clavier en local — Winapi.Windows
-  VK_RIGHT  = $27;   //   écraserait TBitmap (Vcl.Graphics) par le record GDI
-  VK_UP     = $26;
-  VK_DOWN   = $28;
-  VK_SPACE  = $20;
-  VK_ESCAPE = $1B;
-function SapienSuivant(Rot: Boolean): TCreature; forward;   // ★GKey l'appelle, définie plus bas
+procedure TG3DForm.GClose(Sender: TObject; var Action: TCloseAction);
+begin
+  Action := caFree;
+  GTim := nil;
+  if GBuf <> nil then begin GBuf.Free; GBuf := nil end;
+  GFollowCId := 0;
+  G3 := nil;
+end;
 
 { ★S5 — l'incarnation : les touches quand la fenêtre 3D a le focus.
   Flèches partout ; ZQSD marche aussi (les codes touche suivent la lettre
@@ -122,13 +170,11 @@ var
   S5: TCreature;
 
   procedure Pas(Dist: Single);
-  var
-    TX5, TY5: Single;
+  var TX5, TY5: Single;
   begin
     TX5 := S5.X + Cos(S5.Angle) * Dist;
     TY5 := S5.Y + Sin(S5.Angle) * Dist;
-    if Walkable(TX5, TY5) then
-    begin
+    if Walkable(TX5, TY5) then begin
       S5.X := ClampF(TX5, 0.01, GW - 0.01);
       S5.Y := ClampF(TY5, 0.01, GH - 0.01);
       GWalkT := GWalkT + 0.5;            // ★S6 : la cadence des mains
@@ -136,101 +182,80 @@ var
   end;
 
 begin
-  if GMode <> 2 then
-    Exit;
-  if (Creatures = nil) or (GFollowCId = 0) then
-    Exit;
+  if GMode <> 2 then Exit;
+  if (Creatures = nil) or (GFollowCId = 0) then Exit;
   S5 := SapienSuivant(False);
-  if S5 = nil then
-    Exit;
-  FSimCS.Enter; // conv. 12 : on ÉCRIT dans la sim
+  if S5 = nil then Exit;
+  FSimCS.Enter;                          // conv. 12 : on ÉCRIT dans la sim
   try
     case Key of
-      VK_LEFT, Ord('Q'):
-        S5.Angle := S5.Angle - 0.12;
-      VK_RIGHT, Ord('D'):
-        S5.Angle := S5.Angle + 0.12;
-      VK_UP, Ord('Z'):
-        Pas(0.6);
-      VK_DOWN, Ord('S'):
-        Pas(-0.35);
-      VK_SPACE:
-        S5.Piloted := not S5.Piloted; // incarner / rendre le corps
-      VK_ESCAPE:
-        S5.Piloted := False;
+      VK_LEFT,  Ord('Q'): S5.Angle := S5.Angle - 0.12;
+      VK_RIGHT, Ord('D'): S5.Angle := S5.Angle + 0.12;
+      VK_UP,    Ord('Z'): Pas(0.6);
+      VK_DOWN,  Ord('S'): Pas(-0.35);
+      VK_SPACE:  S5.Piloted := not S5.Piloted;   // incarner / rendre le corps
+      VK_ESCAPE: S5.Piloted := False;
     end;
   finally
     FSimCS.Leave;
   end;
 end;
 
-procedure TG3DForm.GClose(Sender: TObject; var Action: TCloseAction);
+procedure TG3DForm.GDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
 begin
-  Action := caFree;
-  GTim := nil;
-  if GBuf <> nil then
-  begin
-    GBuf.Free;
-    GBuf := nil
-  end;
-  GFollowCId := 0;
-  G3 := nil;
-end;
-
-{ ─── mode 2 : les yeux d'un sapiens (raycaster 100% code) ────────────────── }
-
-function SapienSuivant(Rot: Boolean): TCreature;
-var
-  I, J, N, Cur: Integer;
-begin
-  Result := nil;
-  if (Creatures = nil) or (Creatures.Count = 0) then
-  begin
-    GFollowCId := 0;
-    Exit;
-  end;
-  N := Creatures.Count;
-  Cur := -1;
-  if GFollowCId <> 0 then
-    for I := 0 to N - 1 do
-      if (Creatures[I] <> nil) and Creatures[I].Alive and
-        (Creatures[I].Kind = 2) and (Creatures[I].CId = GFollowCId) then
-      begin
-        Cur := I;
-        Break;
-      end;
-  if (not Rot) and (Cur >= 0) then
-  begin
-    Result := Creatures[Cur]; // le suivi tient bon
-    Exit;
-  end;
-  for J := 1 to N do
-  begin // le suivant, en bouclant
-    I := (Cur + J) mod N;
-    if (Creatures[I] <> nil) and Creatures[I].Alive and (Creatures[I].Kind = 2)
-    then
-    begin
-      Result := Creatures[I];
-      GFollowCId := Result.CId;
-      Exit;
+  if Button = mbRight then begin
+    GMode := (GMode + 1) mod 3;
+    case GMode of
+      0: Caption := 'Microcosme — 3D · traits';
+      1: Caption := 'Microcosme — 3D · populations';
+    else Caption := 'Microcosme — 3D · yeux de sapiens';
     end;
+    if GTim <> nil then begin
+      if GMode = 2 then GTim.Interval := 40
+      else GTim.Interval := 120;
+    end;
+    Invalidate;
+    Exit;
   end;
-  GFollowCId := 0; // plus aucun sapiens vivant
+  if (GMode = 2) and (Button = mbLeft) then begin
+    SapienSuivant(True);                 // clic gauche : le sapiens suivant
+    Invalidate;
+    Exit;
+  end;
+  GDrag := True; GLX := X; GLY := Y;
 end;
 
-
-                  { ★S7 — le bruit procédural : déterministe (même entrée = même grain),
-  renvoie toujours dans [0,1). Le SEUL outil de toutes les textures. }
-function Bruit(A, B: Single): Single;
+procedure TG3DForm.GMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 begin
-  Result := Frac(Sin(A * 127.1 + B * 311.7) * 43758.5453);
+  if GDrag then begin
+    GYaw := GYaw + (X - GLX) * 0.008;
+    GPitch := ClampF(GPitch + (Y - GLY) * 0.006, -1.35, 1.35);
+    GLX := X; GLY := Y;
+  end;
 end;
 
+procedure TG3DForm.GUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  GDrag := False;
+end;
+
+procedure TG3DForm.GWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  GZoom := ClampF(GZoom * Exp(-WheelDelta * 0.0012), 0.35, 3);
+  Handled := True;
+  Invalidate;
+end;
+
+{ ★S1→S8b — les yeux d'un sapiens. Ordre imposé par Delphi (conv. 15) :
+  const → type → var → procédures nichées → begin. }
 procedure Yeux;
 const
-  RES_W = 720;   RES_H = 450;
+  RES_DIV = 1;                 // ★S6c+ : 1 = pleine résolution · 2 = moitié si ça rame
   FOV   = 1.55;
-  EYE_H = 1.55;
+  EYE_H = 1.85;                // ★S8 : l'œil un peu haut, les bêtes moins massives
   FOG   = 26.0;
 type
   TVpro = record
@@ -242,11 +267,12 @@ var
   DirA, DirX, DirY, PlX, PlY, PlaneLen, Foc, T,
   WX0, WY0, StX, StY, wx, wy, Day, DM, FogM, FogA,
   zr, zg, zb, hr, hg, hb, f, sr, sg, sb, RX, RY, VB: Single;
+  RES_W, RES_H: Integer;       // ★S6c+ : la résolution suit la fenêtre
   Row: PRGBRow;
   HandA: Single;  HandW: Integer;
   Vpro: array of TVpro;
 
-  // ★S2/S3/S6/S7 — les billboards : arbres, huttes, bêtes, remparts, tour.
+  // ★S2/S3/S6/S7/S8 — les billboards : arbres, huttes, bêtes, remparts, tour.
   procedure Billboards;
   const
     NSEG = 24;                             // segments de rempart (1 porte sur 6)
@@ -303,6 +329,38 @@ var
         for PX5 := Trunc(CX5 - RA5) to Trunc(CX5 + RA5) do
           if Sqr(PX5 - CX5) + Sqr(PY5 - CY5) <= RR5 then
             PutPix(PX5, PY5, r5, g5, b5);
+    end;
+
+    // ★S8 le rectangle modelé : dégradé relatif (0 bord gauche → 1 bord
+    // droit) + bruit de matière + ombre latérale selon le soleil.
+    procedure RectO(PX1, PY1, PX2, PY2, Prof: Integer;
+                    r5, g5, b5: Single; Sem5: Integer);
+    var PX5, PY5: Integer; VB, KD: Single;
+    begin
+      for PY5 := Max(0, PY1) to Min(RES_H - 1, PY2) do
+        for PX5 := Max(0, PX1) to Min(RES_W - 1, PX2) do begin
+          VB := 0.92 + 0.16 * Bruit(PX5 * 2.1 + Sem5 * 0.13, PY5 * 1.7);
+          KD := (PX5 - PX1) / Max(1, PX2 - PX1);
+          VB := VB * (0.86 + 0.28 * KD);
+          if PX5 > Bbs[K].SX then VB := VB * OmS;
+          PutPix(PX5, PY5, r5 * VB, g5 * VB, b5 * VB);
+        end;
+    end;
+
+    // ★S8 la sphère éclairée : le point de lumière fuit le soleil.
+    procedure Tete(CX5, CY5, RA5, r5, g5, b5: Single; Sem5: Integer);
+    var PX5, PY5: Integer; DXF, DYF, D2F, VB, LD: Single;
+    begin
+      if RA5 < 1 then Exit;
+      for PY5 := Trunc(CY5 - RA5) to Trunc(CY5 + RA5) do
+        for PX5 := Trunc(CX5 - RA5) to Trunc(CX5 + RA5) do begin
+          DXF := PX5 - CX5;  DYF := PY5 - CY5;
+          D2F := DXF * DXF + DYF * DYF;
+          if D2F > Sqr(RA5) then Continue;
+          VB := 0.93 + 0.12 * Bruit(PX5 * 3.1 + Sem5 * 0.09, PY5 * 3.1);
+          LD := 1 + (DXF / RA5) * (0.26 * (1 - OmS)) - (DYF / RA5) * 0.12;
+          PutPix(PX5, PY5, r5 * VB * LD, g5 * VB * LD, b5 * VB * LD);
+        end;
     end;
 
     // ★S6 l'ombre portée : on assombrit les pixels déjà posés (le sol),
@@ -393,7 +451,7 @@ var
       Bbs[N].Z := ZD;
       Bbs[N].SX := RES_W * 0.5 + (SD / ZD) * Foc;
       Bbs[N].Pied := Hor + (EYE_H * Foc / ZD);
-      Bbs[N].Haut := (0.8 + O.Sz * 0.7) * Foc / ZD;
+      Bbs[N].Haut := (0.55 + O.Sz * 0.5) * Foc / ZD;  // ★S8 les bêtes moins massives
       case O.Kind of
         0: Bbs[N].Clr := Col(228, 220, 190);
         1: Bbs[N].Clr := Col(201, 106, 69);
@@ -558,9 +616,22 @@ var
                  PutPix(PX, PY, 255, 205, 100);     // l'étincelle
                end;
              end;
+                          if PeopleHas(teUsines) and (Hh.Ville <> nil) then begin
+               // ★ère 7 : les cheminées fumantes des villes-usines
+               YT := Trunc(Bbs[K].Pied - Bbs[K].Haut);
+               for J := 1 to 6 do begin
+                 PX := Trunc(Bbs[K].SX) + Trunc(Bruit(Bbs[K].Sem + J * 13,
+                          Trunc(GTime * 1.5)) * 5) - 2;
+                 PY := YT - 1 - J * 2;
+                 VB := (0.55 + 0.3 * Bruit(J * 3.1 + Bbs[K].Sem, GTime * 0.7)) *
+                       (1 - J / 9) * (1 - FM);
+                 PutPix(PX, PY, 118 * VB + hr * FM, 116 * VB + hg * FM,
+                        114 * VB + hb * FM);
+               end;
+             end;
            end;
 
-        2: begin                                     // ★S6 la créature articulée
+        2: begin                                     // ★S6/S8 la créature articulée
              case Bbs[K].Kd of
                0, 5: Wd := Bbs[K].Haut * 0.50;
                1, 3, 4: Wd := Bbs[K].Haut * 0.30;
@@ -574,32 +645,43 @@ var
              ph := Sin(GTime * 9.0 + Bbs[K].Cid * 1.7) * Amp;
 
              if Bbs[K].Kd = 2 then begin
+               // —— le sapiens : jambes, tunique, bras, tête, chevelure ——
                Ombre(Bbs[K].SX, Bbs[K].Pied, Bbs[K].Haut * 0.15,
                      Bbs[K].Haut * 0.05, FM);
                Demi := Max(1, Trunc(Bbs[K].Haut * 0.05));
-               Rect5(Trunc(Bbs[K].SX - Bbs[K].Haut * 0.07) - Demi,
+               RectO(Trunc(Bbs[K].SX - Bbs[K].Haut * 0.07) - Demi,
                      Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.34 - Bbs[K].Haut * 0.05 * ph),
                      Trunc(Bbs[K].SX - Bbs[K].Haut * 0.07) + Demi, Trunc(Bbs[K].Pied),
-                     skinR * 0.82, skinG * 0.82, skinB * 0.82);
-               Rect5(Trunc(Bbs[K].SX + Bbs[K].Haut * 0.07) - Demi,
+                     Trunc(Bbs[K].Haut * 0.05) * 2 + 1,
+                     skinR * 0.82, skinG * 0.82, skinB * 0.82, Bbs[K].Sem);
+               RectO(Trunc(Bbs[K].SX + Bbs[K].Haut * 0.07) - Demi,
                      Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.34 + Bbs[K].Haut * 0.05 * ph),
                      Trunc(Bbs[K].SX + Bbs[K].Haut * 0.07) + Demi, Trunc(Bbs[K].Pied),
-                     skinR * 0.82, skinG * 0.82, skinB * 0.82);
-               Rect5(Trunc(Bbs[K].SX - Bbs[K].Haut * 0.13),
+                     Trunc(Bbs[K].Haut * 0.05) * 2 + 1,
+                     skinR * 0.82, skinG * 0.82, skinB * 0.82, Bbs[K].Sem);
+               RectO(Trunc(Bbs[K].SX - Bbs[K].Haut * 0.13),
                      Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.66),
                      Trunc(Bbs[K].SX + Bbs[K].Haut * 0.13),
-                     Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.30), Rf, Gf, Bf);
-               Demi := Max(1, Trunc(Bbs[K].Haut * 0.035));
-               Rect5(Trunc(Bbs[K].SX - Bbs[K].Haut * 0.17) - Demi,
+                     Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.30),
+                     Trunc(Bbs[K].Haut * 0.26) * 2 + 1, Rf, Gf, Bf, Bbs[K].Sem);
+               Rect5(Trunc(Bbs[K].SX - Bbs[K].Haut * 0.13),   // l'ourlet de la tunique
+                     Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.33),
+                     Trunc(Bbs[K].SX + Bbs[K].Haut * 0.13),
+                     Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.30),
+                     Rf * 0.72, Gf * 0.72, Bf * 0.72);
+               Demi := Max(1, Trunc(Bbs[K].Haut * 0.045));    // ★S8b des bras qui se voient
+               RectO(Trunc(Bbs[K].SX - Bbs[K].Haut * 0.20) - Demi,
                      Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.62 - Bbs[K].Haut * 0.04 * ph),
-                     Trunc(Bbs[K].SX - Bbs[K].Haut * 0.17) + Demi,
-                     Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.36), skinR, skinG, skinB);
-               Rect5(Trunc(Bbs[K].SX + Bbs[K].Haut * 0.17) - Demi,
+                     Trunc(Bbs[K].SX - Bbs[K].Haut * 0.20) + Demi,
+                     Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.36),
+                     Demi * 2 + 1, skinR * 0.94, skinG * 0.94, skinB * 0.94, Bbs[K].Sem);
+               RectO(Trunc(Bbs[K].SX + Bbs[K].Haut * 0.20) - Demi,
                      Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.62 + Bbs[K].Haut * 0.04 * ph),
-                     Trunc(Bbs[K].SX + Bbs[K].Haut * 0.17) + Demi,
-                     Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.36), skinR, skinG, skinB);
-               Disque(Bbs[K].SX, Bbs[K].Pied - Bbs[K].Haut * 0.80,
-                      Bbs[K].Haut * 0.12, skinR, skinG, skinB);
+                     Trunc(Bbs[K].SX + Bbs[K].Haut * 0.20) + Demi,
+                     Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.36),
+                     Demi * 2 + 1, skinR * 0.94, skinG * 0.94, skinB * 0.94, Bbs[K].Sem);
+               Tete(Bbs[K].SX, Bbs[K].Pied - Bbs[K].Haut * 0.80,
+                    Bbs[K].Haut * 0.12, skinR, skinG, skinB, Bbs[K].Sem);
                CYm := Bbs[K].Pied - Bbs[K].Haut * 0.80;
                CR2 := Sqr(Bbs[K].Haut * 0.12);
                for PY := Trunc(CYm - Bbs[K].Haut * 0.12) to
@@ -611,7 +693,7 @@ var
                             38 * DM2 + hb * FM);
                // —— ★S6b les outils + l'étendard du chef ——
                Demi := Max(1, Trunc(Bbs[K].Haut * 0.035));
-               if Bbs[K].Met = 1 then begin
+               if Bbs[K].Met = 1 then begin         // le bâton du berger
                  X0 := Trunc(Bbs[K].SX - Bbs[K].Haut * 0.26);
                  Rect5(X0 - Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.06),
                        X0 + Demi, Trunc(Bbs[K].Pied),
@@ -621,7 +703,7 @@ var
                        Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.06) + Demi * 2,
                        120 * DM2 + hr * FM, 88 * DM2 + hg * FM, 54 * DM2 + hb * FM);
                end;
-               if Bbs[K].Met = 2 then begin
+               if Bbs[K].Met = 2 then begin         // la lance du chasseur
                  X0 := Trunc(Bbs[K].SX + Bbs[K].Haut * 0.24);
                  Rect5(X0 - Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.28),
                        X0 + Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.08),
@@ -630,7 +712,7 @@ var
                        X0 + Demi * 2, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.20),
                        200 * DM2 + hr * FM, 200 * DM2 + hg * FM, 206 * DM2 + hb * FM);
                end;
-               if Bbs[K].Met = 3 then begin
+               if Bbs[K].Met = 3 then begin         // la canne du pêcheur
                  X0 := Trunc(Bbs[K].SX + Bbs[K].Haut * 0.26);
                  Rect5(X0 - Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 1.10),
                        X0 + Demi, Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.14),
@@ -639,7 +721,7 @@ var
                         Bbs[K].Haut * 0.055,
                         205 * DM2 + hr * FM, 66 * DM2 + hg * FM, 52 * DM2 + hb * FM);
                end;
-               if EstChef3(Bbs[K].Cid) then begin
+               if EstChef3(Bbs[K].Cid) then begin   // le chef : diadème + étendard
                  Disque(Bbs[K].SX, Bbs[K].Pied - Bbs[K].Haut * 0.90,
                         Bbs[K].Haut * 0.115,
                         208 * DM2 + hr * FM, 167 * DM2 + hg * FM, 92 * DM2 + hb * FM);
@@ -654,27 +736,28 @@ var
                        208 * DM2 + hr * FM, 167 * DM2 + hg * FM, 92 * DM2 + hb * FM);
                end;
              end else begin
+               // —— les quadrupèdes : quatre pattes, corps, tête ——
                Ombre(Bbs[K].SX, Bbs[K].Pied, Wd * 1.3, Wd * 0.42, FM);
                Demi := Max(1, Trunc(Bbs[K].Haut * 0.05));
                if Bbs[K].Kd = 4 then
-                 Demi := Max(1, Trunc(Bbs[K].Haut * 0.08));
+                 Demi := Max(1, Trunc(Bbs[K].Haut * 0.08));  // l'ours, massif
                LGT := Trunc(Bbs[K].Haut * 0.26);
-               Rect5(Trunc(Bbs[K].SX - Wd * 0.62) - Demi,
+               RectO(Trunc(Bbs[K].SX - Wd * 0.62) - Demi,
                      Trunc(Bbs[K].Pied - LGT - Bbs[K].Haut * 0.03 * ph),
                      Trunc(Bbs[K].SX - Wd * 0.62) + Demi, Trunc(Bbs[K].Pied),
-                     Rf * 0.72, Gf * 0.72, Bf * 0.72);
-               Rect5(Trunc(Bbs[K].SX + Wd * 0.62) - Demi,
+                     Demi * 2 + 1, Rf * 0.72, Gf * 0.72, Bf * 0.72, Bbs[K].Sem);
+               RectO(Trunc(Bbs[K].SX + Wd * 0.62) - Demi,
                      Trunc(Bbs[K].Pied - LGT + Bbs[K].Haut * 0.03 * ph),
                      Trunc(Bbs[K].SX + Wd * 0.62) + Demi, Trunc(Bbs[K].Pied),
-                     Rf * 0.72, Gf * 0.72, Bf * 0.72);
-               Rect5(Trunc(Bbs[K].SX - Wd * 0.25) - Demi,
+                     Demi * 2 + 1, Rf * 0.72, Gf * 0.72, Bf * 0.72, Bbs[K].Sem);
+               RectO(Trunc(Bbs[K].SX - Wd * 0.25) - Demi,
                      Trunc(Bbs[K].Pied - LGT + Bbs[K].Haut * 0.03 * ph),
                      Trunc(Bbs[K].SX - Wd * 0.25) + Demi, Trunc(Bbs[K].Pied),
-                     Rf * 0.72, Gf * 0.72, Bf * 0.72);
-               Rect5(Trunc(Bbs[K].SX + Wd * 0.25) - Demi,
+                     Demi * 2 + 1, Rf * 0.72, Gf * 0.72, Bf * 0.72, Bbs[K].Sem);
+               RectO(Trunc(Bbs[K].SX + Wd * 0.25) - Demi,
                      Trunc(Bbs[K].Pied - LGT - Bbs[K].Haut * 0.03 * ph),
                      Trunc(Bbs[K].SX + Wd * 0.25) + Demi, Trunc(Bbs[K].Pied),
-                     Rf * 0.72, Gf * 0.72, Bf * 0.72);
+                     Demi * 2 + 1, Rf * 0.72, Gf * 0.72, Bf * 0.72, Bbs[K].Sem);
                if Bbs[K].Kd = 5 then begin          // le mouton : un nuage de laine
                  Disque(Bbs[K].SX - Wd * 0.5, Bbs[K].Pied - Bbs[K].Haut * 0.42,
                         Wd * 0.55, Rf, Gf, Bf);
@@ -686,11 +769,11 @@ var
                         Bbs[K].Haut * 0.09,
                         96 * DM2 + hr * FM, 90 * DM2 + hg * FM, 84 * DM2 + hb * FM);
                end else begin
-                 Rect5(Trunc(Bbs[K].SX - Wd), Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.62),
+                 RectO(Trunc(Bbs[K].SX - Wd), Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.62),
                        Trunc(Bbs[K].SX + Wd), Trunc(Bbs[K].Pied - Bbs[K].Haut * 0.24),
-                       Rf, Gf, Bf);
-                 Disque(Bbs[K].SX + Wd * 0.85, Bbs[K].Pied - Bbs[K].Haut * 0.48,
-                        Bbs[K].Haut * 0.13, Rf * 0.92, Gf * 0.92, Bf * 0.92);
+                       Trunc(Wd * 2) + 1, Rf, Gf, Bf, Bbs[K].Sem);
+                 Tete(Bbs[K].SX + Wd * 0.85, Bbs[K].Pied - Bbs[K].Haut * 0.48,
+                      Bbs[K].Haut * 0.13, Rf * 0.92, Gf * 0.92, Bf * 0.92, Bbs[K].Sem);
                  if Bbs[K].Kd = 0 then begin        // la vache : les cornes
                    Disque(Bbs[K].SX + Wd * 0.85 - Bbs[K].Haut * 0.11,
                           Bbs[K].Pied - Bbs[K].Haut * 0.58, Bbs[K].Haut * 0.045,
@@ -790,8 +873,10 @@ var
   end;
 
 begin
-  if GBuf = nil then begin
-    GBuf := TBitmap.Create;
+  RES_W := Max(240, Min(G3.ClientWidth, 1920) div RES_DIV);   // ★S6c+ 1:1
+  RES_H := Max(150, Min(G3.ClientHeight, 1200) div RES_DIV);
+  if (GBuf = nil) or (GBuf.Width <> RES_W) or (GBuf.Height <> RES_H) then begin
+    if GBuf = nil then GBuf := TBitmap.Create;
     GBuf.PixelFormat := pf24bit;
     GBuf.Width := RES_W;
     GBuf.Height := RES_H;
@@ -825,6 +910,8 @@ begin
   GTime := GTime + 0.04;
   if GTime > 6283 then GTime := 0;
   Day := 0.28 + 0.72 * FDayLight;
+  if PeopleHas(teElectricite) then        // ★ère 8 : la nuit devient jour
+  Day := Max(Day, 0.62);
   PlaneLen := Tan(FOV / 2);
   Foc := (RES_W * 0.5) / PlaneLen;
   DirA := S.Angle;
@@ -871,14 +958,14 @@ begin
       if (tx >= 0) and (tx < GW) and (ty >= 0) and (ty < GH) then begin
         CI := ty * GW + tx;
         if TerrType[CI] < T_SAND then begin
-          VB := 0.82 + Bruit(wx * 1.9 + GTime * 0.30, wy * 1.9 - GTime * 0.21) * 0.36;
+          VB := 0.88 + Bruit(wx * 28 + GTime * 2.0, wy * 28 - GTime * 1.4) * 0.24;
           sr := 40 * VB; sg := 66 * VB; sb := 86 * VB;
-          if VB > 1.08 then begin sg := sg + 40; sb := sb + 55 end;
+          if VB > 1.06 then begin sg := sg + 30; sb := sb + 40 end;
         end else if TerrType[CI] = T_SAND then begin
-          VB := 0.86 + Bruit(wx * 2.3, wy * 2.3) * 0.26;
+          VB := 0.93 + Bruit(wx * 34, wy * 34) * 0.13;
           sr := 176 * VB; sg := 160 * VB; sb := 118 * VB;
         end else begin
-          VB := 0.84 + Bruit(wx * 2.7, wy * 2.7) * 0.30;
+          VB := 0.92 + Bruit(wx * 41, wy * 41) * 0.16;
           case (tx * 7 + ty * 13) and 3 of
             0: begin sr := 100; sg := 128; sb := 70 end;
             1: begin sr := 94;  sg := 122; sb := 66 end;
@@ -891,12 +978,12 @@ begin
         sr := 90; sg := 118; sb := 64;
       end;
       if SurRoute(wx, wy) then begin
-        VB := 0.90 + Bruit(wx * 4.7, wy * 4.7) * 0.20;
+        VB := 0.95 + Bruit(wx * 71, wy * 71) * 0.10;
         sr := 152 * VB; sg := 126 * VB; sb := 86 * VB;
       end;
       for K3 := 0 to High(Vpro) do
         if Sqr(wx - Vpro[K3].VX) + Sqr(wy - Vpro[K3].VY) < Vpro[K3].RA then begin
-          VB := 0.90 + Bruit(wx * 3.3, wy * 3.3) * 0.20;
+          VB := 0.95 + Bruit(wx * 50, wy * 50) * 0.10;
           sr := 168 * VB; sg := 158 * VB; sb := 138 * VB;
           Break;
         end;
@@ -920,80 +1007,21 @@ begin
   G3.Canvas.Font.Color := Col(160, 156, 134);
   G3.Canvas.TextOut(12, 26, 'clic : autre sapiens');
   if S.Piloted then begin
-    HandA := Sin(GWalkT) * G3.ClientHeight * 0.018;
-    HandW := Max(6, Trunc(G3.ClientWidth * 0.045));
+    HandA := Sin(GWalkT) * G3.ClientHeight * 0.006;
+    HandW := Max(3, Trunc(G3.ClientWidth * 0.010));
     G3.Canvas.Brush.Style := bsSolid;
     G3.Canvas.Pen.Style := psClear;
-    G3.Canvas.Brush.Color := Col(Trunc(46 + 178 * Day), Trunc(36 + 146 * Day),
-                                 Trunc(28 + 122 * Day));
-    G3.Canvas.Rectangle(Trunc(G3.ClientWidth * 0.28) - HandW,
-                        Trunc(G3.ClientHeight * 0.86 + HandA),
-                        Trunc(G3.ClientWidth * 0.28) + HandW, G3.ClientHeight + 4);
-    G3.Canvas.Rectangle(Trunc(G3.ClientWidth * 0.72) - HandW,
-                        Trunc(G3.ClientHeight * 0.86 - HandA),
-                        Trunc(G3.ClientWidth * 0.72) + HandW, G3.ClientHeight + 4);
+    G3.Canvas.Brush.Color := Col(Trunc(30 + 118 * Day), Trunc(24 + 96 * Day),
+                                 Trunc(18 + 80 * Day));
+    G3.Canvas.Ellipse(Trunc(G3.ClientWidth * 0.235) - HandW,
+                      G3.ClientHeight - Trunc(G3.ClientHeight * 0.028) - Trunc(HandA),
+                      Trunc(G3.ClientWidth * 0.235) + HandW, G3.ClientHeight + 2);
+    G3.Canvas.Ellipse(Trunc(G3.ClientWidth * 0.765) - HandW,
+                      G3.ClientHeight - Trunc(G3.ClientHeight * 0.028) + Trunc(HandA),
+                      Trunc(G3.ClientWidth * 0.765) + HandW, G3.ClientHeight + 2);
     G3.Canvas.TextOut(12, 42, '★ incarné — flèches/ZQSD : marcher · ESPACE : rendre le corps');
   end else
     G3.Canvas.TextOut(12, 42, 'ESPACE : incarner ce sapiens');
-end;
-procedure TG3DForm.GDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  if Button = mbRight then
-  begin
-    GMode := (GMode + 1) mod 3;
-    case GMode of
-      0:
-        Caption := 'Microcosme — 3D · traits';
-      1:
-        Caption := 'Microcosme — 3D · populations';
-    else
-      Caption := 'Microcosme — 3D · yeux de sapiens';
-    end;
-    if GTim <> nil then
-    begin
-      if GMode = 2 then
-        GTim.Interval := 40
-      else
-        GTim.Interval := 120;
-    end;
-    Invalidate;
-    Exit;
-  end;
-  if (GMode = 2) and (Button = mbLeft) then
-  begin
-    SapienSuivant(True); // clic gauche : le sapiens suivant
-    Invalidate;
-    Exit;
-  end;
-  GDrag := True;
-  GLX := X;
-  GLY := Y;
-end;
-
-procedure TG3DForm.GMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
-begin
-  if GDrag then
-  begin
-    GYaw := GYaw + (X - GLX) * 0.008;
-    GPitch := ClampF(GPitch + (Y - GLY) * 0.006, -1.35, 1.35);
-    GLX := X;
-    GLY := Y;
-  end;
-end;
-
-procedure TG3DForm.GUp(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-begin
-  GDrag := False;
-end;
-
-procedure TG3DForm.GWheel(Sender: TObject; Shift: TShiftState;
-  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
-begin
-  GZoom := ClampF(GZoom * Exp(-WheelDelta * 0.0012), 0.35, 3);
-  Handled := True;
-  Invalidate;
 end;
 
 procedure TG3DForm.GPaint(Sender: TObject);
@@ -1003,76 +1031,57 @@ var
 
   function Proj(X, Y, Z: Single; out SX, SY: Integer;
     out SC, DZ: Single): Boolean;
-  var
-    Cy, Syn, Cp, Sp, X1, Y1, Z1, D, f: Single;
+  var Cy, Syn, Cp, Sp, X1, Y1, Z1, D, F: Single;
   begin
-    Cy := Cos(GYaw);
-    Syn := Sin(GYaw);
-    Cp := Cos(GPitch);
-    Sp := Sin(GPitch);
+    Cy := Cos(GYaw); Syn := Sin(GYaw);
+    Cp := Cos(GPitch); Sp := Sin(GPitch);
     X1 := X * Cy - Z * Syn;
     Z1 := X * Syn + Z * Cy;
     Y1 := Y * Cp - Z1 * Sp;
     Z1 := Y * Sp + Z1 * Cp;
     DZ := Z1;
     D := 3.6 - Z1;
-    if D < 0.5 then
-    begin
-      Result := False;
-      Exit
-    end;
-    f := Min(W, H) * 0.40 * GZoom / D;
-    SX := W div 2 + Round(X1 * f);
-    SY := H div 2 - Round(Y1 * f);
-    SC := f;
+    if D < 0.5 then begin Result := False; Exit end;
+    F := Min(W, H) * 0.40 * GZoom / D;
+    SX := W div 2 + Round(X1 * F);
+    SY := H div 2 - Round(Y1 * F);
+    SC := F;
     Result := True;
   end;
 
   procedure Box;
   const
-    CV: array [0 .. 7, 0 .. 2] of Single = ((-1, -1, -1), (1, -1, -1),
-      (1, 1, -1), (-1, 1, -1), (-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1));
-    ED: array [0 .. 11, 0 .. 1] of Integer = ((0, 1), (1, 2), (2, 3), (3, 0),
-      (4, 5), (5, 6), (6, 7), (7, 4), (0, 4), (1, 5), (2, 6), (3, 7));
+    CV: array[0..7, 0..2] of Single =
+      ((-1,-1,-1),(1,-1,-1),(1,1,-1),(-1,1,-1),
+       (-1,-1,1),(1,-1,1),(1,1,1),(-1,1,1));
+    ED: array[0..11, 0..1] of Integer =
+      ((0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(7,4),
+       (0,4),(1,5),(2,6),(3,7));
   var
-    I, A1, A2, B1, B2: Integer;
-    SC, DZ: Single;
+    I, A1, A2, B1, B2: Integer; SC, DZ: Single;
   begin
-    C.Pen.Style := psSolid;
-    C.Pen.Width := 1;
+    C.Pen.Style := psSolid; C.Pen.Width := 1;
     C.Pen.Color := Col(46, 52, 40);
     for I := 0 to 11 do
-      if Proj(CV[ED[I][0]][0], CV[ED[I][0]][1], CV[ED[I][0]][2], A1, A2, SC, DZ)
-        and Proj(CV[ED[I][1]][0], CV[ED[I][1]][1], CV[ED[I][1]][2], B1, B2,
-        SC, DZ) then
-      begin
-        C.MoveTo(A1, A2);
-        C.LineTo(B1, B2);
+      if Proj(CV[ED[I][0]][0], CV[ED[I][0]][1], CV[ED[I][0]][2], A1, A2, SC, DZ) and
+         Proj(CV[ED[I][1]][0], CV[ED[I][1]][1], CV[ED[I][1]][2], B1, B2, SC, DZ) then begin
+        C.MoveTo(A1, A2); C.LineTo(B1, B2);
       end;
   end;
 
-  procedure Lab(X, Y, Z: Single; const tx: string; Clr: TColor);
-  var
-    SX, SY: Integer;
-    SC, DZ: Single;
+  procedure Lab(X, Y, Z: Single; const TX: string; Clr: TColor);
+  var SX, SY: Integer; SC, DZ: Single;
   begin
-    if not Proj(X, Y, Z, SX, SY, SC, DZ) then
-      Exit;
-    C.Font.Name := 'Segoe UI';
-    C.Font.Size := 9;
-    C.Font.Style := [];
+    if not Proj(X, Y, Z, SX, SY, SC, DZ) then Exit;
+    C.Font.Name := 'Segoe UI'; C.Font.Size := 9; C.Font.Style := [];
     C.Brush.Style := bsClear;
     C.Font.Color := Clr;
-    C.TextOut(SX - C.TextWidth(tx) div 2, SY - 6, tx);
+    C.TextOut(SX - C.TextWidth(TX) div 2, SY - 6, TX);
   end;
 
   procedure Traits;
   type
-    TStar = record
-      SX, SY, Rad: Integer;
-      Clr: TColor;
-      Z: Single;
-    end;
+    TStar = record SX, SY, Rad: Integer; Clr: TColor; Z: Single; end;
   var
     I, J, N: Integer;
     CR: TCreature;
@@ -1083,205 +1092,148 @@ var
   begin
     N := 0;
     SetLength(Stars, Creatures.Count);
-    for I := 0 to Creatures.Count - 1 do
-    begin
+    for I := 0 to Creatures.Count - 1 do begin
       CR := Creatures[I];
-      if (CR = nil) or (not CR.Alive) then
-        Continue;
+      if (CR = nil) or (not CR.Alive) then Continue;
       X := ClampF((CR.Sp - 4.3) / 2.1, -1, 1);
       Y := ClampF((CR.Se - 8.0) / 4.0, -1, 1);
       Z := ClampF((CR.Sz - 1.05) / 0.45, -1, 1);
-      if not Proj(X, Y, Z, SX, SY, SC, DZ) then
-        Continue;
-      Stars[N].SX := SX;
-      Stars[N].SY := SY;
+      if not Proj(X, Y, Z, SX, SY, SC, DZ) then Continue;
+      Stars[N].SX := SX; Stars[N].SY := SY;
       Stars[N].Rad := Max(2, Round(SC * 0.05));
       Stars[N].Z := DZ;
       case CR.Kind of
-        0:
-          Stars[N].Clr := Col(228, 220, 190);
-        1:
-          Stars[N].Clr := Col(201, 106, 69);
-        3:
-          Stars[N].Clr := Col(206, 168, 104);
-      else
-        Stars[N].Clr := CR.HueCol;
+        0: Stars[N].Clr := Col(228, 220, 190);
+        1: Stars[N].Clr := Col(201, 106, 69);
+        3: Stars[N].Clr := Col(206, 168, 104);
+      else Stars[N].Clr := CR.HueCol;
       end;
       Inc(N);
     end;
     SetLength(Stars, N);
-    for I := 1 to N - 1 do
-    begin // tri : plus lointaines d'abord
-      Tmp := Stars[I];
-      J := I - 1;
-      while (J >= 0) and (Stars[J].Z > Tmp.Z) do
-      begin
-        Stars[J + 1] := Stars[J];
-        Dec(J);
+    for I := 1 to N - 1 do begin          // tri : plus lointaines d'abord
+      Tmp := Stars[I]; J := I - 1;
+      while (J >= 0) and (Stars[J].Z > Tmp.Z) do begin
+        Stars[J + 1] := Stars[J]; Dec(J);
       end;
       Stars[J + 1] := Tmp;
     end;
-    for I := 0 to N - 1 do
-    begin
-      C.Brush.Style := bsSolid;
-      C.Pen.Style := psClear;
+    for I := 0 to N - 1 do begin
+      C.Brush.Style := bsSolid; C.Pen.Style := psClear;
       C.Brush.Color := Stars[I].Clr;
       C.Ellipse(Stars[I].SX - Stars[I].Rad, Stars[I].SY - Stars[I].Rad,
-        Stars[I].SX + Stars[I].Rad, Stars[I].SY + Stars[I].Rad);
+                Stars[I].SX + Stars[I].Rad, Stars[I].SY + Stars[I].Rad);
     end;
-    if N = 0 then
-    begin
-      C.Font.Name := 'Segoe UI';
-      C.Font.Size := 10;
-      C.Font.Style := [];
-      C.Brush.Style := bsClear;
-      C.Font.Color := Col(139, 138, 116);
+    if N = 0 then begin
+      C.Font.Name := 'Segoe UI'; C.Font.Size := 10; C.Font.Style := [];
+      C.Brush.Style := bsClear; C.Font.Color := Col(139, 138, 116);
       C.TextOut(24, 24, 'aucun habitant — lance la simulation');
     end;
     Lab(1.28, -1, -1, 'vitesse →', Col(139, 138, 116));
     Lab(-1, 1.28, -1, '↑ vue', Col(139, 138, 116));
     Lab(-1, -1, 1.28, '↑ taille', Col(139, 138, 116));
     C.Pen.Style := psClear;
-    C.Brush.Style := bsSolid;
-    C.Brush.Color := Col(228, 220, 190);
+    C.Brush.Style := bsSolid; C.Brush.Color := Col(228, 220, 190);
     C.Rectangle(16, 16, 22, 22);
-    C.Brush.Style := bsClear;
-    C.Font.Size := 8;
-    C.Font.Color := Col(139, 138, 116);
-    C.TextOut(28, 16, 'herbivores');
-    C.Brush.Style := bsSolid;
-    C.Brush.Color := Col(201, 106, 69);
+    C.Brush.Style := bsClear; C.Font.Size := 8;
+    C.Font.Color := Col(139, 138, 116); C.TextOut(28, 16, 'herbivores');
+    C.Brush.Style := bsSolid; C.Brush.Color := Col(201, 106, 69);
     C.Rectangle(16, 30, 22, 36);
-    C.Brush.Style := bsClear;
-    C.TextOut(28, 30, 'prédateurs');
-    C.Brush.Style := bsSolid;
-    C.Brush.Color := Col(208, 167, 92);
+    C.Brush.Style := bsClear; C.TextOut(28, 30, 'prédateurs');
+    C.Brush.Style := bsSolid; C.Brush.Color := Col(208, 167, 92);
     C.Rectangle(16, 44, 22, 50);
-    C.Brush.Style := bsClear;
-    C.TextOut(28, 44, 'sapiens (couleur = lignée)');
+    C.Brush.Style := bsClear; C.TextOut(28, 44, 'sapiens (couleur = lignée)');
   end;
 
   procedure Pops;
   const
-    SERCLR: array [0 .. 3] of array [0 .. 2] of Integer = ((157, 187, 107),
-      (228, 220, 190), (201, 106, 69), (208, 167, 92));
-    SERNM: array [0 .. 3] of string = ('flore', 'herbivores', 'prédateurs',
-      'sapiens');
+    SERCLR: array[0..3] of array[0..2] of Integer =
+      ((157,187,107),(228,220,190),(201,106,69),(208,167,92));
+    SERNM: array[0..3] of string = ('flore','herbivores','prédateurs','sapiens');
   var
     K, I: Integer;
     V, MaxV, X, Y, Z, SC, DZ: Single;
     SX, SY, LXp, LYp: Integer;
     Clr: TColor;
   begin
-    if Length(FHist) < 2 then
-    begin
-      C.Font.Name := 'Segoe UI';
-      C.Font.Size := 10;
-      C.Font.Style := [];
-      C.Brush.Style := bsClear;
-      C.Font.Color := Col(139, 138, 116);
-      C.TextOut(24, 24,
-        'lance la simulation : les courbes s''accumulent ici en 3D');
+    if Length(FHist) < 2 then begin
+      C.Font.Name := 'Segoe UI'; C.Font.Size := 10; C.Font.Style := [];
+      C.Brush.Style := bsClear; C.Font.Color := Col(139, 138, 116);
+      C.TextOut(24, 24, 'lance la simulation : les courbes s''accumulent ici en 3D');
       Exit;
     end;
-    for K := 0 to 3 do
-    begin
+    for K := 0 to 3 do begin
       MaxV := 1;
-      for I := 0 to High(FHist) do
-      begin
+      for I := 0 to High(FHist) do begin
         case K of
-          0:
-            V := FHist[I].P;
-          1:
-            V := FHist[I].H;
-          2:
-            V := FHist[I].C;
-        else
-          V := FHist[I].S;
+          0: V := FHist[I].P;
+          1: V := FHist[I].H;
+          2: V := FHist[I].C;
+        else V := FHist[I].S;
         end;
-        if V > MaxV then
-          MaxV := V;
+        if V > MaxV then MaxV := V;
       end;
       Clr := Col(SERCLR[K][0], SERCLR[K][1], SERCLR[K][2]);
-      C.Pen.Style := psSolid;
-      C.Pen.Width := 2;
-      C.Pen.Color := Clr;
+      C.Pen.Style := psSolid; C.Pen.Width := 2; C.Pen.Color := Clr;
       Z := (K - 1.5) * 0.45;
-      LXp := 0;
-      LYp := 0;
-      for I := 0 to High(FHist) do
-      begin
+      LXp := 0; LYp := 0;
+      for I := 0 to High(FHist) do begin
         case K of
-          0:
-            V := FHist[I].P;
-          1:
-            V := FHist[I].H;
-          2:
-            V := FHist[I].C;
-        else
-          V := FHist[I].S;
+          0: V := FHist[I].P;
+          1: V := FHist[I].H;
+          2: V := FHist[I].C;
+        else V := FHist[I].S;
         end;
         X := I / High(FHist) * 2 - 1;
         Y := ClampF(V / MaxV, 0, 1) * 2 - 1;
-        if Proj(X, Y, Z, SX, SY, SC, DZ) then
-        begin
-          if I = 0 then
-            C.MoveTo(SX, SY)
-          else
-            C.LineTo(SX, SY);
-          LXp := SX;
-          LYp := SY;
+        if Proj(X, Y, Z, SX, SY, SC, DZ) then begin
+          if I = 0 then C.MoveTo(SX, SY) else C.LineTo(SX, SY);
+          LXp := SX; LYp := SY;
         end;
       end;
       case K of
-        0:
-          V := FHist[High(FHist)].P;
-        1:
-          V := FHist[High(FHist)].H;
-        2:
-          V := FHist[High(FHist)].C;
-      else
-        V := FHist[High(FHist)].S;
+        0: V := FHist[High(FHist)].P;
+        1: V := FHist[High(FHist)].H;
+        2: V := FHist[High(FHist)].C;
+      else V := FHist[High(FHist)].S;
       end;
-      C.Font.Name := 'Segoe UI';
-      C.Font.Size := 9;
-      C.Font.Style := [];
-      C.Brush.Style := bsClear;
-      C.Font.Color := Clr;
+      C.Font.Name := 'Segoe UI'; C.Font.Size := 9; C.Font.Style := [];
+      C.Brush.Style := bsClear; C.Font.Color := Clr;
       C.TextOut(LXp + 6, LYp - 6, Format('%s %d', [SERNM[K], Round(V)]));
     end;
   end;
 
 begin
   C := Canvas;
-  W := ClientWidth;
-  H := ClientHeight;
+  W := ClientWidth; H := ClientHeight;
   FSimCS.Enter;
   try
-    C.Brush.Style := bsSolid;
-    C.Pen.Style := psClear;
+    C.Brush.Style := bsSolid; C.Pen.Style := psClear;
     C.Brush.Color := Col(11, 14, 11);
     C.FillRect(Rect(0, 0, W, H));
     Box;
     case GMode of
-      0:
-        Traits;
-      1:
-        Pops;
+      0: Traits;
+      1: Pops;
     else
-      Yeux;
+      try
+        Yeux;                              // ★ mode 2 : les yeux d'un sapiens
+      except
+        on E: Exception do begin
+          Toast('CRASH yeux : ' + E.Message);   // le filet nommé : le VRAI message
+          GMode := 0;                           // plus de cascade
+          Caption := 'Microcosme — 3D · traits';
+          GFollowCId := 0;
+        end;
+      end;
     end;
-    C.Font.Name := 'Segoe UI';
-    C.Font.Size := 8;
-    C.Font.Style := [];
+    C.Font.Name := 'Segoe UI'; C.Font.Size := 8; C.Font.Style := [];
     C.Brush.Style := bsClear;
     C.Font.Color := Col(100, 105, 88);
     if GMode = 2 then
-      C.TextOut(16, H - 24,
-        'clic : sapiens suivant · clic droit : changer de mode')
+      C.TextOut(16, H - 24, 'clic : sapiens suivant · clic droit : changer de mode')
     else
-      C.TextOut(16, H - 24,
-        'glisser : tourner · molette : zoom · clic droit : changer de mode');
+      C.TextOut(16, H - 24, 'glisser : tourner · molette : zoom · clic droit : changer de mode');
   finally
     FSimCS.Leave;
   end;

@@ -16,7 +16,7 @@ uses
   Winapi.Windows, Winapi.Messages,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls,
   MicroTypes, MicroBrain, MicroSim, MicroRender, MicroIO, MicroConfig,
-  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo, MicroVilles,MicroCityWin;
+  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo, MicroVilles,MicroCityWin,MicroDicWin;
 
 const
   BID_HELP = 207;
@@ -235,21 +235,35 @@ begin
       for I := 1 to 3 do
         SpawnCreature(1, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
     end;
-    X := GW / 2;
-    Y := GH / 2;
-    for I := 1 to 25 do
-      if Walkable(X, Y) and (TerrType[CellIdx(X, Y)] >= T_GRASS) then
-        Break
-      else
+    for G := 1 to 2 do             // ★faune : 2 clans de 5 moutons
+    begin
+      X := Random(GW);
+      Y := Random(GH);
+      for I := 1 to 5 do
+        SpawnCreature(5, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
+    end;
+        for G := 1 to 3 do             // ★faune : 3 ours solitaires
+      SpawnCreature(4, Random(GW), Random(GH), nil, nil, 0);
+
+    // ★fondateurs : 5 clans de NB_SAPIENS0/5 ; à 0 = mode Éden (semis manuel)
+    if NB_SAPIENS0 > 0 then
+    for G := 1 to 5 do
+    begin
+      if G = 1 then
       begin
+        X := GW / 2;
+        Y := GH / 2;
+        FHomeX := X;
+        FHomeY := Y;
+      end
+      else begin
         X := Random(GW);
-        Y := Random(GH)
+        Y := Random(GH);
       end;
-    for I := 1 to 6 do
-      SpawnCreature(2, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
-    FHomeX := X;
-    FHomeY := Y;
-    FHomeSet := True;
+      for I := 1 to 5 do
+        SpawnCreature(2, X + Random * 6 - 3, Y + Random * 6 - 3, nil, nil, 0);
+    end;
+    if NB_SAPIENS0 <= 0 then FHomeSet := False;
     ResetChron;
     ChronAdd(CK_PEOPLE, L(105));
     FZoom := 1;
@@ -388,14 +402,7 @@ begin
           BID_HELP:
             HelpToggle;
           BID_CFGSHOW:
-            begin
-              FCfgShow := not FCfgShow;
-              if FCfgShow then
-                FPanelScroll := MaxInt
-              else
-                FPanelScroll := 0;
-              SaveCfg
-            end;
+            OuvreReglages;      // ★v16 : la fenêtre à onglets
           BID_CFGDEF:
             begin
               ResetCfg;
@@ -512,16 +519,7 @@ begin
     Invalidate;
   end;
   if Key = VK_F2 then
-  begin
-    FCfgShow := not FCfgShow;
-    if FCfgShow then
-      FPanelScroll := MaxInt
-    else
-      FPanelScroll := 0;
-    SaveCfg;
-    Invalidate;
-    Key := 0;
-  end;
+    OuvreReglages;
   if Key = VK_F3 then
   begin
     if FSelected <> nil then
@@ -574,6 +572,13 @@ begin
     Toast(LangNom);
     Invalidate;
   end;
+
+   if Key = VK_F9 then
+   Begin
+    key := 0;
+    OuvreDictionnaire;   // F9 — le dictionnaire du peuple
+   End;
+
 
   // ── ★ERE triche verrouillée : Ctrl+Shift+E · B · P · U · V · W ──
   if FStarted and (Creatures <> nil) and (Shift = CHEAT_GATE) then

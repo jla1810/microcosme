@@ -22,7 +22,7 @@ var
 implementation
 
 const
-  FR: array[0..174] of string = (
+  FR: array[0..245] of string = (
     'Observer le monde',            // 0
     'l''île s''éveille…',           // 1
     'nouveau monde',                // 2
@@ -190,17 +190,90 @@ const
     'bourg' ,                             //164
     'ville',                              //165
     'cité',                               //166
-    'Fiche de %s' ,
-    'Rang : %s',
-    'Fondée il y a %d jours',
-    'Foyers : %d' ,
-    'Habitants : %d' ,
-    'Routes : %d'  ,
-    'Chef : %s',
-    'Aucun'
-  );
+    'Fiche de %s' ,                       //167
+    'Rang : %s',                          //168
+    'Fondée il y a %d jours',             //169
+    'Foyers : %d' ,                       //170
+    'Habitants : %d' ,                    //171
+    'Routes : %d'  ,                      //172
+    'Chef : %s',                          //173
+    'Aucun',                              //1744
+    '%s défend le hameau',                //175
+    'herbivore',                          //176
+    'prédateur',                          //177
+    'mouton',                             //178
+    'ours',                               //179
+    'herbivores',                         //180
+    'prédateurs',                         //181
+    'sapiens (couleur = lignée)',         //182
+    'inv. feu',                           //183
+    'inv. agriculture',                   //184
+    'inv. réserves',                      //185
+    'inv. pastoralisme',                  //186
+    'inv. pêche',                         //187
+    'inv. navigation',                    //188
+    'inv. écriture',                      //189
+    'intervalle (jours)',                 //190
+    'diffusion',                          //191
+    'mémoire peuple',                     //192
+    'mutations ×',                        //193
+    'immigrants',                         //194
+    'ère auto',                           //195
+    'durée du jour (s)',                  //196
+    'plafond huttes',                     //197
+    'chiens max',                         //198
+    'ours max',                           //199
+    'moutons max',                        //200
+    'seuil bourg (foyers)',               //201
+    'seuil ville',                        //202
+    'seuil cité',                         //203
+    'rayon de ville',                     //204
+    'hameau : portée',                    //205
+    'exode : distance',                   //206
+    'exode ère 2',                        //207
+    'exode ère 3',                        //208
+    'exode ère 4',                        //209
+    'exode ère 5',                        //210
+    'exode ère 6',                        //211
+    'exode ère 7-8',                      //212
+    'routes : portée',                    //213
+    'routes : vitesse',                   //214
+    'routes : plafond',                   //215
+    'chef : techs ×',                     //216
+    'chef : inventions ×',                //217
+    'chef : culture ×',                   //218
+    'chef : sagesse ×',                   //219
+    'majorité (âge)',                     //220
+    'Découvertes',                        //221
+    'Le monde',                           //222
+    'Villes & routes',                    //223
+    'Le chef',                            //224
+    'oui',                                //225
+    'non',                                //226
+    'auto',                               //227
+    'manuel',                             //228
+    'Tout par défaut',                    //229
+    'Fermer',                             //230
+    'Microcosme — Réglages du monde',      //231
+    '%s nomme « %s » — %s',                //232
+    'Microcosme — Le dictionnaire du peuple',  //233
+    'Le peuple parle %d mots',                 //234
+    'la langue du monde — non traduite',       //235
+    'le peuple n''a pas encore parlé',          //236
+    'volume général',                     //237
+    'voix des sapiens',                   //238
+    'tambours',                           //239
+    'houle et vent',                      //240
+    'feux',                               //241
+    'grillons',                           //242
+    'fanfares et cloches' ,                //243
+    ' ',
+    'sapiens au départ'                    //245
+   );
 
-  EN: array[0..163] of string = (
+
+
+  EN: array[0..245 ]of string = (
     'Observe the world',            // 0       00000
     'the island awakens…',          // 1
     'new world',                    // 2
@@ -277,7 +350,7 @@ const
     'No sapien selected.',          // 73
     'Close this window, click a sapien with the "view" tool,',  // 74
     'then reopen the brain from the notebook.',     // 75
-    'green = excitation · red = inhibition · dashed = direct path · 34 → 9 → 9 → 10',  // 76
+    'green = excitation · red = inhibition · dashed = direct path · 34 → 24 → 24 → 10',  // 76
     'click: next sapiens · F7: back',               // 77
     'energy',                       // 78
     'no technologies yet',          // 79
@@ -364,8 +437,92 @@ const
     '%s is elected chief of %s',          // 160
     '%s succeeds %s as chief of %s',       // 161
     'sheep',                              // 162
-    'bears'                              // 163
-     );
+    'bears',                              // 163
+        'town',                               //164
+    'city',                               //165
+    'city-state',                         //166
+    'Record of %s',                       //167
+    'Rank: %s',                           //168
+    'Founded %d days ago',                //169
+    'Hearths: %d',                        //170
+    'Inhabitants: %d',                    //171
+    'Roads: %d',                          //172
+    'Chief: %s',                          //173
+    'None',                               //174
+    '%s defends the hamlet',              //175
+    'herbivore',                          //176
+    'predator',                           //177
+    'sheep',                              //178
+    'bear',                               //179
+    'herbivores',                         //180
+    'predators',                          //181
+    'sapiens (color = lineage)',           //182
+     'inv. fire',                          //183
+    'inv. agriculture',                   //184
+    'inv. stores',                        //185
+    'inv. herding',                       //186
+    'inv. fishing',                       //187
+    'inv. sailing',                       //188
+    'inv. writing',                       //189
+    'interval (days)',                    //190
+    'diffusion',                          //191
+    'people''s memory',                   //192
+    'mutations ×',                        //193
+    'immigrants',                         //194
+    'auto era',                           //195
+    'day length (s)',                     //196
+    'hut cap',                            //197
+    'dogs max',                           //198
+    'bears max',                          //199
+    'sheep max',                          //200
+    'town threshold (hearths)',           //201
+    'city threshold',                     //202
+    'city-state threshold',               //203
+    'town radius',                        //204
+    'hamlet: range',                      //205
+    'exodus: distance',                   //206
+    'exodus era 2',                       //207
+    'exodus era 3',                       //208
+    'exodus era 4',                       //209
+    'exodus era 5',                       //210
+    'exodus era 6',                       //211
+    'exodus era 7-8',                     //212
+    'roads: range',                       //213
+    'roads: speed',                       //214
+    'roads: cap',                         //215
+    'chief: techs ×',                     //216
+    'chief: inventions ×',                //217
+    'chief: culture ×',                   //218
+    'chief: wisdom ×',                    //219
+    'adulthood (age)',                    //220
+    'Discoveries',                        //221
+    'The world',                          //222
+    'Towns & roads',                      //223
+    'The chief',                          //224
+    'yes',                                //225
+    'no',                                 //226
+    'auto',                               //227
+    'manual',                             //228
+    'Restore defaults',                   //229
+    'Close',                              //230
+    'Microcosme — World settings',        //231
+    '%s names "%s" — %s',                 //232
+    'Microcosme — The people''s dictionary',   //233
+    'The people speaks %d words',              //234
+    'the language of the world — untranslated', //235
+    'the people has not yet spoken' ,           //236
+     'master volume',                      //237
+    'sapien voices',                      //238
+    'drums',                              //239
+    'waves and wind',                     //240
+    'fires',                              //241
+    'crickets',                           //242
+    'fanfares and bells',                  //243
+    ' ',
+    'starting sapiens'                     //245
+  );
+ 
+
 
 
 

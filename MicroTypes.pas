@@ -86,7 +86,10 @@ type
     teFerroviaire, teHygPub,                                                         // ère 7 Industrielle (47..54)
     teElectricite, teAntibios, teInformatique, teInternet, teAgro, teEcoleTous,
     teMedMod, teEcologie,                                                            // ère 8 Moderne (55..62)
-    te_G64);                                                                         // garde (63)
+                                                            // ère 8 Moderne (55..62)
+    teCalcul, teAutomate,    teChimie, teGenetique,                                     // ère 9 Trois Cités (63..66)
+    teTelescope, teRadioastro, teMoteur,                                             // ère 9 (67..69)
+    te_G64);    // sentinelle de fin (désormais indice 70)                                                                         // garde (63)
   TTechs = set of TEcode;
   TTech  = TEcode;
   TTechInfo = record
@@ -95,7 +98,7 @@ type
   end;
 
 const
-  NB_IN = 34;  NB_H1 = 9;  NB_H2 = 9;  NB_OUT = 10;
+  NB_IN = 34;  NB_H1 = 24;  NB_H2 = 24;  NB_OUT = 10;
 
 type
   TBrain = record
@@ -185,29 +188,34 @@ type
   end;
 
 const
-  TECH_COUNT = 47;
+  TECH_COUNT = 70;
 
-function  TechBits(const T: TTechs): UInt64;
-procedure BitsToTech(M: UInt64; out T: TTechs);
+  type
+  TTechMask = packed record
+    Lo, Hi: UInt64;
+  end;
+
+function TechBits(const T: TTechs): TTechMask;
 function  HasTech(const T: TTechs; C: TEcode): Boolean;
 function  TechIdx(Code: TEcode): Integer;
 function  TechNom(Code: TEcode): string;
 procedure InitTechBase;
+procedure BitsToTech(const M: TTechMask; out T: TTechs);
+
 
 const
   GW = 400;
   GH = 250;
   NC = GW * GH;
   TAU = 2 * PI;
-  CDAY: Single = 40;
   MAXP = 16800; MAXH = 600; MAXC = 160; MAXS = 64;
-  MAXDOG = 12;
-  MAXO = 6;    // ★Faune : ours (rare, indomptable)
-  MAXM = 60;   // ★Faune : moutons (prolifiques)
+
+
+
   MAXFS = 680;
   MAXFD = 480;
-  HUTCAP = 84;
-  NIN = 34; NHID = 9; NHID2 = 9; NOUT = 10;
+
+  NIN = 34; NHID = 24; NHID2 = 24; NOUT = 10;
   IDX_H1B = NIN * NHID;
   IDX_H2 = IDX_H1B + NHID;
   IDX_H2B = IDX_H2 + NHID * NHID2;
@@ -231,7 +239,7 @@ const
   CGS = 8;
   CGWC = (GW + CGS - 1) div CGS;
   CGHC = (GH + CGS - 1) div CGS;
-  CHILDHOOD = 10;
+
   BRH = 220;
   T_DEEP = 0; T_SHAL = 1; T_SAND = 2; T_GRASS = 3; T_FOR = 4; T_ROCK = 5; T_SNOW = 6;
   TOOL_INSPECT = 0; TOOL_SEED = 1; TOOL_HERB = 2; TOOL_PRED = 3; TOOL_SAP = 4;
@@ -239,12 +247,54 @@ const
   BID_TI = 10; BID_TS = 11; BID_TH = 12; BID_TP = 13; BID_TSA = 14; BID_NEW = 15;
   BID_SAVE = 20; BID_LOAD = 21;
   BID_ERE  = 22;
-  SVERSION = 15;
+  SVERSION = 17;
+
+  var
+  { ★v16 — réglages du monde : étaient des constantes, la fenêtre F2
+    (MicroConfig) les ajuste en direct. Valeurs = les anciennes. }
+  CDAY: Single = 40;
+  CHILDHOOD: Single = 10;
+  HUTCAP: Integer = 84;
+  MAXDOG: Integer = 12;
+  MAXO: Integer = 6;
+  MAXM: Integer = 60;
+  VILLE_SEUIL: Integer = 10;
+  VILLE_NIVEAU3: Integer = 18;
+  VILLE_NIVEAU4: Integer = 28;
+  VILLE_RAYON: Single = 14.0;
+  HAMEAU_DIST: Single = 12.0;
+  MIGR_DIST: Single = 60.0;
+  EXODE_2: Single = 0.04;
+  EXODE_3: Single = 0.08;
+  EXODE_4: Single = 0.14;
+  EXODE_5: Single = 0.20;
+  EXODE_6: Single = 0.28;
+  EXODE_7: Single = 0.35;   // ★ère 7-8 : l'industrialisation vide la campag
+  NB_SAPIENS0: Integer = 25;   // ★Éden : 0 = aucun sapiens au départ (semis manuel)
+  ROAD_DIST: Single = 200.0;
+  ROAD_CROISSANCE: Integer = 3;
+  ROUTE_MAX: Integer = 12;
+  CHEF_TECH: Single = 1.0;
+  CHEF_INNO: Single = 1.5;
+  CHEF_CULT: Single = 8.0;
+  CHEF_SAGE: Single = 3.0;
 
 const
   SYL: array[0..21] of string = ('ka','ro','mi','ta','lu','se','no','va','pi',
     'zu','fe','ol','an','yr','bre','shi','do','na','el','mu','ki','ra');
   SMAGIC: array[0..3] of AnsiChar = ('M','C','R','1');
+
+  type
+  TMot = record
+    Mot: string;      // le mot en syllabes (« karo »)
+    Sens: string;     // ce qu'il nomme (« le feu », non traduit)
+    Qui: string;      // l'inventeur
+    Jour: Integer;
+  end;
+
+
+var
+  LexiqueDuPeuple: array of TMot;   // le dictionnaire vivant — croît avec les ères
 
 type
   THistRec = record P, H, C, S: Integer; end;
@@ -304,17 +354,31 @@ var
   TECHBASE: array[0..TECH_COUNT-1] of TEchDef;
   FVue: Integer = 0;       // ★ 0 normal · 1 monde plein écran (F5) · 2 carnet plein écran (F7)
   FPanelW: Integer = PANELW; // ★ largeur courante du carnet (302 · pleine largeur en F7)
+  { la table de mixage — chaque piste à 1.0 = le mixage historique }
+var
+  VoxVoix: Single = 1.0;    // les sapiens qui parlent
+  VoxTamb: Single = 1.0;    // les tambours
+  VoxAmbi: Single = 1.0;    // houle + vent
+  VoxFeu:  Single = 1.0;    // crépitement des foyers
+  VoxGril: Single = 1.0;    // grillons
+  VoxEvent: Single = 1.0;   // lyre d'ère + cloche
+
+
 
 implementation
 
-function TechBits(const T: TTechs): UInt64;
+
+
+function TechBits(const T: TTechs): TTechMask;
 begin
-  Move(T, Result, SizeOf(Result));
+  FillChar(Result, SizeOf(Result), 0);
+  Move(T, Result, SizeOf(TTechs));      // 9 octets : bits 0..71 répartis Lo/Hi
 end;
 
-procedure BitsToTech(M: UInt64; out T: TTechs);
+procedure BitsToTech(const M: TTechMask; out T: TTechs);
 begin
-  Move(M, T, SizeOf(M));
+  FillChar(T, SizeOf(T), 0);
+  Move(M, T, SizeOf(TTechs));
 end;
 
 function HasTech(const T: TTechs; C: TEcode): Boolean;
@@ -402,6 +466,33 @@ begin
   AddTech(teBanque,      6, 'Banque',                12, -1, efAucun, 0.00009, 'l''argent prête et voyage');
   AddTech(teMethode,     6, 'Méthode',               18, -1, efAucun, 0.00009, 'observer, mesurer, recommencer');
   AddTech(teHumanites,   6, 'Humanités',              6, -1, efAucun, 0.00009, 'l''humain au centre des textes');
+    // ★v17 — ère 7 Révolution industrielle (47..54)
+  AddTech(teVapeur,      7, 'Machine à vapeur',  31, -1, efAucun, 0.00008, 'le feu qui pousse les pistons');
+  AddTech(teTelegraphe,  7, 'Télégraphe',         47, -1, efAucun, 0.00008, 'les mots filent sur les fils');
+  AddTech(teEngrais,     7, 'Engrais',            35, -1, efAucun, 0.00008, 'la terre rendue plus riche');
+  AddTech(teVaccination, 7, 'Vaccination',        37, -1, efAucun, 0.00008, 'la variole domptée');
+  AddTech(teGaz,         7, 'Gaz',                47, -1, efAucun, 0.00008, 'les rues éclairées au gaz');
+  AddTech(teUsines,      7, 'Usines',             47, -1, efAucun, 0.00008, 'la machine remplace la main');
+  AddTech(teFerroviaire, 7, 'Chemin de fer',      47, 32, efAucun, 0.00008, 'des trains entre les villes');
+  AddTech(teHygPub,      7, 'Hygiène publique',   29, -1, efAucun, 0.00008, 'l''eau propre pour tous');
+  // ★v17 — ère 8 Ère moderne (55..62)
+  AddTech(teElectricite, 8, 'Électricité',        48, -1, efAucun, 0.00007, 'la foudre apprivoisée');
+  AddTech(teAntibios,    8, 'Antibiotiques',      50, -1, efAucun, 0.00007, 'les microbes vaincus');
+  AddTech(teInformatique,8, 'Informatique',       55, -1, efAucun, 0.00007, 'les machines qui comptent');
+  AddTech(teInternet,    8, 'Internet',           57, 48, efAucun, 0.00007, 'le monde en un fil');
+  AddTech(teAgro,        8, 'Agro-industrie',     49, -1, efAucun, 0.00007, 'la terre nourrit tous');
+  AddTech(teEcoleTous,   8, 'École pour tous',    22, 39, efAucun, 0.00007, 'le savoir pour chaque enfant');
+  AddTech(teMedMod,      8, 'Médecine moderne',   56, -1, efAucun, 0.00007, 'vivre cent ans');
+  AddTech(teEcologie,    8, 'Écologie',           59, -1, efAucun, 0.00007, 'la terre aussi est vivante');
+    // ★v18 — ère 9 Les Trois Cités (63..69) — verrouillées tant que l'ère 9
+  // n'existe pas dans MicroEre (Era > EreCourante → TechDispo refuse)
+  AddTech(teCalcul,     9, 'Calcul',           57, -1, efAucun, 0.00006, 'les machines pensent plus vite');
+  AddTech(teAutomate,   9, 'Automates',        63, 52, efAucun, 0.00006, 'la main absente, la machine agit');
+  AddTech(teChimie,     9, 'Chimie',           52, 56, efAucun, 0.00006, 'souffler la matière neuve');
+  AddTech(teGenetique,  9, 'Génétique',        56, 63, efAucun, 0.00006, 'lire la lettre des vivants');
+  AddTech(teTelescope,  9, 'Télescope spatial',40, 63, efAucun, 0.00006, 'l''œil au-delà de l''air');
+  AddTech(teRadioastro, 9, 'Radio-astronomie', 48, 63, efAucun, 0.00006, 'entendre ce que la lumière ne dit pas');
+  AddTech(teMoteur,     9, 'Moteur ionique',   63, 65, efAucun, 0.00006, 'l''élan vers les étoiles');
 end;
 
 initialization

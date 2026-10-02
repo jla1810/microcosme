@@ -15,7 +15,9 @@ procedure OpenInfoWindow;
 
 implementation
 
-uses MicroChrono;
+{$OVERFLOWCHECKS OFF}{$RANGECHECKS OFF}
+
+uses MicroChrono, MicroLang;
 
 type
   TInfoForm = class(TForm)
@@ -139,12 +141,14 @@ begin
     C.Brush.Style := bsClear;
     C.TextOut(20, Y, Sp.Name);
     Inc(Y, 28);
-    case Sp.Kind of
-      0: KindS := 'herbivore';
-      1: KindS := 'prédateur';
-    else KindS := 'sapien';
+        case Sp.Kind of
+      0: KindS := L(176);        // herbivore
+      1: KindS := L(177);        // prédateur
+      5: KindS := L(178);        // mouton (bug préexistant : affichait « sapiens »)
+      4: KindS := L(179);        // ours (idem)
+    else KindS := L(23);         // sapiens
     end;
-    S := Format('%s · gén. %d · %s', [KindS, Sp.Gen, Sp.State]);
+        S := Format('%s · gén. %d · %s', [KindS, Sp.Gen, Sp.State]);
     if Sp.Kind = 2 then S := S + Format(' · mutations %.2f×', [Sp.MutRate]);
     Ligne(S, Col(139, 138, 116));
     Inc(Y, 6);
@@ -190,7 +194,7 @@ begin
         Col(230, 224, 205));
       S := '';
       for I := Ord(Low(TTech)) to Ord(High(TTech)) do
-        if TTech(I) in Sp.Tech then S := S + TECHNAMES[I] + '  ';
+      if TTech(I) in Sp.Tech then S := S + TechNom(TTech(I)) + '  ';
       if S = '' then S := '(aucune)';
       Ligne('technos : ' + S, Col(240, 180, 95));
       Inc(Y, 4);

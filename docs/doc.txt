@@ -1,0 +1,127 @@
+Le réseau neuronal de Microcosme
+
+    Ce n'est pas un modèle entraîné — c'est une espèce vivante.
+
+Chaque sapiens de Microcosme porte son propre réseau neuronal : 1 342 poids flottants, hérités, mutés, sélectionnés par la seule survie. Pas de rétropropagation, pas de récompense, pas d'objectif — l'héritage, le mentoratet la sélection façonnent tout.
+
+L'Observatoire (F7) : le réseau, en direct — chaque lien allumé par le signaldu moment. Un clic bascule entre le graphe des poids et le mode esprit.
+1. Un cerveau par créature
+Il n'y a pas UN réseau dans Microcosme — il y en a autant que de sapiens. La faune, elle, évolue sur ses traits seuls (vitesse, vue, taille), sansréseau. Chaque sapiens porte :
+
+    son génome mental (Dna) : les 1 342 poids reçus à la naissance ;
+    son réseau vivant (Net) : les mêmes poids, dérivés par la culture (§7)— jamais au-delà de ce que l'ADN permet ;
+    sa mémoire (Mem) : jusqu'à six souvenirs de danger et de nourriture ;
+    ses échos (PrevOo) : ses neuf décisions précédentes, réinjectées enentrées.
+
+Le réseau pense toutes les 0,1 seconde de monde : il sent (SenseSapien), ildécide (ThinkNet), le corps exécute. Indissociable : le réseau agit en temps réel, et le monde répond — ses décisions décident de sa survie.
+
+2. L'architecture : trois chemins dans un même génome
+Les 1 342 poids sont stockés à plat dans un tableau (Net), avec une carte symbolique — changer les dimensions recalcule tous les index :
+Bloc		Taille		Rôle
+entrées ? H1	34 × 16 = 544	la réflexion, premier étage : les traits
+biais de H1	16	
+H1 ? H2	16 × 16 = 256	la réflexion, second étage : les situations
+biais de H2	16	
+H2 ? sorties	16 × 10 = 160	la réflexion, sortie
+voie directe	34 × 10 = 340	les réflexes (entrées ? sorties, sans détour)
+biais de sortie	10	
+Total (NW)		1 342
+
+La passe avant (ThinkNet) calcule :
+ le chemin lent : 34 entrées ? 16 neurones (tanh) ? 16 neurones (tanh)? 10 sorties (tanh). Le premier étage fabrique des traits (desconjonctions simples), le second fabrique des situations (des conjonctionsde traits) — le moment de jugement entre voir et agir ;
+    la voie directe : les entrées alimentent aussi les sorties directement —les réflexes ne passent pas par la réflexion ;
+    les échos : les neuf premières sorties de la pensée précédente reviennent en entrées (24-32). C'est ce qui donne la persistance du comportement : un sapiens qui fuit continue de fuir, un crieur continue de crier.
+
+Toutes les unités sont des tanh : les signaux vivent dans [-1, +1].
+    Historique — le grand basculement. La seconde couche a été posée dèsl'origine mais bypassée pendant toute la première vie du projet : le cheminlent court-circuitait H2, qui mutait dans le vide. Le biais de H1 était mêmelu au mauvais endroit (dans le bloc H2?sorties — un couplage parasite avecles poids). L'activation de la couche 2 et la correction du biais ont eu lieulors d'un big bang : les cerveaux du monde ancien devenaient invalidesd'un coup. Les mondes sauvegardés avant cette version sont incompatibles.
+
+3. Les 34 sens
+Entrées		Sens
+0		biais constant = 1
+1		l'énergie (0 = la faim, 1 = repu)
+2		la lumière du jour
+3–5		la nourriture la plus proche : direction X, Y, proximité
+6–8		le congénère le plus proche : direction X, Y, proximité
+9–11		le prédateur le plus proche : direction X, Y, proximité
+12–15		les quatre cris entendus : ?, ?, ?, ? (force du signal)
+16–17		la direction du cri le plus fort
+18–20		le souvenir de danger le plus pressant : direction, force
+21–23		le souvenir de nourriture (pondéré par la faim)
+24–32		les neuf échos — ce que le réseau a décidé la pensée d'avant
+33		biais = 1
+
+Les directions sont relatives au corps : « devant à ma gauche », pas « au nord-ouest de l'île ».
+La vue n'est pas un don uniforme. Sa portée (Se, 6 à 12 cases à la naissance, mutée) est multipliée :
+    × 1,15 avec l'Optique ;
+    × 1,3 la nuit avec les lunettes (invention) ;
+    × 1,8 dès qu'un chien rôde à moins de six cases — la domestication fondatrice est aussi une extension des sens.
+L'ouïe porte à 14 cases, × 2 avec le tambour.
+
+4. Les dix décisions
+Chaque sortie est lue contre son propre seuil — tourner et avancers'appliquent en continu, les autres sont des portes :
+Sortie	Décision							Lecture
+0	tourner	proportionnel, jusqu'à ±4,5 rad/s
+1	avancer poussée de 18 % à 108 % de la vitesse propre
+2	construire	> 0,55 — une hutte, si le monde s'y prête
+3	se reproduire	module la probabilité (à condition d'avoir l'énergie, d'être adulte)
+4	chasser	> 0,4 et une proie sauvage en vue
+5–8	crier ? ? ? ?	le plus actif (> 0,25) devient le cri du jour
+9	se reposer	> 0,5 — le corps veille toujours (faim, vieillesse)
+
+5. Le réflexe qui n'est pas du réseau
+Quand un prédateur entre à moins de 3,6 cases, le corps ne demande pas son avis au réseau : il fuit, direction opposée. Le réseau voit quand même le prédateur (entrées 9-11) et l'écrit en mémoire — mais la fuite elle-même estcâblée. La peur a précédé le cortex.
+
+6. Hérédité et mutation
+À la naissance (SpawnCreature) :
+le corps : chaque trait (vitesse, vue, taille, parure, teinte) vientd'un des deux parents au hasard, puis dérive d'un facteur exponentiel doux(× e^±0,15 environ), borné par les bornes de l'espèce ;
+    le cerveau : copie intégrale du réseau d'UN parent, puis mutation(MutateNet) — environ 13 % des poids dérivent légèrement, ~2 % sautent carrément ailleurs ; et les poids de la voix (les sorties 5-8) mutent deuxfois plus — par dessein : le langage doit pouvoir varier plus vite que le corps. La boucle porte sur tout le Net : depuis l'activation, la couche 2est mutée et sélectionnée comme le reste ;
+    le taux de mutation lui-même est un gène : hérité (× e^±0,10), borné[0,5 ; 2,0] — des lignées « innovantes » et « conservatrices » coexistent,et la sélection arbitre ;
+    les inventions (bits) : le OU des bits des deux parents ;
+    la culture : ~90 % du meilleur parent (une décote d'au plus 12 %) —le savoir se transmet partiellement, jamais intégralement ;
+    les fondateurs (sans parent) : un réseau inné tiré par le programme(FillInnateNet) — bruit faible partout, réflexes écrits dans la voiedirecte, et couche 2 transparente : H2 recopie H1 au premier jour(diagonale à 1.0, biais nul). Les fondateurs se comportent comme s'iln'y avait qu'un étage ; l'évolution sculpte ensuite la couche neuve sanschoc démographique. Culture de départ : 0,18 à 0,30.
+
+7. Le mentorat : la culture qui guide l'ADN
+L'enfant choisit le voisin le plus « cultivé » (culture supérieure à lasienne, dans 14 cases) — et le re-choisit toutes les 0,4 s. Son réseau glissevers celui du mentor, mais jamais au-delà de 30 % de la distance génétique.Le code réel, tel qu'il tourne :
+
+// — transmission culturelle + apprentissage autonome —if (C.Mentor <> nil) and (C.Cult < 0.95) then begin  ...  C.Cult := Min(0.95, C.Cult + Gain);  // le réseau dérive vers le mentor SANS effacer l'ADN :  // au plus 30 % de la distance génétique peut être comblée  for I := 0 to NW - 1 do begin    Tgt := C.Dna[I] + (C.Mentor.Net[I] - C.Dna[I]) * 0.30;    C.Net[I] := C.Net[I] + (Tgt - C.Net[I]) * (0.15 * DT);  end;  ...end;
+Le rythme du savoir : 0,070 par seconde de monde (0,112 près d'une hutte),× 1,5 avec l'École, × 1,2 avec la Rhétorique, × 1,25 avec les Humanités —et cela coûte 0,05/s d'énergie : aPprendre, ça nourrit moins. Plafond : 0,95.
+
+Pendant l'apprentissage, les techniques du mentor coulent aussi — et ladiffusion entre voisins (§8) les répand bien au-delà.
+C'est un étage lamarckien posé sur une transmission darwinienne : ce qui estappris dans une vie ne passe pas aux enfants — mais cela change qui survit,donc quels gènes se diffusent. L'effet Baldwin, en direct.
+8. La diffusion : les idées circulent
+Toutes les 0,1 s, chaque sapiens regarde ses voisins (dans 8 cases) : avecune probabilité de base (curseur de configuration) multipliée par
+    × 1,6 si l'autre a l'Imprimerie — l'encre multiplie les mots ;
+    × 1,5 la Monnaie — l'argent prête et voyage ;
+    × 1,3 si l'un des deux marche sur une route ;
+    × 1,25 la Banque, la Législation, le Théâtre ; × 1,1 le Parchemin ;
+…les techniques manquantes sont copiées. Les bits d'invention passent avec4 % de chance par voisin. Une invention née chez un sapiens peut ainsiconquérir le peuple — ou mourir avec lui.
+9. La mémoire : personnelle et collective
+Personnelle — jusqu'à six souvenirs, qui vieillissent en ~70 secondes demonde (environ un jour et trois quarts) :
+  le danger : écrit dès qu'un prédateur est repéré sans souvenir correspondant ;
+    la nourriture : écrite en mangeant.
+Leur force = proximité (1 ? d/40) × fraîcheur (1 ? âge/vie), pondérée par lafaim pour la nourriture. Elles alimentent les entrées 18-23 : le passé procheguide le pas présent.
+Collective — avec les Archives (ou près du foyer d'origine), chaquenouveau-né reçoit d'emblée tout ce que le peuple sait, et tous les bitsd'invention : la mort ne tue plus le savoir. C'est la promesse de l'ère dufer — tenue par le code.
+
+10. Le langage émergent
+Quatre cris — ?, ?, ?, ? — portés à 14 cases (× 2 avec le tambour). Qui parleest entendu (entrées 12-15), avec la direction du cri le plus fort(entrées 16-17).
+Personne ne fixe leur sens. Le carnet observe les coïncidences — un cri, puisun prédateur ? une trouvaille de nourriture ? — et devine un lexique. Lavoix de chaque sapiens est synthétisée en direct ; avec l'invention dutambour, le cri devient percussion.
+Et puisque les poids de la voix mutent deux fois plus vite que le reste (§6),le langage se transforme plus vite que les corps qui le portent.
+11. Comment l'observer
+    F7 — l'Observatoire, deux lectures au clic :
+        le graphe : le réseau en géant, chaque lien allumé par son signal du moment — les trois colonnes (16, 16) et la sortie (10) ;
+        le mode esprit : le journal de bord — ce qu'il perçoit (énergie,nourriture, prédateur, congénère, mots entendus, souvenirs), son humeurinterne (16 barres : la couche 2, vivante mais sans nom — on ne mentirapas sur ce qu'elle « signifie »), ce qu'il veut (les décisions triées),et pour sa décision la plus forte les trois contributions les pluslourdes (poids × activation, voie directe ou interne n°k) : du pourquoimesurable, pas de la poésie ;
+    F3 — la fiche : vitesse, vue, taille, génération, culture, inventions ;
+    les courbes du carnet : après 30-40 générations, elles racontent — lavitesse et la vue montent si les prédateurs pressent, la culture scie (uneinvention perdue, réapprise au camp), les mots apparaissent et disparaissent ;
+    en 3D : la couleur d'un sapiens est sa lignée ; le bâton du berger, lalance du chasseur, la canne du pêcheur et le diadème du chef se lisentd'un coup d'œil.
+
+12. La place du projet
+Microcosme appartient à la famille de la neuroévolution — voir NEAT(Stanley & Miikkulainen) et la célèbre expérience Mar I/O. Ce qui le distingue :
+
+    les réseaux vivent dans un monde persistant (saisons, prédateurs, famines,la mémoire d'un peuple), pas dans une tâche éphémère ;
+    l'étage culturel (mentorat borné par la distance génétique) fait UN pont entre Lamarck et Darwin ;
+    un langage émergent dont la voix mute plus vite que le corps, et dont le sens n'est fixé par personne — le carnet ne fait que le deviner.
+
+Les curseurs de configuration (mutation, diffusion, mémoire) en font un petitlaboratoire d'évolution : on sème, on relâche, on regarde — et l'histoires'écrit toute seule.
+Historique du document :
+v1 — 845 poids, couche 2 allouée mais bypassée.
+v2 — 1 342 poids (couches élargies à 16), couche 2 active en série, biais H1corrigé, couche 2 transparente à la naissance, mode esprit. Mondes antérieurs incompatibles.

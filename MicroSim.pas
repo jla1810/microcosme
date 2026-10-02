@@ -29,7 +29,7 @@ implementation
 
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$RANGECHECKS ON}   // DIAGNOSTIC TEMPORAIRE — retirer après
+
 
 uses MicroRender, MicroEre, MicroLang, MicroVilles, MicroAudio;
 
@@ -242,7 +242,14 @@ begin
   DeathLog[k].Day := DayCount;
   DeathLog[k].Gen := C.Gen;
   DeathLog[k].ParentId := C.ParentId;
-  case C.Kind of 0: Dec(CountH); 1: Dec(CountP); 2: Dec(CountS); 3: Dec(CountD) end;
+    case C.Kind of
+    0: Dec(CountH);
+    1: Dec(CountP);
+    2: Dec(CountS);
+    3: Dec(CountD);
+    4: Dec(CountO);   // ★fix : les ours meurent aussi (garde du hameau, vieillesse)
+    5: Dec(CountM);   // ★fix : les moutons aussi (prédation)
+  end;
   if C.Kind = 2 then
     ChronAdd(CK_LIFE, Format(L(98), [C.Name, Cause, Trunc(C.Age)]));
   if (Cause <> L(101)) and (Cause <> L(102)) and
@@ -484,6 +491,22 @@ begin
   if (C.TargetP <> nil) and C.TargetP.Morte then C.TargetP := nil;  // ★purge différée
   if (C.TargetC <> nil) and (not C.TargetC.Alive) then C.TargetC := nil;
 
+    // ★MORSURE — loup et ours dévorent enfin leur proie (avant : poursuite
+  // sans contact, la mort ne venait que par épuisement). Même squelette
+  // que la morsure du chasseur sapiens : recharge 1.1 s, flash, gain.
+  if ((C.Kind = 1) or (C.Kind = 4)) and (C.TargetC <> nil) and
+     C.TargetC.Alive and (C.AtkCd <= 0) then begin
+    D := Sqrt(D2(C.X, C.Y, C.TargetC.X, C.TargetC.Y));
+    if D < 1.05 then begin
+      C.AtkCd := 1.1; C.Flash := 0.55;
+      C.TargetC.Energy := C.TargetC.Energy - IfThen(C.Kind = 4, 70, 50);
+      if C.TargetC.Energy <= 0 then begin
+        C.Energy := Min(C.MaxE, C.Energy + 45 + 20 * C.TargetC.Sz);
+        Kill(C.TargetC, L(101));
+        C.TargetC := nil;
+      end;
+    end;
+  end;
   if C.Kind = 0 then
     C.Energy := C.Energy - (0.45 + 0.10 * Des + 0.32 * C.Sz) * DT
   else
@@ -680,19 +703,21 @@ begin
 end;
 
 procedure TryBuild(C: TCreature);
+
 var H: THut;
-   K: Integer;
+   K, J: Integer;
    R2: Single;
+   HM: THut;
+   NA, NR, NX, NY: Single;
+   OK: Boolean;
 begin
   if (Huts.Count >= IfThen(teCite in C.Tech, HUTCAP * 2, HUTCAP)) or
      (C.Energy < IfThen(teGeometrie in C.Tech, 42, 62)) or (C.BuildCd > 0) then Exit;
   if not Walkable(C.X, C.Y) then Exit;
   if TerrType[CellIdx(C.X, C.Y)] > T_FOR then Exit;
-  if PeopleHas(teCite) then begin
+  if PeopleHas(teCite) then
     if NearestHutDist(C.X, C.Y) < 2.0 then Exit;
-  end else
-    if NearestHutDist(C.X, C.Y) < 7 then Exit;
-    for K := 0 to Cities.Count - 1 do begin
+  for K := 0 to Cities.Count - 1 do begin          // (inchangé) la banlieue des villes
     R2 := Sqr(C.X - Cities[K].X) + Sqr(C.Y - Cities[K].Y);
     if (R2 < Sqr(50.0)) and (R2 > Sqr(8.0)) then begin
       // ★Exode — la banlieue : dès l'ère 2 on bâtit près des murailles,
@@ -709,6 +734,35 @@ begin
       Exit;
     end;
   end;
+  // ★Hameau — le déjà-bâti attire : greffer à la hutte la plus proche,
+  // en spirale d'or (comme PlaceHutInVille — PAS de garde de distance
+  // entre huttes : une grappe serrée, c'est le but ; seul l'anti-
+  // chevauchement graphique reste, à 1.2).
+  HM := NearestHut(C.X, C.Y, HAMEAU_DIST);
+  if HM <> nil then begin
+    OK := False;                                     // trouver la place AVANT de payer
+    for J := 0 to 11 do begin
+      NA := J * 2.399963 + Random * 0.7;
+      NR := 1.6 + 0.30 * Sqrt(J) + Random * 0.4;     // 1.6 → ~2.8 cases
+      NX := HM.X + Cos(NA) * NR;
+      NY := HM.Y + Sin(NA) * NR;
+      if Walkable(NX, NY) and (TerrType[CellIdx(NX, NY)] <= T_FOR) and
+         (NearestHutDist(NX, NY) >= 1.2) then begin
+        OK := True;
+        Break;
+      end;
+    end;
+    if not OK then Exit;              // le hameau est cerné : on bâtira plus tard
+    C.Energy := C.Energy - 26;
+    C.BuildCd := 9;
+    H := THut.Create;
+    H.X := NX; H.Y := NY;
+    H.Fire := False; H.Cult := False; H.Stock := 0;
+    H.Ville := nil;
+    Huts.Add(H);
+    Exit;
+  end;
+  // le pionnier : loin de tout hameau (> HAMEAU_DIST), il fonde un îlot neuf
   C.Energy := C.Energy - 26;
   C.BuildCd := 9;
   H := THut.Create;
@@ -716,7 +770,6 @@ begin
   H.Ville := nil;
   Huts.Add(H);
 end;
-
 function TechDispo(C: TCreature; Idx: Integer): Boolean;
 var i, d: Integer;
 begin
@@ -761,10 +814,50 @@ begin
   end;
 end;
 
+{ ★LEXIQUE — frappe un mot nouveau en syllabes (2-3 de SYL, sans remise)
+  pour la première découverte mondiale d'une technologie ou invention. }
+function FrapperMot: string;
+var NSyl, I, S: Integer;
+   Mot: string;
+begin
+  Result := '';
+  for I := 0 to 99 do begin                       // 100 essais, puis tant pis
+    Mot := '';
+    NSyl := 2 + Random(2);                        // 2 ou 3 syllabes
+    for S := 1 to NSyl do
+      Mot := Mot + SYL[Random(Length(SYL))];
+    for S := 0 to High(LexiqueDuPeuple) do        // jamais deux fois le même
+      if LexiqueDuPeuple[S].Mot = Mot then begin Mot := ''; Break end;
+    if Mot <> '' then Break;
+  end;
+  Result := Mot;
+end;
+
+procedure PoserMot(const AMot, ASens, AQui: string);
+var N: Integer;
+begin
+  if AMot = '' then Exit;
+  N := Length(LexiqueDuPeuple);
+  SetLength(LexiqueDuPeuple, N + 1);
+  LexiqueDuPeuple[N].Mot := AMot;
+  LexiqueDuPeuple[N].Sens := ASens;
+  LexiqueDuPeuple[N].Qui := AQui;
+  LexiqueDuPeuple[N].Jour := DayCount;
+end;
+
 procedure GiveTech(C: TCreature; Code: TEcode);
 var T1, T2: string;
+   Mot, Sens: string;
 begin
   if HasTech(C.Tech, Code) then Exit;
+  Sens := '';
+  if TechInfo[Code].Who = '' then begin            // ★première découverte mondiale
+    Sens := TechNom(Code);
+    Mot := FrapperMot;
+    PoserMot(Mot, Sens, C.Name);
+    if Mot <> '' then
+      ChronAdd(CK_TECH, Format(L(232), [C.Name, Mot, Sens]));
+  end;
   Include(C.Tech, Code);
   TechInfo[Code].Who := C.Name;
   TechInfo[Code].Day := DayCount;
@@ -824,7 +917,7 @@ begin
   LastDay := -1;
   for i := 0 to TECH_COUNT - 1 do
     if TechInfo[TECHBASE[i].Code].Day > LastDay then
-      LastDay := TechInfo[TECHBASE[i].Code].Day;
+    LastDay := TechInfo[TECHBASE[i].Code].Day;
   if (LastDay > 0) and (DayCount - LastDay < CfgGap) then Exit;
   Tente := False;
   for i := 0 to TECH_COUNT - 1 do
@@ -1007,8 +1100,24 @@ begin
     end;
   end;
 
-  C.GuardC := nil;
+    C.GuardC := nil;
   if tPast in C.Tech then begin
+    // ★Garde du hameau : le prédateur en chasse près des huttes est à moi
+    // (si je ne garde pas déjà le troupeau). Le corps du hameau se défend.
+    if (C.GuardC = nil) and (C.Age > CHILDHOOD) and
+       (NearestHutDist(C.X, C.Y) < 9) then begin
+      CollectNear(C.X, C.Y, C.Se * 1.2);
+      for OM in NB do begin
+        if (not OM.Alive) or ((OM.Kind <> 1) and (OM.Kind <> 4)) then Continue;
+        if (OM.TargetC = nil) and (OM.TargetP = nil) then Continue;  // pas en chasse
+        if Sqr(OM.X - C.X) + Sqr(OM.Y - C.Y) > Sqr(C.Se * 1.2) then Continue;
+        if NearestHutDist(OM.X, OM.Y) < 9 then begin
+          C.GuardC := OM;
+          ChronAdd(CK_PEOPLE, Format(L(175), [C.Name]));
+          Break;
+        end;
+      end;
+    end;
     CollectNear(C.X, C.Y, 11);
     for OM in NB do
            if OM.Alive and ((OM.Kind = 1) or (OM.Kind = 4)) and (OM.TargetC <> nil) and
@@ -1395,7 +1504,7 @@ begin
           if CountH < 24 then for I := 1 to 2 do
             SpawnCreature(0, Random(GW), Random(GH), nil, nil, 0);
           if CountP < 8  then SpawnCreature(1, Random(GW), Random(GH), nil, nil, 0);
-          if (CountS < 4) and (CfgImmig > 0) then begin
+            if (CountS < 4) and (CfgImmig > 0) and (NB_SAPIENS0 > 0) then begin
             for I := 1 to CfgImmig do
               SpawnCreature(2, FHomeX + Random * 12 - 6,
                                FHomeY + Random * 12 - 6, nil, nil, 0);

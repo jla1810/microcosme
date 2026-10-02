@@ -1,7 +1,7 @@
-                               unit MicroRenderPro;
+ï»¿                               unit MicroRenderPro;
 
-{ Microcosme — rendu "pro" des créatures : corps orientés anti-aliasés (GDI+),
-  ombre, pattes animées, tête, museau, oreilles, yeux. 100% code, 0 ressource. }
+{ Microcosme â€” rendu "pro" des crÃ©atures : corps orientÃ©s anti-aliasÃ©s (GDI+),
+  ombre, pattes animÃ©es, tÃªte, museau, oreilles, yeux. 100% code, 0 ressource. }
 
 interface
 
@@ -10,7 +10,7 @@ uses
   Vcl.Graphics;
 
 const
-  PR_HUNT = 2;   // prédateur en chasse -> yeux rouges
+  PR_HUNT = 2;   // prÃ©dateur en chasse -> yeux rouges
 
 procedure ProRender(cv: TCanvas; Kind: Integer; SX, SY, Angle, SzPx: Single;
   Body, Accent: TColor; Phase: Single; Flags: Integer);
@@ -56,7 +56,7 @@ var g: TGPGraphics;
     pLine: TGPPen;
     S: Single;
 begin
-  if SzPx < 3 then Exit;                 // trop petit à l'écran : on ne dessine pas
+  if SzPx < 3 then Exit;                 // trop petit Ã  l'Ã©cran : on ne dessine pas
   S := SzPx;
   g := Graph(cv);
   bShad := TGPSolidBrush.Create(GPC(0, 45));
@@ -70,7 +70,7 @@ begin
   pLine := TGPPen.Create(GPC(Shade(Body, 0.40)), Max(1.0, S*0.12));
   try
     g.TranslateTransform(SX, SY);
-    // ombre au sol (non tournée)
+    // ombre au sol (non tournÃ©e)
     g.FillEllipse(bShad, -S*0.80, -S*0.40 + S*0.20, S*1.75, S*0.85);
     g.RotateTransform(Angle * 180 / Pi);   // +X = avant
 
@@ -83,15 +83,20 @@ begin
            g.FillEllipse(bDark, -S*0.52,  S*0.24 + Sin(Phase+Pi)*S*0.14, S*0.20, S*0.20);
            g.FillEllipse(bFill, -S*0.72, -S*0.40, S*1.48, S*0.80);          // corps
            g.DrawEllipse(pLine, -S*0.72, -S*0.40, S*1.48, S*0.80);
-           g.FillEllipse(bFill,  S*0.52, -S*0.26, S*0.56, S*0.52);          // tête
+           g.FillEllipse(bFill,  S*0.52, -S*0.26, S*0.56, S*0.52);          // tÃªte
            g.DrawEllipse(pLine,  S*0.52, -S*0.26, S*0.56, S*0.52);
            g.FillEllipse(bDark,  S*0.56, -S*0.32, S*0.14, S*0.14);          // oreilles
            g.FillEllipse(bDark,  S*0.56,  S*0.18, S*0.14, S*0.14);
            g.FillEllipse(bDark,  S*0.98, -S*0.08, S*0.14, S*0.16);          // museau
            g.FillEllipse(bEye,   S*0.80, -S*0.16, S*0.08, S*0.08);
            g.FillEllipse(bEye,   S*0.80,  S*0.08, S*0.08, S*0.08);
+           // â˜…cornes (vache) â€” au-delÃ  des oreilles, vers l'avant
+           if S > 5 then begin
+             g.FillEllipse(bAcc, S*0.68, -S*0.44, S*0.20, S*0.11);
+             g.FillEllipse(bAcc, S*0.68,  S*0.33, S*0.20, S*0.11);
+           end;
          end;
-      1: begin // PRÉDATEUR
+      1: begin // PRÃ‰DATEUR
            g.FillEllipse(bDark, -S*1.30, -S*0.07 + Sin(Phase*0.8)*S*0.10,
                                  S*0.70, S*0.14);                            // queue
            g.FillEllipse(bDark,  S*0.28, -S*0.40 + Sin(Phase)*S*0.16, S*0.18, S*0.18);
@@ -100,7 +105,7 @@ begin
            g.FillEllipse(bDark, -S*0.55,  S*0.22 + Sin(Phase+Pi)*S*0.16, S*0.18, S*0.18);
            g.FillEllipse(bFill, -S*0.90, -S*0.34, S*1.80, S*0.68);          // corps long
            g.DrawEllipse(pLine, -S*0.90, -S*0.34, S*1.80, S*0.68);
-           g.FillEllipse(bFill,  S*0.72, -S*0.22, S*0.50, S*0.44);          // tête
+           g.FillEllipse(bFill,  S*0.72, -S*0.22, S*0.50, S*0.44);          // tÃªte
            g.DrawEllipse(pLine,  S*0.72, -S*0.22, S*0.50, S*0.44);
            g.FillEllipse(bDark,  S*0.78, -S*0.28, S*0.16, S*0.10);          // oreilles
            g.FillEllipse(bDark,  S*0.78,  S*0.18, S*0.16, S*0.10);
@@ -116,7 +121,7 @@ begin
            g.FillEllipse(bDark,  S*0.16 + Sin(Phase+Pi)*S*0.12, -S*0.48, S*0.30, S*0.14);
            g.FillEllipse(bDark,  S*0.16 + Sin(Phase)*S*0.12,     S*0.34, S*0.30, S*0.14);
            g.FillEllipse(bAcc,  -S*0.18, -S*0.22, S*0.40, S*0.44);          // pagne (HueCol)
-           g.FillEllipse(bFill,  S*0.10, -S*0.27, S*0.50, S*0.54);          // tête
+           g.FillEllipse(bFill,  S*0.10, -S*0.27, S*0.50, S*0.54);          // tÃªte
            g.DrawEllipse(pLine,  S*0.10, -S*0.27, S*0.50, S*0.54);
            g.FillEllipse(bDark, -S*0.02, -S*0.26, S*0.30, S*0.52);          // cheveux
            g.FillEllipse(bEye,   S*0.46, -S*0.16, S*0.07, S*0.07);
@@ -131,7 +136,7 @@ begin
            g.FillEllipse(bDark, -S*0.42,  S*0.18 + Sin(Phase+Pi)*S*0.12, S*0.14, S*0.14);
            g.FillEllipse(bFill, -S*0.65, -S*0.30, S*1.30, S*0.60);          // corps
            g.DrawEllipse(pLine, -S*0.65, -S*0.30, S*1.30, S*0.60);
-           g.FillEllipse(bFill,  S*0.52, -S*0.20, S*0.44, S*0.40);          // tête
+           g.FillEllipse(bFill,  S*0.52, -S*0.20, S*0.44, S*0.40);          // tÃªte
            g.DrawEllipse(pLine,  S*0.52, -S*0.20, S*0.44, S*0.40);
            g.FillEllipse(bDark,  S*0.56, -S*0.24, S*0.12, S*0.10);          // oreilles
            g.FillEllipse(bDark,  S*0.56,  S*0.14, S*0.12, S*0.10);
@@ -140,11 +145,56 @@ begin
            g.FillEllipse(bEye,   S*0.78, -S*0.11, S*0.06, S*0.06);
            g.FillEllipse(bEye,   S*0.78,  S*0.05, S*0.06, S*0.06);
          end;
+               4: begin // OURS â€” massif, rond, oreilles rondes hautes
+           g.FillEllipse(bDark,  S*0.26, -S*0.46 + Sin(Phase)*S*0.13, S*0.22, S*0.22);
+           g.FillEllipse(bDark,  S*0.26,  S*0.24 + Sin(Phase)*S*0.13, S*0.22, S*0.22);
+           g.FillEllipse(bDark, -S*0.50, -S*0.46 + Sin(Phase+Pi)*S*0.13, S*0.22, S*0.22);
+           g.FillEllipse(bDark, -S*0.50,  S*0.24 + Sin(Phase+Pi)*S*0.13, S*0.22, S*0.22);
+           g.FillEllipse(bFill, -S*0.95, -S*0.46, S*1.05, S*0.92);          // arriÃ¨re-train massif
+           g.FillEllipse(bFill, -S*0.80, -S*0.40, S*1.60, S*0.80);          // corps
+           g.DrawEllipse(pLine, -S*0.80, -S*0.40, S*1.60, S*0.80);
+           g.FillEllipse(bFill,  S*0.62, -S*0.30, S*0.60, S*0.60);          // tÃªte large
+           g.DrawEllipse(pLine,  S*0.62, -S*0.30, S*0.60, S*0.60);
+           g.FillEllipse(bDark,  S*0.74, -S*0.40, S*0.16, S*0.16);          // oreilles rondes
+           g.FillEllipse(bDark,  S*0.74,  S*0.24, S*0.16, S*0.16);
+           g.FillEllipse(bDark,  S*1.10, -S*0.10, S*0.18, S*0.20);          // museau profond
+           g.FillEllipse(bEye,   S*0.94, -S*0.16, S*0.07, S*0.07);
+           g.FillEllipse(bEye,   S*0.94,  S*0.09, S*0.07, S*0.07);
+         end;
+      5: begin // MOUTON â€” la toison grumeleuse
+           if S > 5 then begin                  // les houppes de laine (silhouette en nuage)
+             g.FillEllipse(bFill, -S*0.78, -S*0.52, S*0.44, S*0.44);
+             g.FillEllipse(bFill, -S*0.34, -S*0.56, S*0.44, S*0.44);
+             g.FillEllipse(bFill,  S*0.10, -S*0.52, S*0.44, S*0.44);
+             g.FillEllipse(bFill, -S*0.82, -S*0.10, S*0.44, S*0.44);
+             g.FillEllipse(bFill,  S*0.14, -S*0.10, S*0.44, S*0.44);
+             g.FillEllipse(bFill, -S*0.78,  S*0.30, S*0.44, S*0.44);
+             g.FillEllipse(bFill, -S*0.34,  S*0.34, S*0.44, S*0.44);
+             g.FillEllipse(bFill,  S*0.10,  S*0.30, S*0.44, S*0.44);
+           end;
+           g.FillEllipse(bDark,  S*0.26, -S*0.46 + Sin(Phase)*S*0.12, S*0.18, S*0.18);
+           g.FillEllipse(bDark,  S*0.26,  S*0.26 + Sin(Phase)*S*0.12, S*0.18, S*0.18);
+           g.FillEllipse(bDark, -S*0.50, -S*0.46 + Sin(Phase+Pi)*S*0.12, S*0.18, S*0.18);
+           g.FillEllipse(bDark, -S*0.50,  S*0.26 + Sin(Phase+Pi)*S*0.12, S*0.18, S*0.18);
+           g.FillEllipse(bFill, -S*0.70, -S*0.42, S*1.46, S*0.86);          // corps rond
+           g.DrawEllipse(pLine, -S*0.70, -S*0.42, S*1.46, S*0.86);
+           g.FillEllipse(bDark, -S*0.86, -S*0.08, S*0.22, S*0.18);          // queue
+           g.FillEllipse(bFill,  S*0.58, -S*0.24, S*0.48, S*0.48);          // tÃªte
+           g.DrawEllipse(pLine,  S*0.58, -S*0.24, S*0.48, S*0.48);
+           if S > 5 then
+             g.FillEllipse(bFill, S*0.52, -S*0.30, S*0.34, S*0.30);         // houppe frontale
+           g.FillEllipse(bDark,  S*0.66, -S*0.30, S*0.13, S*0.10);          // oreilles
+           g.FillEllipse(bDark,  S*0.66,  S*0.20, S*0.13, S*0.10);
+           g.FillEllipse(bDark,  S*0.98, -S*0.07, S*0.13, S*0.14);          // museau
+           g.FillEllipse(bEye,   S*0.84, -S*0.14, S*0.07, S*0.07);
+           g.FillEllipse(bEye,   S*0.84,  S*0.07, S*0.07, S*0.07);
+         end;
+
     end;
     g.ResetTransform
           finally
     bShad.Free; bFill.Free; bDark.Free; bAcc.Free; bEye.Free; pLine.Free;
-    ProFlush;                    // <<< ajouter : relâche le DC immédiatement
+    ProFlush;                    // <<< ajouter : relÃ¢che le DC immÃ©diatement
     end;
 end;
 

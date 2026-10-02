@@ -32,7 +32,8 @@ function AddPlant(X, Y, S: Single): TPlant;
 procedure RemovePlant(P: TPlant);
 procedure StepPlants(DT, DayF: Single);
 procedure FillInnateNet(var W: TArray<Single>);
-procedure MutateNet(var W: TArray<Single>; const AMutRate: Single);
+procedure MutateNet(
+var W: TArray<Single>; const AMutRate: Single);
 procedure ThinkNet(C: TCreature);
 function MakeName: string;
 procedure RebuildGrid;
@@ -337,12 +338,18 @@ begin
 end;
 
 procedure FillInnateNet(var W: TArray<Single>);
-var I: Integer;
+var I, K: Integer;
   procedure SK(I, O: Integer; V: Single);
   begin W[IDX_SO + I * NOUT + O] := V end;
 begin
   SetLength(W, NW);
   for I := 0 to NW - 1 do W[I] := RN * 0.3;
+  // ★couche 2 TRANSPARENTE à la naissance : H2 recopie H1,
+  // l'évolution sculptera ensuite (les fondateurs se comportent
+  // comme avant — aucun choc démographique)
+  for I := IDX_H2 to IDX_HO - 1 do W[I] := 0;      // H1→H2 et biais H2 à zéro
+  for K := 0 to NHID2 - 1 do
+    W[IDX_H2 + K * NHID2 + K] := 1.0;               // diagonale = identité
   SK(4, 0,  1.7 + RN * 0.25);
   SK(5, 1,  0.6);
   SK(0, 1,  0.7 + RN * 0.2);
@@ -366,20 +373,28 @@ begin
 end;
 
 procedure ThinkNet(C: TCreature);
-var I, J, O: Integer; S: Single;
+var I, J, K, O: Integer; S: Single;
 begin
   // récurrences : les sorties précédentes alimentent les entrées 24-32
   for O := 0 to NOUT - 2 do
     C.Inp[24 + O] := C.PrevOo[O];
   C.Inp[33] := 1;
+  // couche 1
   for J := 0 to NHID - 1 do begin
-    S := C.Net[IDX_HO + J];
+    S := C.Net[IDX_H1B + J];                       // ★fix : le VRAI biais
     for I := 0 to NIN - 1 do S := S + C.Net[I * NHID + J] * C.Inp[I];
     C.Hid[J] := Tanh(S);
   end;
+  // ★couche 2 activée : elle juge les traits de la couche 1
+  for K := 0 to NHID2 - 1 do begin
+    S := C.Net[IDX_H2B + K];
+    for J := 0 to NHID - 1 do S := S + C.Net[IDX_H2 + J * NHID2 + K] * C.Hid[J];
+    C.Hid2[K] := Tanh(S);
+  end;
+  // sortie : Hid2 (hiérarchie complète) + voie directe inchangée
   for O := 0 to NOUT - 1 do begin
     S := C.Net[IDX_OB + O];
-    for J := 0 to NHID - 1 do S := S + C.Net[IDX_HO + J * NOUT + O] * C.Hid[J];
+    for K := 0 to NHID2 - 1 do S := S + C.Net[IDX_HO + K * NOUT + O] * C.Hid2[K];
     for I := 0 to NIN - 1 do S := S + C.Net[IDX_SO + I * NOUT + O] * C.Inp[I];
     C.Oo[O] := Tanh(S);
   end;

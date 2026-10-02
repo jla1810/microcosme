@@ -54,7 +54,7 @@ end;
 
 procedure SaveWorld;
 var FS: TFileStream; I, N, B: Integer; C: TCreature; P: TPlant;
-   Ver: Integer; TmpS: Single; TT: TTech; Mask: UInt64;
+   Ver: Integer; TmpS: Single; TT: TTech;Mask: TTechMask;
 begin
   FSimCS.Enter;
   try
@@ -96,6 +96,15 @@ begin
         FS.WriteBuffer(InnoLog[I].Day, SizeOf(Integer));
         WriteStr(FS, InnoLog[I].Who);
         WriteStr(FS, InnoLog[I].Base);
+      end;
+
+      N := Length(LexiqueDuPeuple);
+      FS.WriteBuffer(N, SizeOf(Integer));
+      for I := 0 to N - 1 do begin
+        WriteStr(FS, LexiqueDuPeuple[I].Mot);
+        WriteStr(FS, LexiqueDuPeuple[I].Sens);
+        WriteStr(FS, LexiqueDuPeuple[I].Qui);
+        FS.WriteBuffer(LexiqueDuPeuple[I].Jour, SizeOf(Integer));
       end;
 
       // ★A4 — les villes (entre les inventions et les huttes, ordre gelé)
@@ -194,7 +203,7 @@ var FS: TFileStream; I, K, N, B: Integer; C: TCreature;
    H: THut; F: TFish; M: TMark; V: TCity;
    Magic: array[0..3] of AnsiChar; VerI, SXi, SYi: Integer;
    FXs, FYs, FSz, TmpS: Single;
-   TT: TTech; Mask: UInt64;
+   TT: TTech; Mask: TTechMask;
 begin
   FSimCS.Enter;
   try
@@ -254,6 +263,16 @@ begin
           FS.ReadBuffer(InnoLog[I].Day, SizeOf(Integer));
           InnoLog[I].Who := ReadStr(FS);
           InnoLog[I].Base := ReadStr(FS);
+        end;
+
+                FS.ReadBuffer(N, SizeOf(Integer));
+        CheckCount(N, 256, 'mots du lexique');
+        SetLength(LexiqueDuPeuple, N);
+        for I := 0 to N - 1 do begin
+          LexiqueDuPeuple[I].Mot := ReadStr(FS);
+          LexiqueDuPeuple[I].Sens := ReadStr(FS);
+          LexiqueDuPeuple[I].Qui := ReadStr(FS);
+          FS.ReadBuffer(LexiqueDuPeuple[I].Jour, SizeOf(Integer));
         end;
 
         // — ★A4 les villes (APRÈS les inventions, AVANT les huttes) —
