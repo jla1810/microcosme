@@ -378,7 +378,8 @@ begin
   // récurrences : les sorties précédentes alimentent les entrées 24-32
   for O := 0 to NOUT - 2 do
     C.Inp[24 + O] := C.PrevOo[O];
-  C.Inp[33] := 1;
+    C.Inp[37] := 1;
+
   // couche 1
   for J := 0 to NHID - 1 do begin
     S := C.Net[IDX_H1B + J];                       // ★fix : le VRAI biais

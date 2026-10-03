@@ -116,6 +116,7 @@ begin
         B := Cities[I].Niveau; FS.WriteBuffer(B, SizeOf(Integer));
         B := Cities[I].Jour;   FS.WriteBuffer(B, SizeOf(Integer));
         TmpS := Cities[I].Rayon; FS.WriteBuffer(TmpS, SizeOf(Single));
+        B := Ord(Cities[I].Ruinee); FS.WriteBuffer(B, SizeOf(Integer));
         WriteStr(FS, Cities[I].Nom);
       end;
 
@@ -285,6 +286,7 @@ begin
           FS.ReadBuffer(B, SizeOf(Integer)); V.Niveau := B;
           FS.ReadBuffer(B, SizeOf(Integer)); V.Jour := B;
           FS.ReadBuffer(FXs, SizeOf(Single)); V.Rayon := FXs;
+          FS.ReadBuffer(B, SizeOf(Integer)); V.Ruinee := (B = 1);
           V.Nom := ReadStr(FS);
           Cities.Add(V);
         end;

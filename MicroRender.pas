@@ -21,6 +21,17 @@ const
   BID_RELIEF = 205;
   BID_CHRON = 206;
 
+  const
+   INLBL: array [0 .. 37] of string = ('biais', 'énergie', 'lumière', 'nour.x',
+    'nour.y', 'nour.d', 'pair.x', 'pair.y', 'pair.d', 'préd.x', 'préd.y',
+    'préd.d', 'α', 'β', 'γ', 'δ', 'src.x', 'src.y', 'm.dan.x', 'm.dan.y',
+    'm.dan.d', 'm.nou.x', 'm.nou.y', 'm.nou.d', 'r.tour', 'r.vit', 'r.bât',
+    'r.rep', 'r.cha', 'r.α', 'r.β', 'r.γ', 'r.δ', 'pair.faim', 'grenier',
+    'saison', 'âge', 'biais3');
+
+  OUTLBL: array [0 .. 9] of string = ('tourner', 'vitesse', 'BÂTIR', 'reprod',
+    'chasse', 'α', 'β', 'γ', 'δ', 'REPOS');
+
 procedure RenderTerrainBmp;
 procedure RenderWorld;
 procedure DrawBrain(C: TCanvas; Y: Integer);
@@ -776,14 +787,7 @@ begin
 end;
 
 procedure DrawBrain(C: TCanvas; Y: Integer);
-const
-  INLBL: array [0 .. 33] of string = ('biais', 'énergie', 'lumière', 'nour.x',
-    'nour.y', 'nour.d', 'pair.x', 'pair.y', 'pair.d', 'préd.x', 'préd.y',
-    'préd.d', 'α', 'β', 'γ', 'δ', 'src.x', 'src.y', 'm.dan.x', 'm.dan.y',
-    'm.dan.d', 'm.nou.x', 'm.nou.y', 'm.nou.d', 'r.tour', 'r.vit', 'r.bât',
-    'r.rep', 'r.cha', 'r.α', 'r.β', 'r.γ', 'r.δ', 'biais2');
-  OUTLBL: array [0 .. 9] of string = ('tourner', 'vitesse', 'BÂTIR', 'reprod',
-    'chasse', 'α', 'β', 'γ', 'δ', 'REPOS');
+
 var
   I, J, K, O: Integer;
   XIn, XH1, XH2, XOut, W: Integer;
@@ -958,17 +962,9 @@ begin
   C.Font.Size := 7;
   C.Font.Color := Col(100, 105, 88);
   C.TextOut(20, Y + BRH + 2,
-    'RÉSEAU NEURONAL · 34 → 9 → 9 → 10 · PENSÉE, MÉMOIRE & LANGAGE');
+    'RÉSEAU NEURONAL · 36 → 24 → 24 → 10 · PENSÉE, MÉMOIRE & LANGAGE');
 end;
 
-const
-  INLBL: array [0 .. 33] of string = ('biais', 'énergie', 'lumière', 'nour.x',
-    'nour.y', 'nour.d', 'pair.x', 'pair.y', 'pair.d', 'préd.x', 'préd.y',
-    'préd.d', 'α', 'β', 'γ', 'δ', 'src.x', 'src.y', 'm.dan.x', 'm.dan.y',
-    'm.dan.d', 'm.nou.x', 'm.nou.y', 'm.nou.d', 'r.tour', 'r.vit', 'r.bât',
-    'r.rep', 'r.cha', 'r.α', 'r.β', 'r.γ', 'r.δ', 'biais2');
-  OUTLBL: array [0 .. 9] of string = ('tourner', 'vitesse', 'BÂTIR', 'reprod',
-    'chasse', 'α', 'β', 'γ', 'δ', 'REPOS');
 
 procedure DrawBrainBig(C: TCanvas; W, H: Integer);
 
@@ -1015,7 +1011,7 @@ begin
       if A < 0.04 then
         Continue;
       C.Pen.Style := psSolid;
-      C.Pen.Width := 1;
+      C.Pen.Width := Max(1, Round(1 + Abs(Wv) * 0.8));   // 1 px (faible) → ~5 px (poids fort)
       if Wv > 0 then
         C.Pen.Color := AlphaColorBlend(Col(157, 187, 107), Col(17, 21, 15),
           Trunc(A * 255))
@@ -1038,7 +1034,7 @@ begin
       if A < 0.04 then
         Continue;
       C.Pen.Style := psSolid;
-      C.Pen.Width := 1;
+      C.Pen.Width := Max(1, Round(1 + Abs(Wv) * 0.8));   // 1 px (faible) → ~5 px (poids fort)
       if Wv > 0 then
         C.Pen.Color := AlphaColorBlend(Col(157, 187, 107), Col(17, 21, 15),
           Trunc(A * 255))
@@ -1061,7 +1057,7 @@ begin
       if A < 0.04 then
         Continue;
       C.Pen.Style := psSolid;
-      C.Pen.Width := 1;
+      C.Pen.Width := Max(1, Round(1 + Abs(Wv) * 0.8));   // 1 px (faible) → ~5 px (poids fort)
       if Wv > 0 then
         C.Pen.Color := AlphaColorBlend(Col(157, 187, 107), Col(17, 21, 15),
           Trunc(A * 255))
