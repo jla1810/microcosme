@@ -40,6 +40,7 @@ type
     Rayon: Single;         // rayon de rattachement
     ChefCId: Integer;   // ★Phase C : CId du chef (0 = aucun)
     ChefNom: string;    // ★Phase C : son nom (succession aux annales)
+    Ruinee: Boolean;      // ★ère 9 : vidangée par l'ExodeFinal, remparts brisés
   end;
 
 
@@ -98,7 +99,7 @@ type
   end;
 
 const
-  NB_IN = 34;  NB_H1 = 24;  NB_H2 = 24;  NB_OUT = 10;
+  NB_IN = 38;  NB_H1 = 24;  NB_H2 = 24;  NB_OUT = 10;
 
 type
   TBrain = record
@@ -215,7 +216,7 @@ const
   MAXFS = 680;
   MAXFD = 480;
 
-  NIN = 34; NHID = 24; NHID2 = 24; NOUT = 10;
+  NIN = 38; NHID = 24; NHID2 = 24; NOUT = 10;
   IDX_H1B = NIN * NHID;
   IDX_H2 = IDX_H1B + NHID;
   IDX_H2B = IDX_H2 + NHID * NHID2;
@@ -223,6 +224,7 @@ const
   IDX_SO = IDX_HO + NHID2 * NOUT;
   IDX_OB = IDX_SO + NIN * NOUT;
   NW = IDX_OB + NOUT;
+  SENS_STOCK_MAX = 60.0;   // ★grenier : Stock/ça = 1.0 — molette de calibrage
   SIGR = 14;
   WORDS: array[0..3] of string = ('α','β','γ','δ');
   WORDCOL: array[0..3] of TColor =
@@ -247,7 +249,7 @@ const
   BID_TI = 10; BID_TS = 11; BID_TH = 12; BID_TP = 13; BID_TSA = 14; BID_NEW = 15;
   BID_SAVE = 20; BID_LOAD = 21;
   BID_ERE  = 22;
-  SVERSION = 17;
+  SVERSION = 19;
 
   var
   { ★v16 — réglages du monde : étaient des constantes, la fenêtre F2
@@ -270,6 +272,7 @@ const
   EXODE_5: Single = 0.20;
   EXODE_6: Single = 0.28;
   EXODE_7: Single = 0.35;   // ★ère 7-8 : l'industrialisation vide la campag
+  CITES_FINAL: Integer = 3;   // ★ère 9 : les cités qui survivent à la concentration
   NB_SAPIENS0: Integer = 25;   // ★Éden : 0 = aucun sapiens au départ (semis manuel)
   ROAD_DIST: Single = 200.0;
   ROAD_CROISSANCE: Integer = 3;

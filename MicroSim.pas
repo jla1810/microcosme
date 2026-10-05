@@ -686,7 +686,14 @@ begin
       C.Inp[21] := Cos(Rel) * Mk; C.Inp[22] := Sin(Rel) * Mk; C.Inp[23] := Mk;
     end;
   end;
-  C.Inp[33] := 1;
+    // ★pack Société — 4 sens neufs (33..36) ; le biais glisse à 37
+  if Peer <> nil then
+  C.Inp[33] := ClampF(Peer.Energy / Max(1, Peer.MaxE), 0, 1);   // sa faim
+  if C.HomeH <> nil then
+  C.Inp[34] := ClampF(C.HomeH.Stock / SENS_STOCK_MAX, 0, 1);    // mon grenier
+  C.Inp[35] := SaisonFroid;                                        // la saison
+  C.Inp[36] := ClampF(C.Age / C.MaxAge, 0, 1);                     // mon âge
+  C.Inp[37] := 1;
   C.SFood := FB; C.SPred := Pred; C.SHerb := Herb; C.SPeer := Peer;
   C.Fleeing := False;
   if (Pred <> nil) and (QD2 < 13) and (not IsWater(C.X, C.Y)) then begin

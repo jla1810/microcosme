@@ -16,7 +16,7 @@ uses
 
 const
   CN = 13; { les paramètres historiques du panneau carnet }
-  CNALL = 46; { tous les paramètres (0..36) }
+  CNALL = 47; { tous les paramètres (0..36) }
   BID_CFGSHOW = 200; { bouton "réglages" → ouvre la fenêtre }
   BID_CFGDEF = 201; { bouton "tout par défaut" }
   BID_CFGDEC = 210; { 210..210+CN-1 : boutons [-] du panneau }
@@ -192,6 +192,8 @@ begin
       Result := VoxEvent;
     44:
       Result := NB_SAPIENS0;
+    45:
+      Result := CITES_FINAL;
   else
     Result := 0;
   end;
@@ -290,6 +292,8 @@ begin
       VoxEvent := V;
     44:
       NB_SAPIENS0 := Round(V);
+    45:
+      CITES_FINAL := Round(V);
 
   end;
 end;
@@ -324,6 +328,8 @@ begin
     36:
       Result := 1; // la majorité
     44:
+      Result := 1;
+    45:
       Result := 1;
   else
     Result := 0.001;
@@ -430,8 +436,8 @@ begin
       end;
     29:
       begin
-        A := 50;
-        B := 400
+        A := 100;
+        B := 4000
       end;
     30:
       begin
@@ -457,6 +463,11 @@ begin
       begin
         A := 0;
         B := 50
+      end;
+    45:
+      begin
+        A := 1;
+        B := 8
       end;
   else
     begin
@@ -490,24 +501,18 @@ end;
 function CfgName(Idx: Integer): string;
 begin
   case Idx of
-    0 .. 36:
-      Result := L(183 + Idx); // les anciens : rangés d'un bloc
+    0 .. 28:
+      Result := L(183 + Idx);  // inv. feu .. exode ère 6 (L183..L211)
+    29 .. 36:
+      Result := L(184 + Idx);  // routes:portée(L213) .. majorité(L220) — L212 sauté
     37:
-      Result := L(220); // exode ère 7-8 (déjà à sa place)
-    38:
-      Result := L(238); // voix des sapiens
-    39:
-      Result := L(239); // tambours
-    40:
-      Result := L(240); // houle et vent
-    41:
-      Result := L(241); // feux
-    42:
-      Result := L(242); // grillons
-    43:
-      Result := L(243); // fanfares et cloches
+      Result := L(212);        // exode ère 7-8
+    38 .. 43:
+      Result := L(200 + Idx);  // voix des sapiens .. fanfares et cloches
     44:
-      Result := L(245);
+      Result := L(245);        // sapiens au départ
+    45:
+      Result := L(246);        // cités finales
   else
     Result := '?';
   end;
@@ -518,7 +523,7 @@ begin
   case Idx of
     0 .. 6:
       Result := Format('%.3f', [CfgGet(Idx)]);
-    7, 11, 14, 15, 16, 17, 18, 19, 20, 30, 31, 36, 44:
+    7, 11, 14, 15, 16, 17, 18, 19, 20, 30, 31, 36, 44, 45:
       Result := IntToStr(Round(CfgGet(Idx)));
     8, 24 .. 28, 37 .. 43:
       Result := Format('%.2f', [CfgGet(Idx)]);
@@ -601,6 +606,7 @@ begin
     INI.WriteFloat('Audio', 'Grillons', VoxGril);
     INI.WriteFloat('Audio', 'Events', VoxEvent);
     INI.WriteInteger('Monde', 'Sapiens0', NB_SAPIENS0);
+    INI.WriteInteger('Monde', 'CitesFinal', CITES_FINAL);
   finally
     INI.Free
   end;
@@ -661,6 +667,7 @@ begin
     VoxGril := INI.ReadFloat('Audio', 'Grillons', VoxGril);
     VoxEvent := INI.ReadFloat('Audio', 'Events', VoxEvent);
     NB_SAPIENS0 := INI.ReadInteger('Monde', 'Sapiens0', NB_SAPIENS0);
+    CITES_FINAL := INI.ReadInteger('Monde', 'CitesFinal', CITES_FINAL);
   finally
     INI.Free
   end;
@@ -813,6 +820,7 @@ begin
   Onglet(PC, L(222), 13, 17, 44);
   Onglet(PC, L(223), 18, 31, 37);
   Onglet(PC, L(224), 32, 36);
+  Onglet(PC, L(247), 45, 45);
   Onglet(PC, 'Audio', 38, 43);
   BD := TButton.Create(FReg);
   BD.Parent := FReg;

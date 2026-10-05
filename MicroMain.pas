@@ -743,6 +743,8 @@ begin
             if Walkable(CX, CY) then
               Break;
           end;
+        CX := ClampF(CX, 3, GW - 4);   // ★la fondation ne quitte jamais la carte
+        CY := ClampF(CY, 3, GH - 4);
         Nom := '';
         for j := 1 to 2 + Random(2) do
           Nom := Nom + SYL[Random(Length(SYL))];
@@ -773,7 +775,7 @@ begin
           Huts.Add(H);
         end;
         Cities.Add(V);
-        Toast('ville fondée (triche) : ' + Nom);
+        Toast('ville fondée (triche) : ' + Nom+ '  x y : ' + inttostr(round(V.x))+'  '+inttostr(round(V.y)));
         ChronAdd(CK_PEOPLE, 'ville de test : ' + Nom);
       finally
         FSimCS.Leave;

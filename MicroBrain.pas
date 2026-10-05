@@ -142,11 +142,13 @@ begin
 end;
 
 function CellIdx(X, Y: Single): Integer;
-var XI, YI: Integer;
+var IX, IY: Integer;
 begin
-  XI := Trunc(X); YI := Trunc(Y);
-  if (XI < 0) or (YI < 0) or (XI >= GW) or (YI >= GH) then Exit(-1);
-  Result := YI * GW + XI;
+  IX := Trunc(X); IY := Trunc(Y);
+  if (IX < 0) or (IX >= GW) or (IY < 0) or (IY >= GH) then
+    Result := -1
+  else
+    Result := IY * GW + IX;
 end;
 
 function Walkable(X, Y: Single): Boolean;
@@ -378,7 +380,8 @@ begin
   // récurrences : les sorties précédentes alimentent les entrées 24-32
   for O := 0 to NOUT - 2 do
     C.Inp[24 + O] := C.PrevOo[O];
-  C.Inp[33] := 1;
+    C.Inp[37] := 1;
+
   // couche 1
   for J := 0 to NHID - 1 do begin
     S := C.Net[IDX_H1B + J];                       // ★fix : le VRAI biais
