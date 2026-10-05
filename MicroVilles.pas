@@ -82,7 +82,7 @@ begin
     if (Huts[T].Ville = V) and (Huts[T] <> H) then
       Inc(Nb);
   A := Nb * 2.399963; // l'angle d'or
-  R := 1.1 + 0.30 * Sqrt(Nb); // spirale de Fermat
+    R := 1.7 + 0.35 * Sqrt(Nb); // spirale de Fermat — écartée : les toits se touchent, ne s'empilent plus
   for T := 0 to 6 do
   begin
     NX := V.X + Cos(A + T * 0.7) * (R + T * 0.35);
@@ -104,7 +104,15 @@ var
   H: THut;
   V, Best, NewV: TCity;
   D, BD: Single;
+  VX, VY: Single;
 begin
+
+    // ★SENTINELLE — les villes fantômes (nil) sont purgées et dénoncées
+  for I := Cities.Count - 1 downto 0 do
+    if Cities[I] = nil then begin
+      Toast('SENTINELLE: ville fantome purgee (index ' + IntToStr(I) + ')');
+      Cities.Delete(I);
+    end;
   // 1) rattacher les huttes isolées à la ville la plus proche
   for I := 0 to Huts.Count - 1 do
   begin
@@ -194,11 +202,14 @@ begin
         end;
       end;
   end;
-  if Nb > 0 then
-  begin
-    V.X := V.X / Nb;
-    V.Y := V.Y / Nb;
-  end;
+         if Nb > 0 then begin
+      VX := ClampF(V.X / Nb, 2, GW - 3);
+      VY := ClampF(V.Y / Nb, 2, GH - 3);
+      if (Sqr(VX - V.X) + Sqr(VY - V.Y)) > Sqr(0.5) then begin
+        V.X := V.X + (VX - V.X) * 0.25;
+        V.Y := V.Y + (VY - V.Y) * 0.25;
+      end;
+    end;
   if (Nb >= VILLE_NIVEAU4) and (V.Niveau < 4) then
   begin
     V.Niveau := 4;
@@ -370,7 +381,7 @@ var
   Foy: TArray<Integer>;
   Top: TArray<Boolean>;
 begin
-  if EreCourante < 9 then
+  if EreCourante < 8 then
     Exit; // ★LEVIERS DE TEST : remettre à 9 après !
   if Cities.Count <= CITES_FINAL then
     Exit;
@@ -889,6 +900,17 @@ begin
       R.Prog := Min(High(R.Chemin), R.Prog + ROAD_CROISSANCE);
   end;
 
+    // ★DIAG temporaire — pourquoi pas de fondation ?
+  for I := 0 to Cities.Count - 1 do
+    for K := 0 to Cities.Count - 1 do
+      if I <> K then begin
+        D := Sqrt(Sqr(Cities[I].X - Cities[K].X) + Sqr(Cities[K].Y - Cities[I].Y));
+        if (D >= ROAD_DIST) or (RouteEntre(Cities[I], Cities[K]) <> nil) then
+                    Toast('DIAG ' + IntToStr(I) + '(' + IntToStr(Trunc(Cities[I].X)) + ',' +
+                IntToStr(Trunc(Cities[I].Y)) + ') ' + IntToStr(K) + '(' +
+                IntToStr(Trunc(Cities[K].X)) + ',' + IntToStr(Trunc(Cities[K].Y)) +
+                ') d=' + IntToStr(Trunc(D)));
+      end;
   // 2) fondation : seulement sous le plafond
   if Roads.Count < 12 then
   begin
@@ -1024,16 +1046,16 @@ begin
     PX := Trunc(OX + V.X * S);
     PY := Trunc(OY + V.Y * S);
 
-    // l'assiette urbaine
-    C.Brush.Style := bsSolid;
-    C.Pen.Style := psClear;
+       // l'assiette urbaine — anneau de limite (le terrain reste visible)
+    C.Brush.Style := bsClear;
+    C.Pen.Style := psSolid;
+    C.Pen.Width := Max(2, Trunc(S * 0.35));
     RR := Trunc(S * (2.6 + V.Niveau * 0.8));
     if V.Ruinee then
-      C.Brush.Color := AlphaColorBlend(Col(96, 118, 84), Col(11, 14, 11), 55)
+      C.Pen.Color := AlphaColorBlend(Col(96, 118, 84), Col(11, 14, 11), 110)
     else
-      C.Brush.Color := AlphaColorBlend(Col(168, 158, 138), Col(11, 14, 11), 95);
+      C.Pen.Color := AlphaColorBlend(Col(168, 158, 138), Col(11, 14, 11), 130);
     C.Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
-
     // les remparts + 4 portes
     if V.Niveau >= 3 then
     begin
@@ -1174,8 +1196,10 @@ begin
       else
         C.Font.Color := AlphaColorBlend(Col(232, 226, 206),
           Col(11, 14, 11), 200);
-      C.TextOut(PX - C.TextWidth(V.Nom) div 2, PY - Trunc(S * (7 + V.Niveau)) -
-        C.Font.Size - 2, V.Nom);
+           C.TextOut(PX - C.TextWidth(V.Nom + ' ' + IntToStr(Trunc(V.X)) + ',' +
+        IntToStr(Trunc(V.Y))) div 2,
+        PY - Trunc(S * (7 + V.Niveau)) - C.Font.Size - 2,
+        V.Nom + ' ' + IntToStr(Trunc(V.X)) + ',' + IntToStr(Trunc(V.Y)));
     end;
   end;
 end;

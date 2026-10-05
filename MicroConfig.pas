@@ -436,8 +436,8 @@ begin
       end;
     29:
       begin
-        A := 50;
-        B := 400
+        A := 100;
+        B := 4000
       end;
     30:
       begin
@@ -501,26 +501,18 @@ end;
 function CfgName(Idx: Integer): string;
 begin
   case Idx of
-    0 .. 36:
-      Result := L(183 + Idx); // les anciens : rangés d'un bloc
+    0 .. 28:
+      Result := L(183 + Idx);  // inv. feu .. exode ère 6 (L183..L211)
+    29 .. 36:
+      Result := L(184 + Idx);  // routes:portée(L213) .. majorité(L220) — L212 sauté
     37:
-      Result := L(220); // exode ère 7-8 (déjà à sa place)
-    38:
-      Result := L(238); // voix des sapiens
-    39:
-      Result := L(239); // tambours
-    40:
-      Result := L(240); // houle et vent
-    41:
-      Result := L(241); // feux
-    42:
-      Result := L(242); // grillons
-    43:
-      Result := L(243); // fanfares et cloches
+      Result := L(212);        // exode ère 7-8
+    38 .. 43:
+      Result := L(200 + Idx);  // voix des sapiens .. fanfares et cloches
     44:
-      Result := L(245);
+      Result := L(245);        // sapiens au départ
     45:
-      Result := L(246);
+      Result := L(246);        // cités finales
   else
     Result := '?';
   end;

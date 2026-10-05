@@ -301,7 +301,7 @@ begin
       // corps : maison de pierre (ère 2+), hutte ronde en ère 1
       if FEra >= 2 then
       begin
-        RR := Max(3, Trunc(S * 1.4));
+        RR := Max(2, Trunc(S * 0.85));
         Brush.Style := bsSolid;
         Pen.Style := psSolid;
         Pen.Color := Col(44, 42, 40);
@@ -372,7 +372,7 @@ begin
         Pen.Style := psSolid;
         Pen.Color := Col(46, 37, 23);
         Pen.Width := 1;
-        RR := Max(3, Trunc(S * 1.4));
+        RR := Max(2, Trunc(S * 0.85));
         Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
         Brush.Color := Col(138, 109, 66);
         RR := RR * 55 div 100;
