@@ -261,26 +261,30 @@ begin
       PX := Trunc(OX + HHut.X * S);
       PY := Trunc(OY + HHut.Y * S);
       if HHut.Cult then
+            if HHut.Cult then
       begin
-        Brush.Style := bsSolid;
-        Pen.Style := psClear;
+        Pen.Style := psSolid;
+        Pen.Width := Max(2, Trunc(S * 0.35));         // ★anneau 3 px
+        Brush.Style := bsClear;
         RR := Trunc(S * 9);
-        Brush.Color := AlphaColorBlend(Col(157, 187, 107), Col(11, 14, 11), 14);
+        Pen.Color := AlphaColorBlend(Col(157, 187, 107), Col(11, 14, 11), 60);
         Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
       end;
       if HHut.Fire then
       begin
-        Brush.Style := bsSolid;
-        Pen.Style := psClear;
+        Pen.Style := psSolid;
+        Pen.Width := Max(2, Trunc(S * 0.35));         // ★anneau 3 px
+        Brush.Style := bsClear;
         RR := Trunc(S * 6.5);
         if FDayLight < 0.5 then
-          Brush.Color := AlphaColorBlend(Col(255, 165, 70),
-            Col(11, 14, 11), 140)
+          Pen.Color := AlphaColorBlend(Col(255, 165, 70),
+            Col(11, 14, 11), 160)
         else
-          Brush.Color := AlphaColorBlend(Col(255, 165, 70),
-            Col(11, 14, 11), 45);
+          Pen.Color := AlphaColorBlend(Col(255, 165, 70),
+            Col(11, 14, 11), 60);
         Ellipse(PX - RR, PY - RR, PX + RR, PY + RR);
         RR := Max(2, Trunc(S * 0.55));
+        Brush.Style := bsSolid;
         Brush.Color := Col(240, 180, 95);
         Ellipse(PX - RR, PY - RR * 2, PX + RR, PY + RR);
         Brush.Color := Col(232, 133, 59);
