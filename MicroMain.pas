@@ -74,7 +74,8 @@ begin
           FSaveBounds := BoundsRect;
           BorderStyle := bsNone;
         end;
-        BoundsRect := Screen.DesktopRect;
+                // ★plein écran sur L'ÉCRAN qui contient le jeu (pas le bureau virtuel)
+        BoundsRect := Application.MainForm.Monitor.BoundsRect;
       end;
   else
     if BorderStyle = bsNone then
