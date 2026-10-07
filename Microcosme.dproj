@@ -142,6 +142,7 @@
         <DCCReference Include="MicrocityWin.pas"/>
         <DCCReference Include="MicroInfoWin.pas"/>
         <DCCReference Include="MicroDicWin.pas"/>
+        <DCCReference Include="MicroMusWin.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

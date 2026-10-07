@@ -381,7 +381,7 @@ var
   Foy: TArray<Integer>;
   Top: TArray<Boolean>;
 begin
-  if EreCourante < 8 then
+  if EreCourante < 9 then
     Exit; // ★LEVIERS DE TEST : remettre à 9 après !
   if Cities.Count <= CITES_FINAL then
     Exit;

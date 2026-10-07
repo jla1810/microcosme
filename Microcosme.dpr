@@ -23,7 +23,8 @@ uses
   MicroVilles in 'MicroVilles.pas',
   MicrocityWin in 'MicrocityWin.pas',
   MicroInfoWin in 'MicroInfoWin.pas',
-  MicroDicWin in 'MicroDicWin.pas';
+  MicroDicWin in 'MicroDicWin.pas',
+  MicroMusWin in 'MicroMusWin.pas';
 
 {$R *.res}
 

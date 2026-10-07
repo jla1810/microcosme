@@ -1,13 +1,8 @@
 ﻿unit MicroConfig;
 
-{ Microcosme — réglages : le moteur (indices 0..12 = le panneau carnet
-  historique ; 13..36 = les paramètres du monde), la fenêtre à onglets
-  (F2 / bouton « réglages »), la sauvegarde microcosme.ini.
-  v16 : + OuvreReglages — 4 onglets (Découvertes / Le monde /
-  Villes & routes / Le chef) ; CDAY, CHILDHOOD, VILLE_*, ROAD_*,
-  HAMEAU_DIST, MIGR_DIST, EXODE_*, HUTCAP, MAXDOG/MAXO/MAXM et les
-  poids du chef deviennent réglables EN DIRECT (variables de
-  MicroTypes, lues par la sim au tic suivant). }
+{ Microcosme — réglages v19 : le système à DESCRIPTEURS.
+  Chaque réglage = UNE ligne AddDef. Les fonctions génériques lisent
+  la liste. Fin des cases à maintenir et des décalages d'indice. }
 
 interface
 
@@ -15,28 +10,33 @@ uses
   System.SysUtils, System.IniFiles;
 
 const
-  CN = 13; { les paramètres historiques du panneau carnet }
-  CNALL = 47; { tous les paramètres (0..36) }
-  BID_CFGSHOW = 200; { bouton "réglages" → ouvre la fenêtre }
-  BID_CFGDEF = 201; { bouton "tout par défaut" }
-  BID_CFGDEC = 210; { 210..210+CN-1 : boutons [-] du panneau }
-  BID_CFGINC = 230; { 230..230+CN-1 : boutons [+] du panneau }
+  CN = 13;
+  BID_CFGSHOW = 200;
+  BID_CFGDEF = 201;
+  BID_CFGDEC = 210;
+  BID_CFGINC = 230;
+
+  O_DEC = 1;
+  O_MONDE = 2;
+  O_VILLES = 3;
+  O_CHEF = 4;
+  O_CITES = 5;
+  O_AUDIO = 6;
+  O_INO = 7;
+  O_CER = 8;
+  O_FAU = 9;
+  O_LANG = 10;
 
 var
-  { découvertes : probabilité par tentative }
   CfgFeu, CfgAgri, CfgStock, CfgPast, CfgPeche, CfgNav, CfgEcrit: Single;
-  CfgGap: Integer; { jours minimum entre deux inventions }
-  { diffusion du savoir }
-  CfgDiffu: Single; { proba d'apprendre d'un voisin }
-  CfgMemoire: Single; { 0 = mémoire du peuple OFF, 1 = ON }
-  { évolution }
-  CfgMut: Single; { multiplicateur du taux de mutation }
-  { population }
-  CfgImmig: Integer; { immigrants sapiens par vague }
-  { ères }
-  CfgEreAuto: Single = 0; { 0 = passage manuel (bouton doré) · 1 = automatique }
-
-  FCfgShow: Boolean = False; { panneau carnet visible ? }
+  CfgGap: Integer;
+  CfgDiffu: Single;
+  CfgMemoire: Single;
+  CfgMut: Single;
+  CfgImmig: Integer;
+  CfgEreAuto: Single = 0;
+  FCfgShow: Boolean = False;
+  CNALL: Integer = 0;
 
 procedure ConfigAdjust(Idx, Dir: Integer);
 procedure ResetCfg;
@@ -44,7 +44,7 @@ procedure LoadCfg;
 procedure SaveCfg;
 function CfgName(Idx: Integer): string;
 function CfgText(Idx: Integer): string;
-procedure OuvreReglages; { ★v16 : la fenêtre à onglets }
+procedure OuvreReglages;
 
 implementation
 
@@ -52,9 +52,210 @@ implementation
 {$RANGECHECKS OFF}
 
 uses
-  System.Math, System.Classes,
+  System.Math, System.Classes, System.Types,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.ComCtrls, Vcl.StdCtrls,
-  MicroTypes, MicroLang; // les variables du monde — AUCUN cycle possible
+  MicroTypes, MicroLang;
+
+type
+  TVarKind = (vkFloat, vkInt);
+  TForme = (fSimple, fOuiNon, fAutoManuel, fFois, fSecondes);
+
+  TCfgDef = record
+    VarPtr: Pointer;
+    Kind: TVarKind;
+    Nom: string;
+    Min, Max, Step: Single;
+    Dec: Integer;
+    Forme: TForme;
+    Onglet: Integer;
+    Section: string;
+    Cle: string;
+  end;
+
+var
+  CfgDefs: array of TCfgDef;
+
+procedure AddDef(AVar: Pointer; AKind: TVarKind; const ANom: string;
+  AMin, AMax, AStep: Single; ADec: Integer; AForme: TForme; AOnglet: Integer;
+  const ASection, ACle: string);
+var
+  N: Integer;
+begin
+  N := Length(CfgDefs);
+  SetLength(CfgDefs, N + 1);
+  CfgDefs[N].VarPtr := AVar;
+  CfgDefs[N].Kind := AKind;
+  CfgDefs[N].Nom := ANom;
+  CfgDefs[N].Min := AMin;
+  CfgDefs[N].Max := AMax;
+  CfgDefs[N].Step := AStep;
+  CfgDefs[N].Dec := ADec;
+  CfgDefs[N].Forme := AForme;
+  CfgDefs[N].Onglet := AOnglet;
+  CfgDefs[N].Section := ASection;
+  CfgDefs[N].Cle := ACle;
+end;
+
+procedure BuildDefs;
+begin
+  SetLength(CfgDefs, 0);
+  AddDef(@CfgFeu, vkFloat, L(183), 0, 0.02, 0.001, 3, fSimple, O_DEC,
+    'Reglages', 'Feu');
+  AddDef(@CfgAgri, vkFloat, L(184), 0, 0.02, 0.001, 3, fSimple, O_DEC,
+    'Reglages', 'Agri');
+  AddDef(@CfgStock, vkFloat, L(185), 0, 0.02, 0.001, 3, fSimple, O_DEC,
+    'Reglages', 'Stock');
+  AddDef(@CfgPast, vkFloat, L(186), 0, 0.02, 0.001, 3, fSimple, O_DEC,
+    'Reglages', 'Past');
+  AddDef(@CfgPeche, vkFloat, L(187), 0, 0.02, 0.001, 3, fSimple, O_DEC,
+    'Reglages', 'Peche');
+  AddDef(@CfgNav, vkFloat, L(188), 0, 0.02, 0.001, 3, fSimple, O_DEC,
+    'Reglages', 'Nav');
+  AddDef(@CfgEcrit, vkFloat, L(189), 0, 0.02, 0.001, 3, fSimple, O_DEC,
+    'Reglages', 'Ecrit');
+  AddDef(@CfgGap, vkInt, L(190), 0, 10, 1, 0, fSimple, O_DEC,
+    'Reglages', 'Gap');
+  AddDef(@CfgDiffu, vkFloat, L(191), 0, 0.5, 0.01, 2, fSimple, O_DEC,
+    'Reglages', 'Diffu');
+  AddDef(@CfgMemoire, vkFloat, L(192), 0, 1, 1, 0, fOuiNon, O_DEC, 'Reglages',
+    'Memoire');
+  AddDef(@CfgMut, vkFloat, L(193), 0.25, 4, 0.25, 2, fFois, O_DEC,
+    'Reglages', 'Mut');
+  AddDef(@CfgImmig, vkInt, L(194), 0, 8, 1, 0, fSimple, O_DEC,
+    'Reglages', 'Immig');
+  AddDef(@CfgEreAuto, vkFloat, L(195), 0, 1, 1, 0, fAutoManuel, O_DEC,
+    'Reglages', 'EreAuto');
+  AddDef(@CDAY, vkFloat, L(196), 5, 120, 5, 0, fSecondes, O_MONDE,
+    'Monde', 'Cday');
+  AddDef(@HUTCAP, vkInt, L(197), 20, 200, 1, 0, fSimple, O_MONDE, 'Monde',
+    'HutCap');
+  AddDef(@MAXDOG, vkInt, L(198), 0, 30, 1, 0, fSimple, O_MONDE, 'Monde',
+    'MaxDog');
+  AddDef(@MAXO, vkInt, L(199), 0, 12, 1, 0, fSimple, O_MONDE, 'Monde',
+    'MaxOurs');
+  AddDef(@MAXM, vkInt, L(200), 5, 120, 1, 0, fSimple, O_MONDE, 'Monde',
+    'MaxMout');
+  AddDef(@VILLE_SEUIL, vkInt, L(201), 5, 30, 1, 0, fSimple, O_VILLES,
+    'Villes', 'Seuil');
+  AddDef(@VILLE_NIVEAU3, vkInt, L(202), 10, 40, 1, 0, fSimple, O_VILLES,
+    'Villes', 'Niveau3');
+  AddDef(@VILLE_NIVEAU4, vkInt, L(203), 15, 60, 1, 0, fSimple, O_VILLES,
+    'Villes', 'Niveau4');
+  AddDef(@VILLE_RAYON, vkFloat, L(204), 8, 24, 1, 0, fSimple, O_VILLES,
+    'Villes', 'Rayon');
+  AddDef(@HAMEAU_DIST, vkFloat, L(205), 6, 20, 1, 0, fSimple, O_VILLES,
+    'Villes', 'Hameau');
+  AddDef(@MIGR_DIST, vkFloat, L(206), 20, 120, 1, 0, fSimple, O_VILLES,
+    'Villes', 'MigrDist');
+  AddDef(@EXODE_2, vkFloat, L(207), 0, 0.6, 0.01, 2, fSimple, O_VILLES,
+    'Villes', 'Exode2');
+  AddDef(@EXODE_3, vkFloat, L(208), 0, 0.6, 0.01, 2, fSimple, O_VILLES,
+    'Villes', 'Exode3');
+  AddDef(@EXODE_4, vkFloat, L(209), 0, 0.6, 0.01, 2, fSimple, O_VILLES,
+    'Villes', 'Exode4');
+  AddDef(@EXODE_5, vkFloat, L(210), 0, 0.6, 0.01, 2, fSimple, O_VILLES,
+    'Villes', 'Exode5');
+  AddDef(@EXODE_6, vkFloat, L(211), 0, 0.6, 0.01, 2, fSimple, O_VILLES,
+    'Villes', 'Exode6');
+  AddDef(@ROAD_DIST, vkFloat, L(213), 100, 4000, 10, 0, fSimple, O_VILLES,
+    'Villes', 'RoadDist');
+  AddDef(@ROAD_CROISSANCE, vkInt, L(214), 1, 10, 1, 0, fSimple, O_VILLES,
+    'Villes', 'RoadCroiss');
+  AddDef(@ROUTE_MAX, vkInt, L(215), 2, 30, 1, 0, fSimple, O_VILLES, 'Villes',
+    'RoadMax');
+  AddDef(@EXODE_7, vkFloat, L(212), 0, 0.6, 0.01, 2, fSimple, O_VILLES,
+    'Villes', 'Exode7');
+  AddDef(@CHEF_TECH, vkFloat, L(216), 0, 20, 0.5, 1, fFois, O_CHEF,
+    'Chef', 'Techs');
+  AddDef(@CHEF_INNO, vkFloat, L(217), 0, 20, 0.5, 1, fFois, O_CHEF, 'Chef',
+    'Inventions');
+  AddDef(@CHEF_CULT, vkFloat, L(218), 0, 20, 0.5, 1, fFois, O_CHEF, 'Chef',
+    'Culture');
+  AddDef(@CHEF_SAGE, vkFloat, L(219), 0, 20, 0.5, 1, fFois, O_CHEF, 'Chef',
+    'Sagesse');
+  AddDef(@CHILDHOOD, vkInt, L(220), 5, 30, 1, 0, fSimple, O_CHEF, 'Monde',
+    'Majorite');
+  AddDef(@CITES_FINAL, vkInt, L(246), 1, 8, 1, 0, fSimple, O_CITES, 'Monde',
+    'CitesFinal');
+  AddDef(@VoxVoix, vkFloat, L(238), 0, 1, 0.01, 2, fSimple, O_AUDIO,
+    'Audio', 'Voix');
+  AddDef(@VoxTamb, vkFloat, L(239), 0, 1, 0.01, 2, fSimple, O_AUDIO, 'Audio',
+    'Tambour');
+  AddDef(@VoxAmbi, vkFloat, L(240), 0, 1, 0.01, 2, fSimple, O_AUDIO, 'Audio',
+    'Ambiance');
+  AddDef(@VoxFeu, vkFloat, L(241), 0, 1, 0.01, 2, fSimple, O_AUDIO,
+    'Audio', 'Feu');
+  AddDef(@VoxGril, vkFloat, L(242), 0, 1, 0.01, 2, fSimple, O_AUDIO, 'Audio',
+    'Grillons');
+  AddDef(@VoxEvent, vkFloat, L(243), 0, 1, 0.01, 2, fSimple, O_AUDIO, 'Audio',
+    'Events');
+  AddDef(@NB_SAPIENS0, vkInt, L(245), 0, 50, 1, 0, fSimple, O_MONDE, 'Monde',
+    'Sapiens0');
+  // ── onglet Inventions (le tempo culturel) ──
+  AddDef(@INNO_CHANCE_V, vkFloat, L(253), 0.001, 0.10, 0.001, 3, fSimple, O_INO,
+    'Inventions', 'Chance');
+  AddDef(@TORCHE_NUIT, vkFloat, L(254), 0.1, 0.9, 0.05, 2, fSimple, O_INO,
+    'Inventions', 'TorcheNuit');
+  AddDef(@PEAUSS_NUIT, vkFloat, L(255), 0.1, 0.9, 0.05, 2, fSimple, O_INO,
+    'Inventions', 'PeaussNuit');
+  AddDef(@BROCHETTE_NUIT, vkFloat, L(256), 0.1, 0.9, 0.05, 2, fSimple, O_INO,
+    'Inventions', 'BrochetteNuit');
+  AddDef(@BOUGIE_NUIT, vkFloat, L(257), 0.1, 0.9, 0.05, 2, fSimple, O_INO,
+    'Inventions', 'BougieNuit');
+  AddDef(@BOSSOLE_NUIT, vkFloat, L(258), 0.1, 0.9, 0.05, 2, fSimple, O_INO,
+    'Inventions', 'BossoleNuit');
+  AddDef(@PARCHEMIN_NUIT, vkFloat, L(259), 0.1, 0.9, 0.05, 2, fSimple, O_INO,
+    'Inventions', 'ParcheminNuit');
+  AddDef(@LUNETTE_NUIT, vkFloat, L(260), 0.1, 0.9, 0.05, 2, fSimple, O_INO,
+    'Inventions', 'LunetteNuit');
+  AddDef(@VIOLON_NUIT, vkFloat, L(261), 0.1, 0.9, 0.05, 2, fSimple, O_INO,
+    'Inventions', 'ViolonNuit');
+  AddDef(@THEATRE_FOULE, vkInt, L(262), 2, 10, 1, 0, fSimple, O_INO,
+    'Inventions', 'TheatreFoule');
+  AddDef(@VIOLON_FOULE, vkInt, L(263), 2, 10, 1, 0, fSimple, O_INO,
+    'Inventions', 'ViolonFoule');
+  AddDef(@RADIO_FOULE, vkInt, L(264), 2, 10, 1, 0, fSimple, O_INO, 'Inventions',
+    'RadioFoule');
+  AddDef(@TAMBOUR_EAU, vkInt, L(265), 1, 5, 1, 0, fSimple, O_INO, 'Inventions',
+    'TambourEau');
+  // ── onglet Cerveau (le tempo neuronal) ──
+  AddDef(@BRAIN_BASE, vkFloat, L(267), 0, 1, 0.01, 2, fSimple, O_CER, 'Cerveau', 'Base');
+  AddDef(@BRAIN_SAUT, vkFloat, L(268), 0, 0.5, 0.01, 2, fSimple, O_CER, 'Cerveau', 'Saut');
+  AddDef(@BRAIN_VOIX, vkFloat, L(269), 0, 1, 0.01, 2, fSimple, O_CER, 'Cerveau', 'Voix');
+  AddDef(@BRAIN_SAUT2, vkFloat, L(270), 0, 0.5, 0.01, 2, fSimple, O_CER, 'Cerveau', 'SautVoix');
+  AddDef(@BRAIN_MENTOR, vkFloat, L(271), 0, 1, 0.05, 2, fSimple, O_CER, 'Cerveau', 'Mentor');
+  AddDef(@BRAIN_GLISSE, vkFloat, L(272), 0, 1, 0.01, 2, fSimple, O_CER, 'Cerveau', 'Glisse');
+  AddDef(@BRAIN_GAIN, vkFloat, L(273), 0, 0.5, 0.005, 3, fSimple, O_CER, 'Cerveau', 'Gain');
+  AddDef(@MEMLIFE, vkFloat, L(274), 10, 300, 10, 0, fSimple, O_CER, 'Cerveau', 'MemLife');
+  AddDef(@MEMMAX, vkInt, L(275), 1, 20, 1, 0, fSimple, O_CER, 'Cerveau', 'MemMax');
+    // ── onglet Faune & langage ──
+  AddDef(@MORD_LOUP, vkFloat, L(277), 10, 150, 5, 0, fSimple, O_FAU, 'Faune', 'MordLoup');
+  AddDef(@MORD_OURS, vkFloat, L(278), 10, 200, 5, 0, fSimple, O_FAU, 'Faune', 'MordOurs');
+  AddDef(@ATK_CD, vkFloat, L(279), 0.3, 5, 0.1, 1, fSimple, O_FAU, 'Faune', 'AtkCd');
+  AddDef(@REPRO_VACHE, vkFloat, L(280), 50, 120, 2, 0, fSimple, O_FAU, 'Faune', 'ReproVache');
+  AddDef(@REPRO_LOUP, vkFloat, L(281), 50, 150, 2, 0, fSimple, O_FAU, 'Faune', 'ReproLoup');
+  AddDef(@REPRO_OURS, vkFloat, L(282), 60, 200, 5, 0, fSimple, O_FAU, 'Faune', 'ReproOurs');
+  AddDef(@CRI_PORTEE, vkFloat, L(283), 5, 40, 1, 0, fSimple, O_FAU, 'Langage', 'CriPortee');
+  AddDef(@CRI_SEUIL, vkFloat, L(284), 0.1, 0.6, 0.05, 2, fSimple, O_FAU, 'Langage', 'CriSeuil');
+
+  CNALL := Length(CfgDefs);
+end;
+
+function GetVar(const D: TCfgDef): Single;
+begin
+  if D.Kind = vkInt then
+    Result := PInteger(D.VarPtr)^
+  else
+    Result := PSingle(D.VarPtr)^;
+end;
+
+procedure SetVar(const D: TCfgDef; V: Single);
+begin
+  if D.Kind = vkInt then
+    PInteger(D.VarPtr)^ := Round(V)
+  else
+    PSingle(D.VarPtr)^ := V;
+end;
 
 procedure Defaults;
 begin
@@ -71,7 +272,6 @@ begin
   CfgMut := 1.0;
   CfgImmig := 3;
   CfgEreAuto := 0;
-  { les paramètres du monde vivent dans MicroTypes }
   CDAY := 40;
   CHILDHOOD := 10;
   HUTCAP := 84;
@@ -101,379 +301,37 @@ end;
 
 function CfgGet(Idx: Integer): Single;
 begin
-  case Idx of
-    0:
-      Result := CfgFeu;
-    1:
-      Result := CfgAgri;
-    2:
-      Result := CfgStock;
-    3:
-      Result := CfgPast;
-    4:
-      Result := CfgPeche;
-    5:
-      Result := CfgNav;
-    6:
-      Result := CfgEcrit;
-    7:
-      Result := CfgGap;
-    8:
-      Result := CfgDiffu;
-    9:
-      Result := CfgMemoire;
-    10:
-      Result := CfgMut;
-    11:
-      Result := CfgImmig;
-    12:
-      Result := CfgEreAuto;
-    13:
-      Result := CDAY;
-    14:
-      Result := HUTCAP;
-    15:
-      Result := MAXDOG;
-    16:
-      Result := MAXO;
-    17:
-      Result := MAXM;
-    18:
-      Result := VILLE_SEUIL;
-    19:
-      Result := VILLE_NIVEAU3;
-    20:
-      Result := VILLE_NIVEAU4;
-    21:
-      Result := VILLE_RAYON;
-    22:
-      Result := HAMEAU_DIST;
-    23:
-      Result := MIGR_DIST;
-    24:
-      Result := EXODE_2;
-    25:
-      Result := EXODE_3;
-    26:
-      Result := EXODE_4;
-    27:
-      Result := EXODE_5;
-    28:
-      Result := EXODE_6;
-    29:
-      Result := ROAD_DIST;
-    30:
-      Result := ROAD_CROISSANCE;
-    31:
-      Result := ROUTE_MAX;
-    32:
-      Result := CHEF_TECH;
-    33:
-      Result := CHEF_INNO;
-    34:
-      Result := CHEF_CULT;
-    35:
-      Result := CHEF_SAGE;
-    36:
-      Result := CHILDHOOD;
-    37:
-      Result := EXODE_7;
-    38:
-      Result := VoxVoix;
-    39:
-      Result := VoxTamb;
-    40:
-      Result := VoxAmbi;
-    41:
-      Result := VoxFeu;
-    42:
-      Result := VoxGril;
-    43:
-      Result := VoxEvent;
-    44:
-      Result := NB_SAPIENS0;
-    45:
-      Result := CITES_FINAL;
+  if (Idx >= 0) and (Idx < Length(CfgDefs)) then
+    Result := GetVar(CfgDefs[Idx])
   else
     Result := 0;
-  end;
 end;
 
 procedure CfgSet(Idx: Integer; V: Single);
 begin
-  case Idx of
-    0:
-      CfgFeu := V;
-    1:
-      CfgAgri := V;
-    2:
-      CfgStock := V;
-    3:
-      CfgPast := V;
-    4:
-      CfgPeche := V;
-    5:
-      CfgNav := V;
-    6:
-      CfgEcrit := V;
-    7:
-      CfgGap := Round(V);
-    8:
-      CfgDiffu := V;
-    9:
-      CfgMemoire := V;
-    10:
-      CfgMut := V;
-    11:
-      CfgImmig := Round(V);
-    12:
-      CfgEreAuto := V;
-    13:
-      CDAY := V;
-    14:
-      HUTCAP := Round(V);
-    15:
-      MAXDOG := Round(V);
-    16:
-      MAXO := Round(V);
-    17:
-      MAXM := Round(V);
-    18:
-      VILLE_SEUIL := Round(V);
-    19:
-      VILLE_NIVEAU3 := Round(V);
-    20:
-      VILLE_NIVEAU4 := Round(V);
-    21:
-      VILLE_RAYON := V;
-    22:
-      HAMEAU_DIST := V;
-    23:
-      MIGR_DIST := V;
-    24:
-      EXODE_2 := V;
-    25:
-      EXODE_3 := V;
-    26:
-      EXODE_4 := V;
-    27:
-      EXODE_5 := V;
-    28:
-      EXODE_6 := V;
-    29:
-      ROAD_DIST := V;
-    30:
-      ROAD_CROISSANCE := Round(V);
-    31:
-      ROUTE_MAX := Round(V);
-    32:
-      CHEF_TECH := V;
-    33:
-      CHEF_INNO := V;
-    34:
-      CHEF_CULT := V;
-    35:
-      CHEF_SAGE := V;
-    36:
-      CHILDHOOD := V;
-    37:
-      EXODE_7 := V;
-    38:
-      VoxVoix := V;
-    39:
-      VoxTamb := V;
-    40:
-      VoxAmbi := V;
-    41:
-      VoxFeu := V;
-    42:
-      VoxGril := V;
-    43:
-      VoxEvent := V;
-    44:
-      NB_SAPIENS0 := Round(V);
-    45:
-      CITES_FINAL := Round(V);
-
-  end;
+  if (Idx >= 0) and (Idx < Length(CfgDefs)) then
+    SetVar(CfgDefs[Idx], V);
 end;
 
 function CfgStep(Idx: Integer): Single;
 begin
-  case Idx of
-    0 .. 6:
-      Result := 0.001;
-    7, 9, 11, 12:
-      Result := 1;
-    8:
-      Result := 0.01;
-    10:
-      Result := 0.25;
-    13:
-      Result := 5; // la durée du jour
-    14, 18, 19, 20:
-      Result := 1; // les seuils, le plafond de huttes
-    15 .. 17:
-      Result := 1; // les plafonds de faune
-    21, 22, 23:
-      Result := 1; // rayon, hameau, exode (cases)
-    24 .. 28, 37 .. 43:
-      Result := 0.01; // les probas d'exode
-    29:
-      Result := 10; // la portée des routes
-    30, 31:
-      Result := 1; // vitesse et plafond de routes
-    32 .. 35:
-      Result := 0.5; // les poids du chef
-    36:
-      Result := 1; // la majorité
-    44:
-      Result := 1;
-    45:
-      Result := 1;
+  if (Idx >= 0) and (Idx < Length(CfgDefs)) then
+    Result := CfgDefs[Idx].Step
   else
     Result := 0.001;
-  end;
 end;
 
 procedure CfgMinMax(Idx: Integer; out A, B: Single);
 begin
-  case Idx of
-    0 .. 6:
-      begin
-        A := 0;
-        B := 0.02
-      end;
-    7:
-      begin
-        A := 0;
-        B := 10
-      end;
-    8:
-      begin
-        A := 0;
-        B := 0.5
-      end;
-    9:
-      begin
-        A := 0;
-        B := 1
-      end;
-    10:
-      begin
-        A := 0.25;
-        B := 4
-      end;
-    11:
-      begin
-        A := 0;
-        B := 8
-      end;
-    12:
-      begin
-        A := 0;
-        B := 1
-      end;
-    13:
-      begin
-        A := 5;
-        B := 120
-      end;
-    14:
-      begin
-        A := 20;
-        B := 200
-      end;
-    15:
-      begin
-        A := 0;
-        B := 30
-      end;
-    16:
-      begin
-        A := 0;
-        B := 12
-      end;
-    17:
-      begin
-        A := 5;
-        B := 120
-      end;
-    18:
-      begin
-        A := 5;
-        B := 30
-      end;
-    19:
-      begin
-        A := 10;
-        B := 40
-      end;
-    20:
-      begin
-        A := 15;
-        B := 60
-      end;
-    21:
-      begin
-        A := 8;
-        B := 24
-      end;
-    22:
-      begin
-        A := 6;
-        B := 20
-      end;
-    23:
-      begin
-        A := 20;
-        B := 120
-      end;
-    24 .. 28, 37 .. 43:
-      begin
-        A := 0;
-        B := 0.6
-      end;
-    29:
-      begin
-        A := 100;
-        B := 4000
-      end;
-    30:
-      begin
-        A := 1;
-        B := 10
-      end;
-    31:
-      begin
-        A := 2;
-        B := 30
-      end;
-    32 .. 35:
-      begin
-        A := 0;
-        B := 20
-      end;
-    36:
-      begin
-        A := 5;
-        B := 30
-      end;
-    44:
-      begin
-        A := 0;
-        B := 50
-      end;
-    45:
-      begin
-        A := 1;
-        B := 8
-      end;
+  if (Idx >= 0) and (Idx < Length(CfgDefs)) then
+  begin
+    A := CfgDefs[Idx].Min;
+    B := CfgDefs[Idx].Max;
+  end
   else
-    begin
-      A := 0;
-      B := 1
-    end;
+  begin
+    A := 0;
+    B := 1;
   end;
 end;
 
@@ -500,53 +358,44 @@ end;
 
 function CfgName(Idx: Integer): string;
 begin
-  case Idx of
-    0 .. 28:
-      Result := L(183 + Idx);  // inv. feu .. exode ère 6 (L183..L211)
-    29 .. 36:
-      Result := L(184 + Idx);  // routes:portée(L213) .. majorité(L220) — L212 sauté
-    37:
-      Result := L(212);        // exode ère 7-8
-    38 .. 43:
-      Result := L(200 + Idx);  // voix des sapiens .. fanfares et cloches
-    44:
-      Result := L(245);        // sapiens au départ
-    45:
-      Result := L(246);        // cités finales
+  if (Idx >= 0) and (Idx < Length(CfgDefs)) then
+    Result := CfgDefs[Idx].Nom
   else
     Result := '?';
-  end;
 end;
 
 function CfgText(Idx: Integer): string;
+var
+  D: TCfgDef;
+  V: Single;
 begin
-  case Idx of
-    0 .. 6:
-      Result := Format('%.3f', [CfgGet(Idx)]);
-    7, 11, 14, 15, 16, 17, 18, 19, 20, 30, 31, 36, 44, 45:
-      Result := IntToStr(Round(CfgGet(Idx)));
-    8, 24 .. 28, 37 .. 43:
-      Result := Format('%.2f', [CfgGet(Idx)]);
-    9:
-      if CfgGet(Idx) >= 0.5 then
+  if (Idx < 0) or (Idx >= Length(CfgDefs)) then
+  begin
+    Result := '?';
+    Exit;
+  end;
+  D := CfgDefs[Idx];
+  V := GetVar(D);
+  case D.Forme of
+    fOuiNon:
+      if V >= 0.5 then
         Result := L(225)
       else
         Result := L(226);
-    10:
-      Result := Format('%.2f ×', [CfgGet(Idx)]);
-    12:
-      if CfgGet(Idx) >= 0.5 then
+    fAutoManuel:
+      if V >= 0.5 then
         Result := L(227)
       else
         Result := L(228);
-    13:
-      Result := Format('%.0f s', [CfgGet(Idx)]);
-    21, 22, 23, 29:
-      Result := Format('%.0f', [CfgGet(Idx)]);
-    32 .. 35:
-      Result := Format('%.1f ×', [CfgGet(Idx)]);
+    fFois:
+      Result := Format('%.*f ×', [D.Dec, V]);
+    fSecondes:
+      Result := Format('%.0f s', [V]);
   else
-    Result := '?';
+    if D.Dec = 0 then
+      Result := IntToStr(Round(V))
+    else
+      Result := Format('%.*f', [D.Dec, V]);
   end;
 end;
 
@@ -558,129 +407,56 @@ end;
 procedure SaveCfg;
 var
   INI: TIniFile;
+  I: Integer;
+  D: TCfgDef;
+  V: Single;
 begin
   INI := TIniFile.Create(IniPath);
   try
-    INI.WriteFloat('Reglages', 'Feu', CfgFeu);
-    INI.WriteFloat('Reglages', 'Agri', CfgAgri);
-    INI.WriteFloat('Reglages', 'Stock', CfgStock);
-    INI.WriteFloat('Reglages', 'Past', CfgPast);
-    INI.WriteFloat('Reglages', 'Peche', CfgPeche);
-    INI.WriteFloat('Reglages', 'Nav', CfgNav);
-    INI.WriteFloat('Reglages', 'Ecrit', CfgEcrit);
-    INI.WriteInteger('Reglages', 'Gap', CfgGap);
-    INI.WriteFloat('Reglages', 'Diffu', CfgDiffu);
-    INI.WriteFloat('Reglages', 'Memoire', CfgMemoire);
-    INI.WriteFloat('Reglages', 'Mut', CfgMut);
-    INI.WriteInteger('Reglages', 'Immig', CfgImmig);
-    INI.WriteInteger('Reglages', 'EreAuto', Round(CfgEreAuto));
-    INI.WriteFloat('Monde', 'Cday', CDAY);
-    INI.WriteFloat('Monde', 'Majorite', CHILDHOOD);
-    INI.WriteInteger('Monde', 'HutCap', HUTCAP);
-    INI.WriteInteger('Monde', 'MaxDog', MAXDOG);
-    INI.WriteInteger('Monde', 'MaxOurs', MAXO);
-    INI.WriteInteger('Monde', 'MaxMout', MAXM);
-    INI.WriteInteger('Villes', 'Seuil', VILLE_SEUIL);
-    INI.WriteInteger('Villes', 'Niveau3', VILLE_NIVEAU3);
-    INI.WriteInteger('Villes', 'Niveau4', VILLE_NIVEAU4);
-    INI.WriteFloat('Villes', 'Rayon', VILLE_RAYON);
-    INI.WriteFloat('Villes', 'Hameau', HAMEAU_DIST);
-    INI.WriteFloat('Villes', 'MigrDist', MIGR_DIST);
-    INI.WriteFloat('Villes', 'Exode2', EXODE_2);
-    INI.WriteFloat('Villes', 'Exode3', EXODE_3);
-    INI.WriteFloat('Villes', 'Exode4', EXODE_4);
-    INI.WriteFloat('Villes', 'Exode5', EXODE_5);
-    INI.WriteFloat('Villes', 'Exode6', EXODE_6);
-    INI.WriteFloat('Villes', 'Exode7', EXODE_7);
-    INI.WriteFloat('Villes', 'RoadDist', ROAD_DIST);
-    INI.WriteInteger('Villes', 'RoadCroiss', ROAD_CROISSANCE);
-    INI.WriteInteger('Villes', 'RoadMax', ROUTE_MAX);
-    INI.WriteFloat('Chef', 'Techs', CHEF_TECH);
-    INI.WriteFloat('Chef', 'Inventions', CHEF_INNO);
-    INI.WriteFloat('Chef', 'Culture', CHEF_CULT);
-    INI.WriteFloat('Chef', 'Sagesse', CHEF_SAGE);
-    INI.WriteFloat('Audio', 'Voix', VoxVoix);
-    INI.WriteFloat('Audio', 'Tambour', VoxTamb);
-    INI.WriteFloat('Audio', 'Ambiance', VoxAmbi);
-    INI.WriteFloat('Audio', 'Feu', VoxFeu);
-    INI.WriteFloat('Audio', 'Grillons', VoxGril);
-    INI.WriteFloat('Audio', 'Events', VoxEvent);
-    INI.WriteInteger('Monde', 'Sapiens0', NB_SAPIENS0);
-    INI.WriteInteger('Monde', 'CitesFinal', CITES_FINAL);
+    for I := 0 to High(CfgDefs) do
+    begin
+      D := CfgDefs[I];
+      V := GetVar(D);
+      if D.Kind = vkInt then
+        INI.WriteInteger(D.Section, D.Cle, Round(V))
+      else
+        INI.WriteFloat(D.Section, D.Cle, V);
+    end;
   finally
-    INI.Free
+    INI.Free;
   end;
 end;
 
 procedure LoadCfg;
 var
   INI: TIniFile;
+  I: Integer;
+  D: TCfgDef;
+  V: Single;
 begin
   Defaults;
   if not FileExists(IniPath) then
     Exit;
   INI := TIniFile.Create(IniPath);
   try
-    CfgFeu := INI.ReadFloat('Reglages', 'Feu', CfgFeu);
-    CfgAgri := INI.ReadFloat('Reglages', 'Agri', CfgAgri);
-    CfgStock := INI.ReadFloat('Reglages', 'Stock', CfgStock);
-    CfgPast := INI.ReadFloat('Reglages', 'Past', CfgPast);
-    CfgPeche := INI.ReadFloat('Reglages', 'Peche', CfgPeche);
-    CfgNav := INI.ReadFloat('Reglages', 'Nav', CfgNav);
-    CfgEcrit := INI.ReadFloat('Reglages', 'Ecrit', CfgEcrit);
-    CfgGap := INI.ReadInteger('Reglages', 'Gap', CfgGap);
-    CfgDiffu := INI.ReadFloat('Reglages', 'Diffu', CfgDiffu);
-    CfgMemoire := INI.ReadFloat('Reglages', 'Memoire', CfgMemoire);
-    CfgMut := INI.ReadFloat('Reglages', 'Mut', CfgMut);
-    CfgImmig := INI.ReadInteger('Reglages', 'Immig', CfgImmig);
-    CfgEreAuto := INI.ReadInteger('Reglages', 'EreAuto', Round(CfgEreAuto));
-    CDAY := INI.ReadFloat('Monde', 'Cday', CDAY);
-    CHILDHOOD := INI.ReadFloat('Monde', 'Majorite', CHILDHOOD);
-    HUTCAP := INI.ReadInteger('Monde', 'HutCap', HUTCAP);
-    MAXDOG := INI.ReadInteger('Monde', 'MaxDog', MAXDOG);
-    MAXO := INI.ReadInteger('Monde', 'MaxOurs', MAXO);
-    MAXM := INI.ReadInteger('Monde', 'MaxMout', MAXM);
-    VILLE_SEUIL := INI.ReadInteger('Villes', 'Seuil', VILLE_SEUIL);
-    VILLE_NIVEAU3 := INI.ReadInteger('Villes', 'Niveau3', VILLE_NIVEAU3);
-    VILLE_NIVEAU4 := INI.ReadInteger('Villes', 'Niveau4', VILLE_NIVEAU4);
-    VILLE_RAYON := INI.ReadFloat('Villes', 'Rayon', VILLE_RAYON);
-    HAMEAU_DIST := INI.ReadFloat('Villes', 'Hameau', HAMEAU_DIST);
-    MIGR_DIST := INI.ReadFloat('Villes', 'MigrDist', MIGR_DIST);
-    EXODE_2 := INI.ReadFloat('Villes', 'Exode2', EXODE_2);
-    EXODE_3 := INI.ReadFloat('Villes', 'Exode3', EXODE_3);
-    EXODE_4 := INI.ReadFloat('Villes', 'Exode4', EXODE_4);
-    EXODE_5 := INI.ReadFloat('Villes', 'Exode5', EXODE_5);
-    EXODE_6 := INI.ReadFloat('Villes', 'Exode6', EXODE_6);
-    EXODE_7 := INI.ReadFloat('Villes', 'Exode7', EXODE_7);
-
-    ROAD_DIST := INI.ReadFloat('Villes', 'RoadDist', ROAD_DIST);
-    ROAD_CROISSANCE := INI.ReadInteger('Villes', 'RoadCroiss', ROAD_CROISSANCE);
-    ROUTE_MAX := INI.ReadInteger('Villes', 'RoadMax', ROUTE_MAX);
-    CHEF_TECH := INI.ReadFloat('Chef', 'Techs', CHEF_TECH);
-    CHEF_INNO := INI.ReadFloat('Chef', 'Inventions', CHEF_INNO);
-    CHEF_CULT := INI.ReadFloat('Chef', 'Culture', CHEF_CULT);
-    CHEF_SAGE := INI.ReadFloat('Chef', 'Sagesse', CHEF_SAGE);
-    VoxVoix := INI.ReadFloat('Audio', 'Voix', VoxVoix);
-    VoxTamb := INI.ReadFloat('Audio', 'Tambour', VoxTamb);
-    VoxAmbi := INI.ReadFloat('Audio', 'Ambiance', VoxAmbi);
-    VoxFeu := INI.ReadFloat('Audio', 'Feu', VoxFeu);
-    VoxGril := INI.ReadFloat('Audio', 'Grillons', VoxGril);
-    VoxEvent := INI.ReadFloat('Audio', 'Events', VoxEvent);
-    NB_SAPIENS0 := INI.ReadInteger('Monde', 'Sapiens0', NB_SAPIENS0);
-    CITES_FINAL := INI.ReadInteger('Monde', 'CitesFinal', CITES_FINAL);
+    for I := 0 to High(CfgDefs) do
+    begin
+      D := CfgDefs[I];
+      V := GetVar(D);
+      if D.Kind = vkInt then
+        SetVar(D, INI.ReadInteger(D.Section, D.Cle, Round(V)))
+      else
+        SetVar(D, INI.ReadFloat(D.Section, D.Cle, V));
+    end;
   finally
-    INI.Free
+    INI.Free;
   end;
 end;
-
-{ ★v16 — la fenêtre à onglets. 100 % code (CreateNew, conv. du projet),
-  live : chaque clic ajuste UNE variable que la sim lit au tic suivant,
-  et sauvegarde l'INI. }
 
 type
   TRegForm = class(TForm)
   public
-    Vals: array [0 .. CNALL - 1] of TLabel;
+    Vals: array of TLabel;
     procedure MoinsClick(Sender: TObject);
     procedure PlusClick(Sender: TObject);
     procedure DefClick(Sender: TObject);
@@ -696,7 +472,7 @@ procedure TRegForm.RefreshVals;
 var
   I: Integer;
 begin
-  for I := 0 to CNALL - 1 do
+  for I := 0 to High(Vals) do
     if Vals[I] <> nil then
       Vals[I].Caption := CfgText(I);
 end;
@@ -733,7 +509,6 @@ begin
   FReg := nil;
 end;
 
-{ construit une ligne : nom · valeur · [-] [+] — renvoie le Y du bas }
 function LigneReg(SH: TWinControl; Y, Idx: Integer; out LV: TLabel): Integer;
 var
   LN, LT: TLabel;
@@ -773,20 +548,44 @@ begin
   Result := Y + 31;
 end;
 
-procedure Onglet(PC: TPageControl; const Titre: string; D1, D2: Integer;
-  Extra: Integer = -1);
+function TitreOnglet(O: Integer): string;
+begin
+  case O of
+    O_DEC:
+      Result := L(221);
+    O_MONDE:
+      Result := L(222);
+    O_VILLES:
+      Result := L(223);
+    O_CHEF:
+      Result := L(224);
+    O_CITES:
+      Result := L(247);
+    O_AUDIO:
+      Result := 'Audio';
+    O_INO:
+      Result := L(266);
+    O_CER:
+      Result := L(276);   // 'cerveau' (à créer en L275 — voir plus bas)
+    O_FAU:
+      Result := L(285);
+  else
+    Result := '?';
+  end;
+end;
+
+procedure OngletAuto(PC: TPageControl; O: Integer);
 var
   SH: TTabSheet;
   Y, I: Integer;
 begin
   SH := TTabSheet.Create(PC);
   SH.PageControl := PC;
-  SH.Caption := Titre; { le titre arrive déjà traduit (voir ci-dessous) }
+  SH.Caption := TitreOnglet(O);
   Y := 12;
-  for I := D1 to D2 do
-    Y := LigneReg(SH, Y, I, FReg.Vals[I]);
-  if Extra >= 0 then
-    Y := LigneReg(SH, Y, Extra, FReg.Vals[Extra]);
+  for I := 0 to High(CfgDefs) do
+    if CfgDefs[I].Onglet = O then
+      Y := LigneReg(SH, Y, I, FReg.Vals[I]);
 end;
 
 procedure OuvreReglages;
@@ -797,31 +596,35 @@ begin
   if FReg <> nil then
   begin
     FReg.BringToFront;
-    Exit
+    Exit;
   end;
   FReg := TRegForm.CreateNew(nil);
   with FReg do
   begin
     Caption := L(231);
-    ClientWidth := 440;
+    ClientWidth := 444;
     ClientHeight := 560;
     Position := poScreenCenter;
     BorderStyle := bsSingle;
     BorderIcons := [biSystemMenu];
     OnClose := FermeForm;
   end;
+  SetLength(FReg.Vals, Length(CfgDefs));
   PC := TPageControl.Create(FReg);
   PC.Parent := FReg;
   PC.Left := 8;
   PC.Top := 8;
-  PC.Width := 424;
+  PC.Width := 600;
   PC.Height := 504;
-  Onglet(PC, L(221), 0, 12);
-  Onglet(PC, L(222), 13, 17, 44);
-  Onglet(PC, L(223), 18, 31, 37);
-  Onglet(PC, L(224), 32, 36);
-  Onglet(PC, L(247), 45, 45);
-  Onglet(PC, 'Audio', 38, 43);
+  OngletAuto(PC, O_DEC);
+  OngletAuto(PC, O_MONDE);
+  OngletAuto(PC, O_VILLES);
+  OngletAuto(PC, O_CHEF);
+  OngletAuto(PC, O_CITES);
+  OngletAuto(PC, O_AUDIO);
+  OngletAuto(PC, O_INO);
+  OngletAuto(PC, O_CER);
+  OngletAuto(PC, O_FAU);
   BD := TButton.Create(FReg);
   BD.Parent := FReg;
   BD.Left := 8;
@@ -842,6 +645,7 @@ end;
 
 initialization
 
+BuildDefs;
 Defaults;
 
 end.
