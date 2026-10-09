@@ -139,7 +139,7 @@ begin
   end;
 
   // 2) fonder une ville si un amas de huttes isolées atteint le seuil
-  if Cities.Count < 8 then
+    if (EreCourante >= 2) and (Cities.Count < 8) then
     for I := 0 to Huts.Count - 1 do
     begin
       H := Huts[I];
@@ -381,7 +381,7 @@ var
   Foy: TArray<Integer>;
   Top: TArray<Boolean>;
 begin
-  if EreCourante < 8 then
+  if EreCourante < 9 then
     Exit; // ★LEVIERS DE TEST : remettre à 9 après !
   if Cities.Count <= CITES_FINAL then
     Exit;

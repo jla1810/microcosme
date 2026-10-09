@@ -366,11 +366,11 @@ var I: Integer;
 begin
   for I := 0 to NW - 1 do
     if IsVoiceIdx(I) then begin
-      if Random < 0.26 * AMutRate then W[I] := ClampF(W[I] + RN * 0.3, -4, 4)
-      else if Random < 0.04 * AMutRate then W[I] := ClampF(RN * 1.2, -4, 4);
+      if Random < BRAIN_VOIX * AMutRate then W[I] := ClampF(W[I] + RN * 0.3, -4, 4)
+      else if Random < BRAIN_SAUT * AMutRate then W[I] := ClampF(RN * 1.2, -4, 4);
     end else begin
-      if Random < 0.13 * AMutRate then W[I] := ClampF(W[I] + RN * 0.3, -4, 4)
-      else if Random < 0.02 * AMutRate then W[I] := ClampF(RN * 1.2, -4, 4);
+      if Random < BRAIN_BASE * AMutRate then W[I] := ClampF(W[I] + RN * 0.3, -4, 4)
+      else if Random < BRAIN_SAUT2 * AMutRate then W[I] := ClampF(RN * 1.2, -4, 4);
     end;
 end;
 
@@ -380,8 +380,7 @@ begin
   // récurrences : les sorties précédentes alimentent les entrées 24-32
   for O := 0 to NOUT - 2 do
     C.Inp[24 + O] := C.PrevOo[O];
-    C.Inp[37] := 1;
-
+  C.Inp[33] := 1;
   // couche 1
   for J := 0 to NHID - 1 do begin
     S := C.Net[IDX_H1B + J];                       // ★fix : le VRAI biais

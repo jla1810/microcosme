@@ -16,7 +16,8 @@ uses
   Winapi.Windows, Winapi.Messages,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls,
   MicroTypes, MicroBrain, MicroSim, MicroRender, MicroIO, MicroConfig,
-  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo, MicroVilles,MicroCityWin,MicroDicWin;
+  MicroEvo, MicroInfoWin, MicroAudio, MicroHelp, MicroLogo, MicroVilles,
+  MicroCityWin,MicroDicWin,MicroMusWin;
 
 const
   BID_HELP = 207;
@@ -74,7 +75,8 @@ begin
           FSaveBounds := BoundsRect;
           BorderStyle := bsNone;
         end;
-        BoundsRect := Screen.DesktopRect;
+                // ★plein écran sur L'ÉCRAN qui contient le jeu (pas le bureau virtuel)
+        BoundsRect := Application.MainForm.Monitor.BoundsRect;
       end;
   else
     if BorderStyle = bsNone then
@@ -579,6 +581,12 @@ begin
     OuvreDictionnaire;   // F9 — le dictionnaire du peuple
    End;
 
+
+    if Key = VK_F10 then
+begin
+  Key := 0;
+  OuvreMusee;    // MicroDicWin — ajoute MicroMusWin aux uses
+end;
 
   // ── ★ERE triche verrouillée : Ctrl+Shift+E · B · P · U · V · W ──
   if FStarted and (Creatures <> nil) and (Shift = CHEAT_GATE) then

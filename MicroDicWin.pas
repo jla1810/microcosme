@@ -169,6 +169,7 @@ begin
   if Dic = nil then
   begin
     Dic := TDictForm.CreateNew(Application);
+    Dic.DefaultMonitor := dmMainForm;
     Dic.BorderStyle := bsSingle;
     Dic.BorderIcons := [biSystemMenu];
     Dic.ClientWidth := DC_W;

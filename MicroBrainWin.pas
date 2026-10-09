@@ -1,11 +1,11 @@
-unit MicroBrainWin;
+﻿unit MicroBrainWin;
 
-{ Microcosme � fen�tre flottante : grand cerveau du sp�cimen s�lectionn�. }
+{ Microcosme — fenêtre flottante : grand cerveau du spécimen sélectionné. }
 
 interface
 
 uses
-  System.SysUtils, System.Classes,
+  System.SysUtils, System.Classes,System.Math,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls,
   MicroTypes, MicroBrain, MicroRender;
 
@@ -34,19 +34,22 @@ begin
     Exit;
   end;
   BW := TBrainForm.CreateNew(nil);
+    BW := TBrainForm.CreateNew(Application);        // ★parent Application (comme F9)
   with BW do begin
-    Caption := 'Microcosme � cerveau';
-    Width := 720; Height := 560;
-    Position := poScreenCenter;
+    Caption := 'Microcosme — cerveau';
+    BorderStyle := bsSingle;                       // ★bordure fixe — pas redimensionnable
+    BorderIcons := [biSystemMenu];                 // ★pas de maximize
+    ClientWidth := 720; ClientHeight := 560;       // taille fixée
+    Position := poDesigned;                        // ★on décide nous-mêmes
     Color := Col(17, 21, 15);
     DoubleBuffered := True;
     OnPaint := BrainPaint;
     OnClose := BrainClose;
-    OnMouseDown := BrainDown;
   end;
-  T := TTimer.Create(BW);
+    T := TTimer.Create(BW);
   T.Interval := 150;
   T.OnTimer := BW.BrainTimer;
+
   BW.Show;
 end;
 
@@ -72,9 +75,9 @@ begin
   FSimCS.Enter;
   try
     if FSelected <> nil then
-      Caption := 'Microcosme � cerveau de ' + FSelected.Name
+      Caption := 'Microcosme — cerveau de ' + FSelected.Name
     else
-      Caption := 'Microcosme � cerveau';
+      Caption := 'Microcosme — cerveau';
     try
       if MindMode then
         DrawMind(Canvas, ClientWidth, ClientHeight)      // filet conv. 11

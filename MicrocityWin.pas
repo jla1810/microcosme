@@ -183,6 +183,7 @@ begin
   if Fiche = nil then
   begin
     Fiche := TFicheVille.CreateNew(Application);
+    Fiche.DefaultMonitor := dmMainForm;
     Fiche.BorderStyle := bsSingle;
     Fiche.BorderIcons := [biSystemMenu];
     Fiche.ClientWidth := FC_W;

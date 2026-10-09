@@ -22,528 +22,607 @@ var
 implementation
 
 const
-  FR: array[0..247] of string = (
-    'Observer le monde',            // 0
-    'l''île s''éveille…',           // 1
-    'nouveau monde',                // 2
-    'monde sauvegardé',             // 3
-    'monde chargé',                 // 4
+  FR: array [0 .. 285] of string = ('Observer le monde', // 0
+    'l''île s''éveille…', // 1
+    'nouveau monde', // 2
+    'monde sauvegardé', // 3
+    'monde chargé', // 4
     'CARNET D''OBSERVATION · DELPHI', // 5
-    'Populations',                  // 6
-    'Technologies',                 // 7
-    'Dynamique',                    // 8
-    'Évolution',                    // 9
-    'Lexique émergent',             // 10
-    'Inventions du peuple',         // 11
-    'Spécimen',                     // 12
-    'Commandes',                    // 13
-    'Réglages',                     // 14
-    'Annales du peuple',            // 15
-    'l''histoire n''a pas encore d''objets…',        // 16
+    'Populations', // 6
+    'Technologies', // 7
+    'Dynamique', // 8
+    'Évolution', // 9
+    'Lexique émergent', // 10
+    'Inventions du peuple', // 11
+    'Spécimen', // 12
+    'Commandes', // 13
+    'Réglages', // 14
+    'Annales du peuple', // 15
+    'l''histoire n''a pas encore d''objets…', // 16
     'l''histoire du peuple n''a pas encore commencé…', // 17
-    'entrée :',                     // 18
-    'fiche',                        // 19
-    'flore',                        // 20
-    'vaches',                   // 21
-    'loups',                   // 22
-    'sapiens',                      // 23
-    'poissons',                     // 24
-    'spirale de Fisher — plume %d%%',                // 25
-    'spirale de Fisher — plume —',                   // 26
-    'culture — savoir moyen %d%%',                   // 27
-    'culture — savoir moyen —',                      // 28
-    'marins — %d navigateurs · %d en mer',           // 29
-    'inconnue',                     // 30
-    'PERDUE',                       // 31
+    'entrée :', // 18
+    'fiche', // 19
+    'flore', // 20
+    'vaches', // 21
+    'loups', // 22
+    'sapiens', // 23
+    'poissons', // 24
+    'spirale de Fisher — plume %d%%', // 25
+    'spirale de Fisher — plume —', // 26
+    'culture — savoir moyen %d%%', // 27
+    'culture — savoir moyen —', // 28
+    'marins — %d navigateurs · %d en mer', // 29
+    'inconnue', // 30
+    'PERDUE', // 31
     'technologies %d/%d · peuple %d · inventions %d/%d', // 32
-    ' entré dans l''ère suivante',  // 33
-    'entrer dans l''ère suivante',  // 34
-    'vue',                          // 35
-    'sem',                          // 36
-    'her',                          // 37
-    'pré',                          // 38
-    'sap',                          // 39
-    'Sauver',                       // 40
-    'Charger',                      // 41
-    'Nouveau monde',                // 42
-    'aide (F1)',                    // 43
-    'réglages',                     // 44
-    'annales',                      // 45
-    'relief',                       // 46
-    'tout par défaut',              // 47
-    'réglages par défaut',          // 48
-    'Cerveau',                      // 49
-    'rôde',                         // 50
-    'broute',                       // 51
-    'en fuite',                     // 52
-    'caché',                        // 53
-    'paît',                         // 54
-    'récolte',                      // 55
-    'explore',                      // 56
-    'repos',                        // 57
-    'cliquez un spécimen · l''océan est navigable',  // 58
-    'cliquez/glissez pour semer',   // 59
-    'cri d''alarme ?',              // 60
-    'nourriture ?',                 // 61
-    'signal social ?',              // 62
-    'entend',                       // 63
-    'vitesse',                      // 64
-    'perception',                   // 65
-    'taille',                       // 66
-    'savoir',                       // 67
-    'cliquez pour relâcher un herbivore',  // 68
-    'cliquez pour relâcher un prédateur',  // 69
-    'cliquez pour éveiller un sapien',     // 70
-    'techn. : ',                    // 71
-    'chasse',                       // 72
-    'Aucun sapien sélectionné.',    // 73
-    'Ferme cette fenêtre, clique un sapiens avec l''outil « vue »,',  // 74
-    'puis rouvre le cerveau depuis le carnet.',      // 75
-    'vert = excitation · rouge = inhibition · pointillés = voie directe · 34 → 9 → 9 → 10',  // 76
-    'clic : sapiens suivant · F7 : revenir',         // 77
-    'énergie',                      // 78
-    'aucune technologie',           // 79
-    'n''entend rien',               // 80
-    'aucun spécimen',               // 81
-    'sapiens %d/%d · herbivores %d · prédateurs %d · poissons %d · flore %d',  // 82
-    'par ',                         // 83
-    '%s a découvert le feu',        // 84
-    '%s a inventé l''agriculture',  // 85
-    '%s a inventé les réserves',    // 86
+    ' entré dans l''ère suivante', // 33
+    'entrer dans l''ère suivante', // 34
+    'vue', // 35
+    'sem', // 36
+    'her', // 37
+    'pré', // 38
+    'sap', // 39
+    'Sauver', // 40
+    'Charger', // 41
+    'Nouveau monde', // 42
+    'aide (F1)', // 43
+    'réglages', // 44
+    'annales', // 45
+    'relief', // 46
+    'tout par défaut', // 47
+    'réglages par défaut', // 48
+    'Cerveau', // 49
+    'rôde', // 50
+    'broute', // 51
+    'en fuite', // 52
+    'caché', // 53
+    'paît', // 54
+    'récolte', // 55
+    'explore', // 56
+    'repos', // 57
+    'cliquez un spécimen · l''océan est navigable', // 58
+    'cliquez/glissez pour semer', // 59
+    'cri d''alarme ?', // 60
+    'nourriture ?', // 61
+    'signal social ?', // 62
+    'entend', // 63
+    'vitesse', // 64
+    'perception', // 65
+    'taille', // 66
+    'savoir', // 67
+    'cliquez pour relâcher un herbivore', // 68
+    'cliquez pour relâcher un prédateur', // 69
+    'cliquez pour éveiller un sapien', // 70
+    'techn. : ', // 71
+    'chasse', // 72
+    'Aucun sapien sélectionné.', // 73
+    'Ferme cette fenêtre, clique un sapiens avec l''outil « vue »,', // 74
+    'puis rouvre le cerveau depuis le carnet.', // 75
+    'vert = excitation · rouge = inhibition · pointillés = voie directe · 34 → 9 → 9 → 10',
+    // 76
+    'clic : sapiens suivant · F7 : revenir', // 77
+    'énergie', // 78
+    'aucune technologie', // 79
+    'n''entend rien', // 80
+    'aucun spécimen', // 81
+    'sapiens %d/%d · herbivores %d · prédateurs %d · poissons %d · flore %d',
+    // 82
+    'par ', // 83
+    '%s a découvert le feu', // 84
+    '%s a inventé l''agriculture', // 85
+    '%s a inventé les réserves', // 86
     '%s a découvert le pastoralisme', // 87
-    '%s a inventé la pêche',        // 88
+    '%s a inventé la pêche', // 88
     '%s a construit la première pirogue', // 89
-    '%s a inventé l''écriture',     // 90
-    '%s découvre le feu',           // 91
-    '%s invente l''agriculture',    // 92
-    '%s invente les réserves',      // 93
-    '%s découvre le pastoralisme',  // 94
-    '%s invente la pêche',          // 95
+    '%s a inventé l''écriture', // 90
+    '%s découvre le feu', // 91
+    '%s invente l''agriculture', // 92
+    '%s invente les réserves', // 93
+    '%s découvre le pastoralisme', // 94
+    '%s invente la pêche', // 95
     '%s construit la première pirogue', // 96
-    '%s invente l''écriture',       // 97
-    '%s disparaît — %s, à %d jours',  // 98
-    'famine',                       // 99
-    'vieillesse',                   // 100
-    'dévoré',                       // 101
-    'abattu',                       // 102
-    'la connaissance de %s s''est perdue',  // 103
-    'la connaissance de %s se perd',  // 104
+    '%s invente l''écriture', // 97
+    '%s disparaît — %s, à %d jours', // 98
+    'famine', // 99
+    'vieillesse', // 100
+    'dévoré', // 101
+    'abattu', // 102
+    'la connaissance de %s s''est perdue', // 103
+    'la connaissance de %s se perd', // 104
     'le peuple s''établit au camp', // 105
-    'le premier enfant du peuple naît : %s',  // 106
-    'la génération %d voit le jour — %s',     // 107
-    '%s apprivoise %s',             // 108
-    '%s a apprivoisé %s',           // 109
-    '%s apprivoise un loup : le chien naît',  // 110
-    '%s a apprivoisé un loup — le premier chien est né',  // 111
-    'le peuple compte %d sapiens',  // 112
-    'des immigrants ont rejoint l''île',  // 113
-    'des immigrants rejoignent le camp',  // 114
-    'une nouvelle ère s''ouvre : %s',  // 115
-    'nouvelle ère : %s',            // 116
-    'le peuple entre dans l''ère %d — %s',  // 117
-    '%s invente %s',                // 118
-    'cheat : ère %d équipée · pop %d',  // 119
-    ' — PASSAGE PRÊT (bouton doré)',  // 120
-    ' — sommet de contenu livré',   // 121
-    ' — incomplet',                 // 122
-    'passage refusé — Ctrl+Shift+B pour voir ce qui manque',  // 123
-    'sommet de contenu livré — les ères futures attendent leur contenu',  // 124
-    'ère atteinte — sommet de contenu livré',  // 125
-    'SIM %s (%s · âge %d): %s',     // 126
-    'SIM: %s',                      // 127
-    'UI: %s',                       // 128
-    'chargement impossible — fichier illisible',  // 129
-    'version incompatible',         // 130
-    'fichier de sauvegarde invalide',  // 131
-    'aucune sauvegarde trouvée',    // 132
-    'nombre de %s invalide: %d',    // 133
-    'données corrompues',           // 134
-    'les annales reprennent avec le monde chargé',  // 135
-    'français',                     // 136
-    'vers berger',                  // 137
-    'chasse (prédateur)',           // 138
-    'traque',                       // 139
-    'famine (traque)',              // 140
-    'raté',                         // 141
-    'défend',                       // 142
-    'pêche',                        // 143
-    'construit',                    // 144
-    'retourné sauvage',             // 145
-    'errance',                      // 146
-    'suit',                         // 147
-    'flâne',                        // 148
-    'chien de %s',                  // 149
-    '%s grandit — dix foyers s''assemblent : c''est un bourg',  // 150 fondation (toast court)
-    'le bourg de %s naît — %d foyers, jour %d',  // 151 fondation (annale)
-    '%s devient une ville — %d foyers vivent derrière ses remparts',  // 152
-    '%s est désormais une ville (%d foyers)',     // 153
-    '%s est proclamée cité — %d foyers sous son monument',  // 154
-    'la cité de %s rayonne — %d foyers',          // 155
-    ' ',                                        //156
-    ' ',                                        //157
-    '%d familles rejoignent les villes',   // 158 — 1 arg (%d)
-    'le peuple devient citadin' ,           // 159 — 0 arg
-        '%s est élu chef de %s',              // 160 — 2 args (%s %s)
-    '%s succède à %s à la tête de %s',     // 161 — 3 args (%s %s %s)
-     'moutons',                            // 162 — 0 arg
-    'ours' ,                               // 163 — 0 arg
-    'bourg' ,                             //164
-    'ville',                              //165
-    'cité',                               //166
-    'Fiche de %s' ,                       //167
-    'Rang : %s',                          //168
-    'Fondée il y a %d jours',             //169
-    'Foyers : %d' ,                       //170
-    'Habitants : %d' ,                    //171
-    'Routes : %d'  ,                      //172
-    'Chef : %s',                          //173
-    'Aucun',                              //1744
-    '%s défend le hameau',                //175
-    'herbivore',                          //176
-    'prédateur',                          //177
-    'mouton',                             //178
-    'ours',                               //179
-    'herbivores',                         //180
-    'prédateurs',                         //181
-    'sapiens (couleur = lignée)',         //182
-    'inv. feu',                           //183
-    'inv. agriculture',                   //184
-    'inv. réserves',                      //185
-    'inv. pastoralisme',                  //186
-    'inv. pêche',                         //187
-    'inv. navigation',                    //188
-    'inv. écriture',                      //189
-    'intervalle (jours)',                 //190
-    'diffusion',                          //191
-    'mémoire peuple',                     //192
-    'mutations ×',                        //193
-    'immigrants',                         //194
-    'ère auto',                           //195
-    'durée du jour (s)',                  //196
-    'plafond huttes',                     //197
-    'chiens max',                         //198
-    'ours max',                           //199
-    'moutons max',                        //200
-    'seuil bourg (foyers)',               //201
-    'seuil ville',                        //202
-    'seuil cité',                         //203
-    'rayon de ville',                     //204
-    'hameau : portée',                    //205
-    'exode : distance',                   //206
-    'exode ère 2',                        //207
-    'exode ère 3',                        //208
-    'exode ère 4',                        //209
-    'exode ère 5',                        //210
-    'exode ère 6',                        //211
-    'exode ère 7-8',                      //212
-    'routes : portée',                    //213
-    'routes : vitesse',                   //214
-    'routes : plafond',                   //215
-    'chef : techs ×',                     //216
-    'chef : inventions ×',                //217
-    'chef : culture ×',                   //218
-    'chef : sagesse ×',                   //219
-    'majorité (âge)',                     //220
-    'Découvertes',                        //221
-    'Le monde',                           //222
-    'Villes & routes',                    //223
-    'Le chef',                            //224
-    'oui',                                //225
-    'non',                                //226
-    'auto',                               //227
-    'manuel',                             //228
-    'Tout par défaut',                    //229
-    'Fermer',                             //230
-    'Microcosme — Réglages du monde',      //231
-    '%s nomme « %s » — %s',                //232
-    'Microcosme — Le dictionnaire du peuple',  //233
-    'Le peuple parle %d mots',                 //234
-    'la langue du monde — non traduite',       //235
-    'le peuple n''a pas encore parlé',          //236
-    'volume général',                     //237
-    'voix des sapiens',                   //238
-    'tambours',                           //239
-    'houle et vent',                      //240
-    'feux',                               //241
-    'grillons',                           //242
-    'fanfares et cloches' ,                //243
-     '%s n''est plus',                     //244
-    'sapiens au départ',                    //245
-    'cités finales',                      //246
-    'Les Trois Cités'                     //247
-   );
+    'le premier enfant du peuple naît : %s', // 106
+    'la génération %d voit le jour — %s', // 107
+    '%s apprivoise %s', // 108
+    '%s a apprivoisé %s', // 109
+    '%s apprivoise un loup : le chien naît', // 110
+    '%s a apprivoisé un loup — le premier chien est né', // 111
+    'le peuple compte %d sapiens', // 112
+    'des immigrants ont rejoint l''île', // 113
+    'des immigrants rejoignent le camp', // 114
+    'une nouvelle ère s''ouvre : %s', // 115
+    'nouvelle ère : %s', // 116
+    'le peuple entre dans l''ère %d — %s', // 117
+    '%s invente %s', // 118
+    'cheat : ère %d équipée · pop %d', // 119
+    ' — PASSAGE PRÊT (bouton doré)', // 120
+    ' — sommet de contenu livré', // 121
+    ' — incomplet', // 122
+    'passage refusé — Ctrl+Shift+B pour voir ce qui manque', // 123
+    'sommet de contenu livré — les ères futures attendent leur contenu', // 124
+    'ère atteinte — sommet de contenu livré', // 125
+    'SIM %s (%s · âge %d): %s', // 126
+    'SIM: %s', // 127
+    'UI: %s', // 128
+    'chargement impossible — fichier illisible', // 129
+    'version incompatible', // 130
+    'fichier de sauvegarde invalide', // 131
+    'aucune sauvegarde trouvée', // 132
+    'nombre de %s invalide: %d', // 133
+    'données corrompues', // 134
+    'les annales reprennent avec le monde chargé', // 135
+    'français', // 136
+    'vers berger', // 137
+    'chasse (prédateur)', // 138
+    'traque', // 139
+    'famine (traque)', // 140
+    'raté', // 141
+    'défend', // 142
+    'pêche', // 143
+    'construit', // 144
+    'retourné sauvage', // 145
+    'errance', // 146
+    'suit', // 147
+    'flâne', // 148
+    'chien de %s', // 149
+    '%s grandit — dix foyers s''assemblent : c''est un bourg',
+    // 150 fondation (toast court)
+    'le bourg de %s naît — %d foyers, jour %d', // 151 fondation (annale)
+    '%s devient une ville — %d foyers vivent derrière ses remparts', // 152
+    '%s est désormais une ville (%d foyers)', // 153
+    '%s est proclamée cité — %d foyers sous son monument', // 154
+    'la cité de %s rayonne — %d foyers', // 155
+    ' ', // 156
+    ' ', // 157
+    '%d familles rejoignent les villes', // 158 — 1 arg (%d)
+    'le peuple devient citadin', // 159 — 0 arg
+    '%s est élu chef de %s', // 160 — 2 args (%s %s)
+    '%s succède à %s à la tête de %s', // 161 — 3 args (%s %s %s)
+    'moutons', // 162 — 0 arg
+    'ours', // 163 — 0 arg
+    'bourg', // 164
+    'ville', // 165
+    'cité', // 166
+    'Fiche de %s', // 167
+    'Rang : %s', // 168
+    'Fondée il y a %d jours', // 169
+    'Foyers : %d', // 170
+    'Habitants : %d', // 171
+    'Routes : %d', // 172
+    'Chef : %s', // 173
+    'Aucun', // 1744
+    '%s défend le hameau', // 175
+    'herbivore', // 176
+    'prédateur', // 177
+    'mouton', // 178
+    'ours', // 179
+    'herbivores', // 180
+    'prédateurs', // 181
+    'sapiens (couleur = lignée)', // 182
+    'inv. feu', // 183
+    'inv. agriculture', // 184
+    'inv. réserves', // 185
+    'inv. pastoralisme', // 186
+    'inv. pêche', // 187
+    'inv. navigation', // 188
+    'inv. écriture', // 189
+    'intervalle (jours)', // 190
+    'diffusion', // 191
+    'mémoire peuple', // 192
+    'mutations ×', // 193
+    'immigrants', // 194
+    'ère auto', // 195
+    'durée du jour (s)', // 196
+    'plafond huttes', // 197
+    'chiens max', // 198
+    'ours max', // 199
+    'moutons max', // 200
+    'seuil bourg (foyers)', // 201
+    'seuil ville', // 202
+    'seuil cité', // 203
+    'rayon de ville', // 204
+    'hameau : portée', // 205
+    'exode : distance', // 206
+    'exode ère 2', // 207
+    'exode ère 3', // 208
+    'exode ère 4', // 209
+    'exode ère 5', // 210
+    'exode ère 6', // 211
+    'exode ère 7-8', // 212
+    'routes : portée', // 213
+    'routes : vitesse', // 214
+    'routes : plafond', // 215
+    'chef : techs ×', // 216
+    'chef : inventions ×', // 217
+    'chef : culture ×', // 218
+    'chef : sagesse ×', // 219
+    'majorité (âge)', // 220
+    'Découvertes', // 221
+    'Le monde', // 222
+    'Villes & routes', // 223
+    'Le chef', // 224
+    'oui', // 225
+    'non', // 226
+    'auto', // 227
+    'manuel', // 228
+    'Tout par défaut', // 229
+    'Fermer', // 230
+    'Microcosme — Réglages du monde', // 231
+    '%s nomme « %s » — %s', // 232
+    'Microcosme — Le dictionnaire du peuple', // 233
+    'Le peuple parle %d mots', // 234
+    'la langue du monde — non traduite', // 235
+    'le peuple n''a pas encore parlé', // 236
+    'volume général', // 237
+    'voix des sapiens', // 238
+    'tambours', // 239
+    'houle et vent', // 240
+    'feux', // 241
+    'grillons', // 242
+    'fanfares et cloches', // 243
+    '%s n''est plus', // 244
+    'sapiens au départ', // 245
+    'cités finales', // 246
+    'Les Trois Cités', // 247
+    'Le savoir du peuple', // 248
+    'métro : niveau de ville', // 249
+    'frigo : grenier requis', // 250
+    'aspirine : culture requise', // 251
+    'lampion : obscurité', // 252
+    'chance d''invention', // 253
+    'torche : obscurité', // 254
+    'peausserie : obscurité', // 255
+    'brochette : obscurité', // 256
+    'bougie : obscurité', // 257
+    'boussole : obscurité', // 258
+    'parchemin : obscurité', // 259
+    'lunette : obscurité', // 260
+    'violon : obscurité', // 261
+    'théâtre : foule', // 262
+    'violon : foule', // 263
+    'radio : foule', // 264
+    'tambour : portée de l''eau', // 265
+    'Inventions', // 266
+    'cerveau : mutation',                 //267
+    'cerveau : saut',                     //268
+    'cerveau : voix (mutation)',          //269
+    'cerveau : saut des voix',            //270
+    'cerveau : mentorat',                 //271
+    'cerveau : glissement',               //272
+    'cerveau : gain de savoir',           //273
+    'mémoire : durée de vie',             //274
+    'mémoire : souvenirs max',            //275
+    'Cerveau',                             //276
+    'morsure du loup',                    //277
+    'morsure de l''ours',                 //278
+    'recharge de morsure',                //279
+    'repro : vaches',                     //280
+    'repro : loups',                      //281
+    'repro : ours',                       //282
+    'cri : portée',                       //283
+    'cri : seuil' ,                       //284
+    'Faune & langage'                     //285
+    );
 
-
-
-  EN: array[0..247]of string = (
-    'Observe the world',            // 0       00000
-    'the island awakens…',          // 1
-    'new world',                    // 2
-    'world saved',                  // 3
-    'world loaded',                 // 4
+  EN: array [0 .. 285] of string = ('Observe the world', // 0       00000
+    'the island awakens…', // 1
+    'new world', // 2
+    'world saved', // 3
+    'world loaded', // 4
     'OBSERVATION NOTEBOOK · DELPHI', // 5
-    'Populations',                  // 6
-    'Technologies',                 // 7
-    'Dynamics',                     // 8
-    'Evolution',                    // 9
-    'Emerging lexicon',             // 10
-    'People''s inventions',         // 11
-    'Specimen',                     // 12
-    'Commands',                     // 13
-    'Settings',                     // 14
-    'People''s annals',             // 15
-    'history has no objects yet…',  // 16
+    'Populations', // 6
+    'Technologies', // 7
+    'Dynamics', // 8
+    'Evolution', // 9
+    'Emerging lexicon', // 10
+    'People''s inventions', // 11
+    'Specimen', // 12
+    'Commands', // 13
+    'Settings', // 14
+    'People''s annals', // 15
+    'history has no objects yet…', // 16
     'the people''s history has not begun…', // 17
-    'entry:',                       // 18
-    'sheet',                        // 19
-    'flora',                        // 20
-    'cows',                   // 21
-    'wolfes',                    // 22
-    'sapiens',                      // 23
-    'fish',                         // 24
+    'entry:', // 18
+    'sheet', // 19
+    'flora', // 20
+    'cows', // 21
+    'wolfes', // 22
+    'sapiens', // 23
+    'fish', // 24
     'Fisher spiral — feather %d%%', // 25
-    'Fisher spiral — feather —',    // 26
+    'Fisher spiral — feather —', // 26
     'culture — average knowledge %d%%', // 27
-    'culture — average knowledge —',    // 28
+    'culture — average knowledge —', // 28
     'sailors — %d navigators · %d at sea', // 29
-    'unknown',                      // 30
-    'LOST',                         // 31
+    'unknown', // 30
+    'LOST', // 31
     'technologies %d/%d · people %d · inventions %d/%d', // 32
-    ' entered the next era',        // 33
-    'enter the next era',           // 34
-    'view',                         // 35
-    'seed',                         // 36
-    'herb',                         // 37
-    'pred',                         // 38
-    'sap',                          // 39
-    'Save',                         // 40
-    'Load',                         // 41
-    'New world',                    // 42
-    'help (F1)',                    // 43
-    'settings',                     // 44
-    'annals',                       // 45
-    'relief',                       // 46
-    'restore defaults',             // 47
-    'default settings',             // 48
-    'Brain',                        // 49
-    'roams',                        // 50
-    'grazing',                      // 51
-    'fleeing',                      // 52
-    'hidden',                       // 53
-    'grazing (herd)',               // 54
-    'harvesting',                   // 55
-    'exploring',                    // 56
-    'resting',                      // 57
+    ' entered the next era', // 33
+    'enter the next era', // 34
+    'view', // 35
+    'seed', // 36
+    'herb', // 37
+    'pred', // 38
+    'sap', // 39
+    'Save', // 40
+    'Load', // 41
+    'New world', // 42
+    'help (F1)', // 43
+    'settings', // 44
+    'annals', // 45
+    'relief', // 46
+    'restore defaults', // 47
+    'default settings', // 48
+    'Brain', // 49
+    'roams', // 50
+    'grazing', // 51
+    'fleeing', // 52
+    'hidden', // 53
+    'grazing (herd)', // 54
+    'harvesting', // 55
+    'exploring', // 56
+    'resting', // 57
     'click a specimen · the ocean is navigable', // 58
-    'click/drag to sow seeds',      // 59
-    'alarm call?',                  // 60
-    'food?',                        // 61
-    'social signal?',               // 62
-    'hears',                        // 63
-    'speed',                        // 64
-    'perception',                   // 65
-    'size',                         // 66
-    'knowledge',                    // 67
+    'click/drag to sow seeds', // 59
+    'alarm call?', // 60
+    'food?', // 61
+    'social signal?', // 62
+    'hears', // 63
+    'speed', // 64
+    'perception', // 65
+    'size', // 66
+    'knowledge', // 67
     'click to release a herbivore', // 68
-    'click to release a predator',  // 69
-    'click to wake a sapien',       // 70
-    'techs: ',                      // 71
-    'hunting',                      // 72
-    'No sapien selected.',          // 73
-    'Close this window, click a sapien with the "view" tool,',  // 74
-    'then reopen the brain from the notebook.',     // 75
-    'green = excitation · red = inhibition · dashed = direct path · 34 → 24 → 24 → 10',  // 76
-    'click: next sapiens · F7: back',               // 77
-    'energy',                       // 78
-    'no technologies yet',          // 79
-    'hears nothing',                // 80
-    'no specimen',                  // 81
-    'sapiens %d/%d · herbivores %d · predators %d · fish %d · flora %d',  // 82
-    'by ',                          // 83
-    '%s discovered fire',           // 84
-    '%s invented agriculture',      // 85
-    '%s invented stores',           // 86
-    '%s discovered herding',        // 87
-    '%s invented fishing',          // 88
-    '%s built the first canoe',     // 89
-    '%s invented writing',          // 90
-    '%s discovers fire',            // 91
-    '%s invents agriculture',       // 92
-    '%s invents stores',            // 93
-    '%s discovers herding',         // 94
-    '%s invents fishing',           // 95
-    '%s builds the first canoe',    // 96
-    '%s invents writing',           // 97
-    '%s passes away — %s, aged %d days',  // 98
-    'starvation',                   // 99
-    'old age',                      // 100
-    'devoured',                     // 101
-    'slain',                        // 102
-    'the knowledge of %s has been lost',  // 103
-    'the knowledge of %s is lost',  // 104
+    'click to release a predator', // 69
+    'click to wake a sapien', // 70
+    'techs: ', // 71
+    'hunting', // 72
+    'No sapien selected.', // 73
+    'Close this window, click a sapien with the "view" tool,', // 74
+    'then reopen the brain from the notebook.', // 75
+    'green = excitation · red = inhibition · dashed = direct path · 34 → 24 → 24 → 10',
+    // 76
+    'click: next sapiens · F7: back', // 77
+    'energy', // 78
+    'no technologies yet', // 79
+    'hears nothing', // 80
+    'no specimen', // 81
+    'sapiens %d/%d · herbivores %d · predators %d · fish %d · flora %d', // 82
+    'by ', // 83
+    '%s discovered fire', // 84
+    '%s invented agriculture', // 85
+    '%s invented stores', // 86
+    '%s discovered herding', // 87
+    '%s invented fishing', // 88
+    '%s built the first canoe', // 89
+    '%s invented writing', // 90
+    '%s discovers fire', // 91
+    '%s invents agriculture', // 92
+    '%s invents stores', // 93
+    '%s discovers herding', // 94
+    '%s invents fishing', // 95
+    '%s builds the first canoe', // 96
+    '%s invents writing', // 97
+    '%s passes away — %s, aged %d days', // 98
+    'starvation', // 99
+    'old age', // 100
+    'devoured', // 101
+    'slain', // 102
+    'the knowledge of %s has been lost', // 103
+    'the knowledge of %s is lost', // 104
     'the people settles at the camp', // 105
-    'the people''s first child is born: %s',  // 106
-    'generation %d is born — %s',   // 107
-    '%s tames %s',                  // 108
-    '%s has tamed %s',              // 109
-    '%s tames a wolf: the dog is born',  // 110
-    '%s has tamed a wolf — the first dog is born',  // 111
+    'the people''s first child is born: %s', // 106
+    'generation %d is born — %s', // 107
+    '%s tames %s', // 108
+    '%s has tamed %s', // 109
+    '%s tames a wolf: the dog is born', // 110
+    '%s has tamed a wolf — the first dog is born', // 111
     'the people counts %d sapiens', // 112
-    'immigrants have joined the island',  // 113
-    'immigrants reach the camp',    // 114
-    'a new era opens: %s',          // 115
-    'new era: %s',                  // 116
-    'the people enters era %d — %s',  // 117
-    '%s invents %s',                // 118
-    'cheat: era %d equipped · pop %d',  // 119
-    ' — READY (golden button)',     // 120
-    ' — content summit reached',    // 121
-    ' — incomplete',                // 122
-    'denied — Ctrl+Shift+B to see what''s missing',  // 123
-    'content summit reached — future eras await their content',  // 124
-    'era reached — content summit delivered',  // 125
-    'SIM %s (%s · age %d): %s',     // 126
-    'SIM: %s',                      // 127
-    'UI: %s',                       // 128
-    'load failed — unreadable file',  // 129
-    'incompatible version',         // 130
-    'invalid save file',            // 131
-    'no save file found',           // 132
-    'invalid number of %s: %d',     // 133
-    'corrupted data',               // 134
-    'the annals resume with the loaded world',  // 135
-    'english',                      // 136
-    'towards shepherd',             // 137
-    'hunting (predator)',           // 138
-    'stalking',                     // 139
-    'starving (stalking)',          // 140
-    'missed',                       // 141
-    'defending',                    // 142
-    'fishing',                      // 143
-    'building',                     // 144
-    'turned feral',                 // 145
-    'wandering',                    // 146
-    'following',                    // 147
-    'loafing',                      // 148
-    '%s''s dog',                     // 149
-    '%s grows — ten hearths gather: a town is born',  // 150
-    'the town of %s is born — %d hearths, day %d',    // 151
-    '%s becomes a city — %d hearths live behind its walls',  // 152
-    '%s is now a city (%d hearths)',                  // 153
-    '%s is proclaimed a city-state — %d hearths under its monument',  // 154
-    'the city-state of %s shines — %d hearths',       // 155
-     ' ',                                        //156
-    ' ',                                        //157
-    '%d families move to the cities',      // 158 — 1 arg (%d)
-    'the people turn urban',               // 159 — 0 arg
-    '%s is elected chief of %s',          // 160
-    '%s succeeds %s as chief of %s',       // 161
-    'sheep',                              // 162
-    'bears',                              // 163
-        'town',                               //164
-    'city',                               //165
-    'city-state',                         //166
-    'Record of %s',                       //167
-    'Rank: %s',                           //168
-    'Founded %d days ago',                //169
-    'Hearths: %d',                        //170
-    'Inhabitants: %d',                    //171
-    'Roads: %d',                          //172
-    'Chief: %s',                          //173
-    'None',                               //174
-    '%s defends the hamlet',              //175
-    'herbivore',                          //176
-    'predator',                           //177
-    'sheep',                              //178
-    'bear',                               //179
-    'herbivores',                         //180
-    'predators',                          //181
-    'sapiens (color = lineage)',           //182
-     'inv. fire',                          //183
-    'inv. agriculture',                   //184
-    'inv. stores',                        //185
-    'inv. herding',                       //186
-    'inv. fishing',                       //187
-    'inv. sailing',                       //188
-    'inv. writing',                       //189
-    'interval (days)',                    //190
-    'diffusion',                          //191
-    'people''s memory',                   //192
-    'mutations ×',                        //193
-    'immigrants',                         //194
-    'auto era',                           //195
-    'day length (s)',                     //196
-    'hut cap',                            //197
-    'dogs max',                           //198
-    'bears max',                          //199
-    'sheep max',                          //200
-    'town threshold (hearths)',           //201
-    'city threshold',                     //202
-    'city-state threshold',               //203
-    'town radius',                        //204
-    'hamlet: range',                      //205
-    'exodus: distance',                   //206
-    'exodus era 2',                       //207
-    'exodus era 3',                       //208
-    'exodus era 4',                       //209
-    'exodus era 5',                       //210
-    'exodus era 6',                       //211
-    'exodus era 7-8',                     //212
-    'roads: range',                       //213
-    'roads: speed',                       //214
-    'roads: cap',                         //215
-    'chief: techs ×',                     //216
-    'chief: inventions ×',                //217
-    'chief: culture ×',                   //218
-    'chief: wisdom ×',                    //219
-    'adulthood (age)',                    //220
-    'Discoveries',                        //221
-    'The world',                          //222
-    'Towns & roads',                      //223
-    'The chief',                          //224
-    'yes',                                //225
-    'no',                                 //226
-    'auto',                               //227
-    'manual',                             //228
-    'Restore defaults',                   //229
-    'Close',                              //230
-    'Microcosme — World settings',        //231
-    '%s names "%s" — %s',                 //232
-    'Microcosme — The people''s dictionary',   //233
-    'The people speaks %d words',              //234
-    'the language of the world — untranslated', //235
-    'the people has not yet spoken' ,           //236
-     'master volume',                      //237
-    'sapien voices',                      //238
-    'drums',                              //239
-    'waves and wind',                     //240
-    'fires',                              //241
-    'crickets',                           //242
-    'fanfares and bells',                  //243
-    '%s is no more',                      //244
-    'starting sapiens',                     //245
-    'final cities',                       //246
-    'The Three Cities'                    //247
-  );
- 
-
-
-
+    'immigrants have joined the island', // 113
+    'immigrants reach the camp', // 114
+    'a new era opens: %s', // 115
+    'new era: %s', // 116
+    'the people enters era %d — %s', // 117
+    '%s invents %s', // 118
+    'cheat: era %d equipped · pop %d', // 119
+    ' — READY (golden button)', // 120
+    ' — content summit reached', // 121
+    ' — incomplete', // 122
+    'denied — Ctrl+Shift+B to see what''s missing', // 123
+    'content summit reached — future eras await their content', // 124
+    'era reached — content summit delivered', // 125
+    'SIM %s (%s · age %d): %s', // 126
+    'SIM: %s', // 127
+    'UI: %s', // 128
+    'load failed — unreadable file', // 129
+    'incompatible version', // 130
+    'invalid save file', // 131
+    'no save file found', // 132
+    'invalid number of %s: %d', // 133
+    'corrupted data', // 134
+    'the annals resume with the loaded world', // 135
+    'english', // 136
+    'towards shepherd', // 137
+    'hunting (predator)', // 138
+    'stalking', // 139
+    'starving (stalking)', // 140
+    'missed', // 141
+    'defending', // 142
+    'fishing', // 143
+    'building', // 144
+    'turned feral', // 145
+    'wandering', // 146
+    'following', // 147
+    'loafing', // 148
+    '%s''s dog', // 149
+    '%s grows — ten hearths gather: a town is born', // 150
+    'the town of %s is born — %d hearths, day %d', // 151
+    '%s becomes a city — %d hearths live behind its walls', // 152
+    '%s is now a city (%d hearths)', // 153
+    '%s is proclaimed a city-state — %d hearths under its monument', // 154
+    'the city-state of %s shines — %d hearths', // 155
+    ' ', // 156
+    ' ', // 157
+    '%d families move to the cities', // 158 — 1 arg (%d)
+    'the people turn urban', // 159 — 0 arg
+    '%s is elected chief of %s', // 160
+    '%s succeeds %s as chief of %s', // 161
+    'sheep', // 162
+    'bears', // 163
+    'town', // 164
+    'city', // 165
+    'city-state', // 166
+    'Record of %s', // 167
+    'Rank: %s', // 168
+    'Founded %d days ago', // 169
+    'Hearths: %d', // 170
+    'Inhabitants: %d', // 171
+    'Roads: %d', // 172
+    'Chief: %s', // 173
+    'None', // 174
+    '%s defends the hamlet', // 175
+    'herbivore', // 176
+    'predator', // 177
+    'sheep', // 178
+    'bear', // 179
+    'herbivores', // 180
+    'predators', // 181
+    'sapiens (color = lineage)', // 182
+    'inv. fire', // 183
+    'inv. agriculture', // 184
+    'inv. stores', // 185
+    'inv. herding', // 186
+    'inv. fishing', // 187
+    'inv. sailing', // 188
+    'inv. writing', // 189
+    'interval (days)', // 190
+    'diffusion', // 191
+    'people''s memory', // 192
+    'mutations ×', // 193
+    'immigrants', // 194
+    'auto era', // 195
+    'day length (s)', // 196
+    'hut cap', // 197
+    'dogs max', // 198
+    'bears max', // 199
+    'sheep max', // 200
+    'town threshold (hearths)', // 201
+    'city threshold', // 202
+    'city-state threshold', // 203
+    'town radius', // 204
+    'hamlet: range', // 205
+    'exodus: distance', // 206
+    'exodus era 2', // 207
+    'exodus era 3', // 208
+    'exodus era 4', // 209
+    'exodus era 5', // 210
+    'exodus era 6', // 211
+    'exodus era 7-8', // 212
+    'roads: range', // 213
+    'roads: speed', // 214
+    'roads: cap', // 215
+    'chief: techs ×', // 216
+    'chief: inventions ×', // 217
+    'chief: culture ×', // 218
+    'chief: wisdom ×', // 219
+    'adulthood (age)', // 220
+    'Discoveries', // 221
+    'The world', // 222
+    'Towns & roads', // 223
+    'The chief', // 224
+    'yes', // 225
+    'no', // 226
+    'auto', // 227
+    'manual', // 228
+    'Restore defaults', // 229
+    'Close', // 230
+    'Microcosme — World settings', // 231
+    '%s names "%s" — %s', // 232
+    'Microcosme — The people''s dictionary', // 233
+    'The people speaks %d words', // 234
+    'the language of the world — untranslated', // 235
+    'the people has not yet spoken', // 236
+    'master volume', // 237
+    'sapien voices', // 238
+    'drums', // 239
+    'waves and wind', // 240
+    'fires', // 241
+    'crickets', // 242
+    'fanfares and bells', // 243
+    '%s is no more', // 244
+    'starting sapiens', // 245
+    'final cities', // 246
+    'The Three Cities', // 247
+    'The people''s knowledge', // 248
+    'subway: town level', // 249
+    'fridge: granary needed', // 250
+    'aspirin: culture needed', // 251
+    'lamp: darkness', // 252
+    'invention chance', // 253
+    'torch: darkness', // 254
+    'hide: darkness', // 255
+    'skewer: darkness', // 256
+    'candle: darkness', // 257
+    'compass: darkness', // 258
+    'parchment: darkness', // 259
+    'glasses: darkness', // 260
+    'violin: darkness', // 261
+    'theater: crowd', // 262
+    'violin: crowd', // 263
+    'radio: crowd', // 264
+    'drum: water range', // 265
+    'Inventions',    // 266
+    'brain: mutation',                    //267
+    'brain: jump',                        //268
+    'brain: voice (mutation)',            //269
+    'brain: voice jump',                  //270
+    'brain: mentorship',                  //271
+    'brain: glide',                       //272
+    'brain: knowledge gain',              //273
+    'memory: lifespan',                   //274
+    'memory: max memories',               //275
+    'Brain',                               //276
+    'wolf bite',                          //277
+    'bear bite',                          //278
+    'bite cooldown',                      //279
+    'breed: cows',                        //280
+    'breed: wolves',                      //281
+    'breed: bears',                       //282
+    'call: range',                        //283
+    'call: threshold',                    //284
+    'Fauna & language'                    //285
+    );
 
 function L(id: Integer): string;
 begin
-  if (id < 0) then Exit('');
+  if (id < 0) then
+    Exit('');
   case FLangue of
-    LANG_EN: if id <= High(EN) then Exit(EN[id]);
+    LANG_EN:
+      if id <= High(EN) then
+        Exit(EN[id]);
   else
-    if id <= High(FR) then Exit(FR[id]);
+    if id <= High(FR) then
+      Exit(FR[id]);
   end;
   Result := '?';
 end;
 
 function LangNom: string;
 begin
-  if FLangue = LANG_EN then Result := 'english' else Result := 'français';
+  if FLangue = LANG_EN then
+    Result := 'english'
+  else
+    Result := 'français';
 end;
 
 end.
