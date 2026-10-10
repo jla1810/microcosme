@@ -602,7 +602,7 @@ begin
   with FReg do
   begin
     Caption := L(231);
-    ClientWidth := 444;
+    ClientWidth := 600;
     ClientHeight := 560;
     Position := poScreenCenter;
     BorderStyle := bsSingle;

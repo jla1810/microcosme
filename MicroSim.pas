@@ -317,10 +317,9 @@ begin
   end
   else
     C.Cult := 0;
-  C.Trust := 0;
-  C.Dom := False;
-  C.HomeH := nil;
-  C.MilkCd := 0;
+    C.Trust := 0; C.Dom := False; C.HomeH := nil; C.MilkCd := 0;
+  if (Kind = 2) and (Parent <> nil) and (Parent.HomeH <> nil) then
+    C.HomeH := Parent.HomeH;    // ★l'enfant sapiens naît au foyer de ses parents
   C.CatchT := 0;
   SetLength(C.Mem, 0);
   if Kind = 2 then
@@ -1206,7 +1205,8 @@ begin
         H.Cult := False;
         H.Stock := 0;
         H.Ville := Cities[k]; // né citadin
-        Huts.Add(H);
+            C.HomeH := H;          // ★le bâtisseur emménage
+                    Huts.Add(H);
       end;
       Exit;
     end;
@@ -1243,6 +1243,7 @@ begin
     H.Cult := False;
     H.Stock := 0;
     H.Ville := nil;
+        C.HomeH := H;          // ★le bâtisseur emménage
     Huts.Add(H);
     Exit;
   end;
@@ -1256,6 +1257,7 @@ begin
   H.Cult := False;
   H.Stock := 0;
   H.Ville := nil;
+      C.HomeH := H;          // ★le bâtisseur emménage
   Huts.Add(H);
 end;
 
